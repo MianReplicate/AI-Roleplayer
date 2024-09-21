@@ -1,0 +1,6 @@
+discord.py-self
+groq
+SpeechRecognition
+pyaudio
+setuptools
+pyttsx3
