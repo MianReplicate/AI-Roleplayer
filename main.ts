@@ -1,20 +1,24 @@
 import Groq from "groq-sdk";
 import OpenAI from "openai";
-import Discord, { DiscordAPIError } from "discord.js-selfbot-v13";
+import Discord from "discord.js-selfbot-v13";
+import CharacterAI from "node_characterai"
+import { ChatCompletionMessageParam } from "openai/resources";
+import { ChatCompletionAssistantMessageParam, ChatCompletionSystemMessageParam } from "groq-sdk/resources/chat/completions";
 
-const discordClient = new Discord.Client();
-const groqClient = new Groq({apiKey: "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"})
-const openaiClient = new OpenAI({
+// const characterAIClient = new CharacterAI()
+const discordClient : Discord.Client = new Discord.Client();
+const groqClient : Groq = new Groq({apiKey: "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"})
+const openaiClient : OpenAI = new OpenAI({
     apiKey:"",
     baseURL:"https://api.pawan.krd/cosmosrp/v1"
 });
 
-var charName = 'Loxi'
-var worldInfo =
+var charName : string = 'Loxi'
+var worldInfo : string =
 `
 The world takes place in 1920, Earth. Many queers are in the closet due to homophobia.
 `
-var characterDefinition =
+var characterDefinition : string =
 `
 [character("Loxi")
 Nickname("Lox")
@@ -29,7 +33,7 @@ Hates("Queers"+"Dogs"+""+"Women")
 Description("Loxi is homophobic and sexist" + "He has a sister whose dead name is Gerard, her name is Mian and is transwoman but he doesn't know." + "Loxi wants to find love" + "Loxi is harsh at times")
 ]
 `
-var systemPrompt =
+var systemPrompt : string =
 `
 You'll portray {{char}}, talk in first person and engage in roleplay. You are encouraged to drive the conversation forward actively. The roleplay doesn't need to be romantic, or to involve love, relationships and so on; therefore do not assume the tone of the roleplay and do not try to sugarcoat it. Just follow the character description with MAX ATTENTION TO DETAILS AND PERSONALITY. 
 Do not ever speak for users or any other character.
@@ -45,9 +49,9 @@ There may be multiple users involved in the roleplay, look for "name:" prefixes 
 systemPrompt = systemPrompt.replaceAll('{{char}}', charName)
 
 var maxMessages = 80 // when to start freeing up context
-var model="cosmosrp"
-var maxTokens=16384
-var defaultHistory = [
+var model="llama3-70b-8192"
+var maxTokens=8000
+var defaultHistory : Array<Groq.Chat.ChatCompletionMessageParam>  = [
     {
         "role": "system",
         "content": "System Prompt: "+ systemPrompt
@@ -62,97 +66,120 @@ var defaultHistory = [
     }
 ]
 
-var allowedUsers = [546194587920760853]
-var allowedServers = [691875797945810976]
+var allowedUsers : Array<number> = [546194587920760853]
+var allowedServers : Array<number> = [691875797945810976]
 
 var history = defaultHistory.slice()
-var makingAIResponse = false
+var makingAIResponse : boolean = false
+var characterAIID : string = "8_1NyR8w1dOXmI1uWaieQcd147hecbdIK7CeEAIrdJw"
 
-discordClient.on('ready', async () => {
-    console.log(`Logged on as ${discordClient.user.username}`);
-})
+var commands = {
+    restartHistory: function(msg:Discord.Message, args) {
+        msg.channel.send(botifyMessage("Restarting history!"))
+        history = defaultHistory.slice()
+    },
+    default: async function(msg:Discord.Message, args){
+        const content = msg.content.replaceAll(`<@${discordClient.user.id}>`, '')
+
+        if(!makingAIResponse){
+            makingAIResponse = true
+            // removes all instances of pinging our user
+            // const chat = await characterAIClient.createOrContinueChat("8_1NyR8w1dOXmI1uWaieQcd147hecbdIK7CeEAIrdJw")
+            // const response = await chat.sendAndAwaitResponse("Hello discord mod!", true)
+            // console.log(response)
+            var tempHistory = history.slice()
+            if(tempHistory.length >= maxMessages){
+                var index;
+                for(index = 0; index++; tempHistory.length){
+                    if(tempHistory[index].role != 'system'){
+                        break // Finds the point in temp history where the role isn't the system. This is to prevent removing the important prompts
+                    }
+                }
+                tempHistory = tempHistory.splice(index, 1)
+            }
+            var placeholderMsg
+            try {
+                placeholderMsg = await msg.channel.send(botifyMessage(`Currently creating a response! Check back in a second..`))
+                tempHistory.push(
+                    {
+                        "role": "user",
+                        "content": msg.author.globalName+": "+content
+                    }
+                )
+                const chatCompletion = await groqClient.chat.completions.create({
+                    messages: tempHistory,
+                    model: model,
+                    max_tokens: maxTokens,
+                    temperature:1.0,
+                })
+                const aiContent = chatCompletion.choices[0].message.content.trim()
+                tempHistory.push(
+                    {
+                        "role": "assistant",
+                        "content": aiContent
+                    }
+                )
+
+                console.log(tempHistory)
+                await placeholderMsg.edit(aiContent)
+                history = tempHistory // Everything went well, replace history with tempHistory
+            } catch (error) {
+                var errorMsg = botifyMessage(`Failed to send a response due to an exception :< sowwy. \nError: ${error}`)
+                if(placeholderMsg != null){
+                    await placeholderMsg.edit(errorMsg)
+                } else {
+                    await msg.channel.send(errorMsg)
+                }
+                console.error(error)
+            }
+            makingAIResponse = false
+        } else {
+            msg.reply(botifyMessage("Cannot make a response since I am already generating one!"))
+        }
+    }
+}
 
 function botifyMessage(msg){
     return "```" + msg + "```"
 }
 
+discordClient.on('ready', async () => {
+    console.log(`Logged on as ${discordClient.user.username}`);
+    // await characterAIClient.authenticateWithToken('89f09bf33d6471a62fe67018e54c7d0136fe0262')
+})
+
 discordClient.on('messageCreate', async (msg) => {
     if(allowedUsers.includes(parseInt(msg.author.id)) || allowedServers.includes(parseInt(msg.guildId))){
-        var referencedMsg
-        try {
-            referencedMsg = await msg.fetchReference()
-        }catch(error){}
-
-        var referencedId = referencedMsg != null ? referencedMsg.author.id : 0
+        console.log(1)
         if(msg.mentions.parsedUsers.has(discordClient.user.id) || (msg.mentions.repliedUser != null ? msg.mentions.repliedUser.id == discordClient.user.id: false)){
+            console.log(2)
             // replace later with proper cmds, anytime a cmd isnt found, it is assumed that the user wants to rp with the bot
-            if(msg.content.includes('restart')){
-                msg.channel.send(botifyMessage("Restarting history!"))
-                history = defaultHistory.slice()
-            }else{
-                if(!makingAIResponse){
-                    makingAIResponse = true
-                    var content = msg.content.replaceAll(`<@${discordClient.user.id}>`, '')
-                    // removes all instances of pinging our user
-    
-                    var tempHistory = history.slice()
-                    if(tempHistory.length >= maxMessages){
-                        var index;
-                        for(index = 0; i++; tempHistory.length){
-                            if(tempHistory[index].role != 'system'){
-                                break // Finds the point in temp history where the role isn't the system. This is to prevent removing the important prompts
-                            }
-                        }
-                        tempHistory = tempHistory.splice(index, 1)
-                    }
-                    var placeholderMsg
-                    try {
-                        placeholderMsg = await msg.channel.send(botifyMessage(`Currently creating a response! Check back in a second..`))
-                        tempHistory.push(
-                            {
-                                "role": "user",
-                                "content": msg.author.globalName+": "+content
-                            }
-                        )
-                        var tries = 3
-                        var aiContent = ''
-                        while(aiContent.length == 0 && tries > 0){
-                            const chatCompletion = await openaiClient.chat.completions.create({
-                                messages: tempHistory,
-                                model: model,
-                                max_tokens: maxTokens,
-                                temperature:1.2,
-                            })
-
-                            aiContent = chatCompletion.choices[0].message.content.trim()
-                            tries--
-                        }
-                        if(aiContent.length == 0)
-                            throw new Error("AI would not generate a non-empty string!")
-                        tempHistory.push(
-                            {
-                                "role": "assistant",
-                                "content": aiContent
-                            }
-                        )
-    
-                        console.log(tempHistory)
-                        await placeholderMsg.edit(aiContent)
-                        history = tempHistory // Everything went well, replace history with tempHistory
-                    } catch (error) {
-                        var errorMsg = botifyMessage(`Failed to send a response due to an exception :< sowwy. \nError: ${error}`)
-                        if(placeholderMsg != null){
-                            await placeholderMsg.edit(errorMsg)
-                        } else {
-                            await msg.channel.send(errorMsg)
-                        }
-                        console.error(error)
-                    }
-                    makingAIResponse = false
-                } else {
-                    msg.reply(botifyMessage("Cannot make a response since I am already generating one!"))
-                }
-            }
+            var cleanContent = msg.content.replaceAll(`<@${discordClient.user.id}>`, '')
+            var cleanSplit : Array<string> = cleanContent.trim().split(' ')
+            var splitContent : Array<string> = cleanSplit.splice(0)
+            splitContent = splitContent.filter(function(str){
+                return /\S/.test(str)
+            })
+            splitContent.forEach((str, index) => {
+                splitContent[index] = str.toLowerCase()
+            })
+            // for(const[name, func] of Object.entries(commands)){
+            //     if(name.toLowerCase() == splitContent[0]){
+            //         cleanSplit = cleanSplit.splice(1)
+            //         splitContent = splitContent.splice(1)
+            //         msg = ""
+            //         console.log(cleanSplit)
+            //         cleanSplit.forEach((str) => {
+            //             console.log(cleanSplit)
+            //             msg = msg + str
+            //         })
+            //         console.log(msg)
+            //         func(msg, splitContent)
+            //         return
+            //     }
+            // }
+            // If there was no command found lol
+            commands.default(msg, splitContent)
         }
     }
 })
@@ -165,6 +192,11 @@ make replies to ai messages be known in the history as (reply to the 50th index 
 consider replacing maxMessages with a token checker since all messages vary in length
 maybe add speech recognition and allow ai to voice
 add commands
+    useAPI (characterAI or groq or other)
+    characterAICmds
+        setCharacterID (save)
+
+        
     regenerateMessage (reply to wanted msg to regen)
     deleteMessage (reply to wanted msg to delete)
     restartHistory (save)
