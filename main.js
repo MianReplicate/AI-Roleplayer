@@ -9,12 +9,12 @@ const openaiClient = new OpenAI({
     baseURL:"https://api.pawan.krd/cosmosrp/v1"
 });
 
-const charName = 'Loxi'
-const worldInfo =
+var charName = 'Loxi'
+var worldInfo =
 `
 The world takes place in 1920, Earth. Many queers are in the closet due to homophobia.
 `
-const characterDefinition =
+var characterDefinition =
 `
 [character("Loxi")
 Nickname("Lox")
@@ -44,10 +44,10 @@ There may be multiple users involved in the roleplay, look for "name:" prefixes 
 `
 systemPrompt = systemPrompt.replaceAll('{{char}}', charName)
 
-const maxMessages = 80 // when to start freeing up context
-const model="cosmosrp"
-const maxTokens=16384
-const defaultHistory = [
+var maxMessages = 80 // when to start freeing up context
+var model="cosmosrp"
+var maxTokens=16384
+var defaultHistory = [
     {
         "role": "system",
         "content": "System Prompt: "+ systemPrompt
@@ -62,10 +62,9 @@ const defaultHistory = [
     }
 ]
 
-const allowedUsers = [546194587920760853]
-const allowedServers = [691875797945810976]
+var allowedUsers = [546194587920760853]
+var allowedServers = [691875797945810976]
 
-var speaking = false
 var history = defaultHistory.slice()
 var makingAIResponse = false
 
@@ -76,7 +75,6 @@ discordClient.on('ready', async () => {
 function botifyMessage(msg){
     return "```" + msg + "```"
 }
-
 
 discordClient.on('messageCreate', async (msg) => {
     if(allowedUsers.includes(parseInt(msg.author.id)) || allowedServers.includes(parseInt(msg.guildId))){
@@ -165,5 +163,27 @@ TODO:
 consider putting tokens in system env rather than straight up in the code
 make replies to ai messages be known in the history as (reply to the 50th index of this history)
 consider replacing maxMessages with a token checker since all messages vary in length
+maybe add speech recognition and allow ai to voice
+add commands
+    regenerateMessage (reply to wanted msg to regen)
+    deleteMessage (reply to wanted msg to delete)
+    restartHistory (save)
+    setCharacterDefinition (save)
+    setSystemPrompt (save)
+    setHistory (save)
+    setWorldInfo (save)
+    setCharacterName (save)
+    setModel (save)
+    setMaxTokens (save)
+    setTemperature (save)
+    setMaxMessages (save)
+    setBaseURL (save)
+    setAdmins (arg: add/remove, save)
+    setUser (arg: add/remove, save)
+    setServer (arg: add/remove, save)
+    stopGeneration
 
+
+
+implement proper saving via json files
 */
