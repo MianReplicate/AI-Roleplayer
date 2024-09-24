@@ -1,0 +1,20 @@
+plugins {
+    id 'java-library'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(java_version)
+    }
+}
+
+repositories{
+    mavenCentral()
+}
+
+dependencies{
+    implementation("net.dv8tion:JDA:$jda_version")
+    implementation("io.github.sashirestela:simple-openai:$openai_version")
+}
+
+version=bot_version
