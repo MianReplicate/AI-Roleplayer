@@ -1,5 +1,7 @@
 plugins {
+    id 'com.gradleup.shadow' version '8.3.2'
     id 'java-library'
+    id 'java'
 }
 
 java {
@@ -16,6 +18,16 @@ repositories{
 dependencies{
     implementation("net.dv8tion:JDA:$jda_version")
     implementation("io.github.sashirestela:simple-openai:$openai_version")
+}
+
+jar {
+    manifest {
+        attributes(
+                "Class-Path": configurations.runtimeClasspath.collect { it.getName() }.join(' '),
+                'Main-Class': 'discord.mian.loxi.BotRunner'
+        )
+        dependsOn('dependencies')
+    }
 }
 
 version=bot_version
