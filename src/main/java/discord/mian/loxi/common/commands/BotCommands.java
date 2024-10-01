@@ -25,8 +25,8 @@ public class BotCommands {
         return new BotCommands(jda);
     }
 
-    public CommandListUpdateAction queueCommands(){
-        Constants.LOGGER.info("Queuing bot commands!");
+    public CommandListUpdateAction addCommands(){
+        Constants.LOGGER.info("Adding bot commands!");
         this.commands = List.of(
                 new NewChat(),
                 new RestartHistory(),

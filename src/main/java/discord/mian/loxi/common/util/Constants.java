@@ -12,10 +12,11 @@ public class Constants {
     public static final String GROQ_BASE_API = "https://api.groq.com/openai";
     public static final String LLAMA_MODEL = "llama3-70b-8192";
     public static final String COSMO_MODEL = "cosmosrp";
+    public static final String COSMO_BASE_API = "https://api.pawan.krd/cosmosrp";
     public static final List<String> ALLOWED_USER_IDS = List.of(
             "546194587920760853"
     );
     public static final List<String> ALLOWED_SERVERS = List.of(
-            "691875797945810976"
+            "1269814553353519115"
     );
 }

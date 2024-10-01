@@ -9,7 +9,7 @@ import java.util.Map;
 
 public class Instruction extends Prompt<Instruction.InstructionType> {
     public Instruction(Map<InstructionType, List<String>> typeMap) {
-        super(typeMap);
+        super("instruction_data",typeMap);
     }
 
     public ChatMessage.SystemMessage getPrompt(){
@@ -41,7 +41,7 @@ public class Instruction extends Prompt<Instruction.InstructionType> {
 
         return ChatMessage.SystemMessage.of(
                 content.toString(),
-                "instruction_data"
+                this.promptTypeName
         );
     }
 

@@ -14,7 +14,7 @@ public class RequeueCommands extends AbstractCommand {
     @Override
     public void execute(SlashCommandInteractionEvent event) {
         event.deferReply(true).setContent("Restarting commands!").and(
-                BotRunner.bot.getBotCommands().queueCommands()
+                BotRunner.bot.getBotCommands().addCommands()
         ).queue();
     }
 }

@@ -12,8 +12,10 @@ import net.dv8tion.jda.api.hooks.SubscribeEvent;
 import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import net.dv8tion.jda.api.utils.messages.MessageEditData;
-import org.jetbrains.annotations.NotNull;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 public class Listener {
@@ -53,13 +55,29 @@ public class Listener {
                                 Util.botifyMessage("Currently creating a response! Check back in a second..")
                         )
                 );
-                Consumer<Message> messageConsumer = (message) -> {
+                Consumer<Message> messageConsumer = message -> {
                     try{
                         String noMentionsContent = msg.getContentRaw().replaceAll("<@"+msg.getAuthor().getId()+">", "");
-                        String response = BotRunner.bot.getChat().sendAndGetResponse(msg.getAuthor().getEffectiveName(), noMentionsContent);
-                        message.editMessage(MessageEditData.fromContent(response)).queue();
+//                        String response = BotRunner.bot.getChat().sendAndGetResponse(msg.getAuthor().getEffectiveName(), noMentionsContent);
+//                        message.editMessage(MessageEditData.fromContent(response)).queue();
+                        AtomicBoolean queued = new AtomicBoolean(false);
+                        AtomicLong timeResponseMade = new AtomicLong(System.currentTimeMillis());
+                        double timeBetween = 1;
+
+                        String fullResponse = BotRunner.bot.getChat().sendAndStream(msg.getAuthor().getEffectiveName(), noMentionsContent,
+                                currentResponse -> {
+                            if(!queued.get() && System.currentTimeMillis() - timeResponseMade.get() >= timeBetween && !currentResponse.isBlank()){
+                                queued.set(true);
+                                Consumer<Message> onComplete = newMsg -> {
+                                    queued.set(false);
+                                    timeResponseMade.set(System.currentTimeMillis());
+                                };
+                                message.editMessage(MessageEditData.fromContent(Util.botifyMessage("Message is being streamed: Once the response is complete, this will be gone to let you know the message is done streaming")+"\n"+ currentResponse)).queue(onComplete);
+                            }
+                        });
+                        message.editMessage(MessageEditData.fromContent(fullResponse)).queue();
                     } catch (Exception e) {
-                        message.editMessage(MessageEditData.fromContent(Util.botifyMessage("Failed to send a response due to an exception :< sowwy. \nError: "+e)))
+                        message.editMessage(MessageEditData.fromContent(Util.botifyMessage("Failed to send a response due to an exception :< sowwy.\nError: "+e)))
                                 .queue();
                     }
                 };

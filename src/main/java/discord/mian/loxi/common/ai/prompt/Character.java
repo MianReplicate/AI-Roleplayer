@@ -8,7 +8,7 @@ import java.util.Map;
 
 public class Character extends Prompt<Character.CharacteristicType> {
     public Character(Map<CharacteristicType, List<String>> characteristicMap) {
-        super(characteristicMap);
+        super("character_data",characteristicMap);
     }
 
     public ChatMessage.SystemMessage getPrompt(){
@@ -25,7 +25,7 @@ public class Character extends Prompt<Character.CharacteristicType> {
         content.append("}");
         return ChatMessage.SystemMessage.of(
                 content.toString(),
-                "character_data"
+                this.promptTypeName
         );
     }
 
@@ -35,6 +35,7 @@ public class Character extends Prompt<Character.CharacteristicType> {
 
     public enum CharacteristicType implements Type {
         ALIASES("Aliases"),
+        BIRTHDAY("Birthday"),
         OCCUPATION("Occupation"),
         AGE("Age"),
         LIKES("Likes"),
@@ -43,7 +44,13 @@ public class Character extends Prompt<Character.CharacteristicType> {
         SEXUALITY("Sexuality"),
         APPEARANCE("Appearance"),
         BODY("Body"),
+        MIND("Mind"),
+        ATTRIBUTES("Attributes"),
         PERSONALITY("Personality"),
+        HABITS("Habits"),
+        BACKSTORY("Backstory"),
+        SPECIES("Species"),
+        HEIGHT("Height"),
         SKILLS("Skills");
 
         CharacteristicType(String name){
