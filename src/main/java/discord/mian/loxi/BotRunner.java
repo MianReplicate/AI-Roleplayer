@@ -13,9 +13,14 @@ public class BotRunner {
 
     public static void main(String[] args) {
         Constants.LOGGER.info("IT'S TIME TO ROLEPLAY KIDDOS");
-        bot = new Bot(JDABuilder.create(Constants.BOT_TOKEN, GatewayIntent.getIntents(GatewayIntent.ALL_INTENTS))
-                .setEventManager(new AnnotatedEventManager())
-                .addEventListeners(new Listener())
-                .build());
+        try{
+            bot = new Bot(JDABuilder.create(Constants.DISCORD_BOT_TOKEN, GatewayIntent.getIntents(GatewayIntent.ALL_INTENTS))
+                    .setEventManager(new AnnotatedEventManager())
+                    .addEventListeners(new Listener())
+                    .build());
+        }catch(Throwable t){
+            Constants.LOGGER.error("Failure during initialization", t);
+            throw t;
+        }
     }
 }

@@ -23,10 +23,8 @@ dependencies{
 jar {
     manifest {
         attributes(
-                "Class-Path": configurations.runtimeClasspath.collect { it.getName() }.join(' '),
                 'Main-Class': 'discord.mian.loxi.BotRunner'
         )
-        dependsOn('dependencies')
     }
 }
 
