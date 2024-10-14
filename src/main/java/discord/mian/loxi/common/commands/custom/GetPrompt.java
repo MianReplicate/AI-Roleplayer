@@ -1,6 +1,6 @@
 package discord.mian.loxi.common.commands.custom;
 
-import discord.mian.loxi.common.ai.prompt.PromptType;
+import discord.mian.loxi.server.ai.prompt.PromptType;
 import discord.mian.loxi.common.commands.AbstractCommand;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;

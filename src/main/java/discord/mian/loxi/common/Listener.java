@@ -38,7 +38,7 @@ public class Listener {
 
     @SubscribeEvent
     public void onMessageReceived(MessageReceivedEvent event) {
-        if((Constants.ALLOWED_USER_IDS.contains(event.getAuthor().getId()) || Constants.ALLOWED_SERVERS.contains(event.getGuild().getId()))){
+        if(Constants.ALLOWED_USER_IDS.contains(event.getAuthor().getId()) || Constants.ALLOWED_SERVERS.contains(event.getGuild().getId()) || Constants.PUBLIC){
             Message msg = event.getMessage();
             Mentions mentions = msg.getMentions();
             if(mentions.getUsers().stream().anyMatch(user -> user == BotRunner.bot.getUser())
@@ -59,6 +59,8 @@ public class Listener {
                         String noMentionsContent = msg.getContentRaw().replaceAll("<@"+msg.getAuthor().getId()+">", "");
 //                        String response = BotRunner.bot.getChat().sendAndGetResponse(msg.getAuthor().getEffectiveName(), noMentionsContent);
 //                        message.editMessage(MessageEditData.fromContent(response)).queue();
+
+                        // Bottom is streaming code. Add an option between streaming & non streaming later on.
                         AtomicBoolean queued = new AtomicBoolean(false);
                         AtomicLong timeResponseMade = new AtomicLong(System.currentTimeMillis());
                         double timeBetween = 1;
@@ -74,6 +76,8 @@ public class Listener {
                                 message.editMessage(MessageEditData.fromContent(Util.botifyMessage("Message is being streamed: Once the response is complete, this will be gone to let you know the message is done streaming")+"\n"+ currentResponse)).queue(onComplete);
                             }
                         });
+                        //
+
                         message.editMessage(MessageEditData.fromContent(fullResponse)).queue();
                     } catch (Exception e) {
                         message.editMessage(MessageEditData.fromContent(Util.botifyMessage("Failed to send a response due to an exception :< sowwy.\nError: "+e)))

@@ -1,7 +1,7 @@
-package discord.mian.loxi.common.ai;
+package discord.mian.loxi.server.ai;
 
-import discord.mian.loxi.common.ai.prompt.Prompt;
-import discord.mian.loxi.common.api.Type;
+import discord.mian.loxi.server.ai.prompt.Prompt;
+import discord.mian.loxi.server.api.Type;
 import discord.mian.loxi.common.util.Constants;
 
 import java.util.*;

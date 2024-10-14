@@ -1,11 +1,11 @@
 package discord.mian.loxi.common;
 
-import discord.mian.loxi.common.ai.Prompts;
-import discord.mian.loxi.common.ai.RoleplayChat;
-import discord.mian.loxi.common.ai.prompt.Character;
-import discord.mian.loxi.common.ai.prompt.Instruction;
-import discord.mian.loxi.common.api.AI;
-import discord.mian.loxi.common.api.BotChat;
+import discord.mian.loxi.server.ai.Prompts;
+import discord.mian.loxi.server.ai.RoleplayChat;
+import discord.mian.loxi.server.ai.prompt.Character;
+import discord.mian.loxi.server.ai.prompt.Instruction;
+import discord.mian.loxi.server.api.AI;
+import discord.mian.loxi.server.api.BotChat;
 import discord.mian.loxi.common.commands.BotCommands;
 import discord.mian.loxi.common.util.Constants;
 import net.dv8tion.jda.api.JDA;

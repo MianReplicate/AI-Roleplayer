@@ -9,6 +9,7 @@ public class Constants {
     public static final Logger LOGGER = LoggerFactory.getLogger("Loxi-AI");
     public static final String DISCORD_BOT_TOKEN = System.getenv("DISCORD_BOT_TOKEN");
     public static final String GROQ_TOKEN = System.getenv("GROQ_TOKEN");
+//    public static final String SPOTIFY_TOKEN
     public static final String GROQ_BASE_API = "https://api.groq.com/openai";
     public static final String LLAMA_MODEL = "llama3-70b-8192";
     public static final String COSMO_MODEL = "cosmosrp";
@@ -19,4 +20,5 @@ public class Constants {
     public static final List<String> ALLOWED_SERVERS = List.of(
             "1269814553353519115"
     );
+    public static final boolean PUBLIC = true;
 }

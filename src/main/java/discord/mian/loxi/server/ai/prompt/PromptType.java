@@ -1,4 +1,4 @@
-package discord.mian.loxi.common.ai.prompt;
+package discord.mian.loxi.server.ai.prompt;
 
 public enum PromptType {
     INSTRUCTION("Instruction"), CHARACTER("Character"), WORLD("World");

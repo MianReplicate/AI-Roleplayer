@@ -1,4 +1,4 @@
-package discord.mian.loxi.common.api;
+package discord.mian.loxi.server.api;
 
 public interface AI {
     BotChat getChat();

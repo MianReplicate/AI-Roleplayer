@@ -1,6 +1,6 @@
-package discord.mian.loxi.common.ai.prompt;
+package discord.mian.loxi.server.ai.prompt;
 
-import discord.mian.loxi.common.api.Type;
+import discord.mian.loxi.server.api.Type;
 import io.github.sashirestela.openai.domain.chat.ChatMessage;
 
 import java.util.List;

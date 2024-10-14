@@ -1,8 +1,8 @@
-package discord.mian.loxi.common.ai;
+package discord.mian.loxi.server.ai;
 
-import discord.mian.loxi.common.ai.prompt.*;
-import discord.mian.loxi.common.ai.prompt.Character;
-import discord.mian.loxi.common.api.BotChat;
+import discord.mian.loxi.server.ai.prompt.*;
+import discord.mian.loxi.server.ai.prompt.Character;
+import discord.mian.loxi.server.api.BotChat;
 import discord.mian.loxi.common.util.Constants;
 import io.github.sashirestela.openai.SimpleOpenAI;
 import io.github.sashirestela.openai.domain.chat.Chat;
@@ -11,9 +11,7 @@ import io.github.sashirestela.openai.domain.chat.ChatRequest;
 
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class RoleplayChat implements BotChat {

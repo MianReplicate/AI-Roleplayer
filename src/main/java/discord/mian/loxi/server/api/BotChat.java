@@ -1,11 +1,9 @@
-package discord.mian.loxi.common.api;
+package discord.mian.loxi.server.api;
 
 import io.github.sashirestela.openai.domain.chat.ChatMessage;
 
 import java.util.ArrayList;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Stream;
 
 public interface BotChat {
     String sendAndGetResponse(String name, String content);

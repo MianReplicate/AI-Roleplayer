@@ -7,7 +7,14 @@ import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.hooks.AnnotatedEventManager;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 
-// TODO: Remake all features from the original ai typescript branch into java branch. I LOVE JAVA :D
+//TODO:
+// Allow bot to play music from spotify & audio from YT
+// Add cmd to allow for role creating in a server which is assigned to users. Users can assign color and choose name
+// AI chatting should be specific to each server
+// Allow saving for AI chats
+// Add system prompt
+// Add option to add prompts via messages or use an interactive UI menu to add to each type
+
 public class BotRunner {
     public static Bot bot;
 
