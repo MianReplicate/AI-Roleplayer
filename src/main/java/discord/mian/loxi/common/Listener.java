@@ -82,6 +82,7 @@ public class Listener {
                     } catch (Exception e) {
                         message.editMessage(MessageEditData.fromContent(Util.botifyMessage("Failed to send a response due to an exception :< sowwy.\nError: "+e)))
                                 .queue();
+                        BotRunner.bot.getChat().responseFailed();
                     }
                 };
                 messageCreateData.queue(messageConsumer);

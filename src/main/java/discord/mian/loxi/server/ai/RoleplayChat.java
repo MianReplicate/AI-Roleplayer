@@ -43,8 +43,11 @@ public class RoleplayChat implements BotChat {
 //                    .c;
     }
 
-    @Override
-    public String sendAndGetResponse(String username, String content) {
+    public void responseFailed(){
+        this.makingResponse = false;
+    }
+
+    public void creatingResponse(String username, String content){
         if(makingResponse)
             throw new RuntimeException("Already generating a response!");
         this.limitHistory();
@@ -53,39 +56,42 @@ public class RoleplayChat implements BotChat {
         this.history.add(
                 ChatMessage.UserMessage.of(username+": "+content, username)
         );
-        ChatRequest chatRequest = ChatRequest.builder()
+    }
+
+    public void finishedResponse(String finalResponse){
+        this.history.add(
+                ChatMessage.AssistantMessage.of(finalResponse, this.character.getType(Character.CharacteristicType.ALIASES).getFirst())
+        );
+        this.makingResponse = false;
+    }
+
+    public ChatRequest createRequest(){
+        return ChatRequest.builder()
                 .maxTokens(this.maxTokens)
                 .model(this.model)
                 .messages(history)
                 .temperature(1.0)
                 .build();
+    }
+
+    @Override
+    public String sendAndGetResponse(String username, String content) {
+        this.creatingResponse(username, content);
+        ChatRequest chatRequest = createRequest();
         CompletableFuture<Chat> futureChat = this.openAI.chatCompletions()
                 .create(chatRequest);
         Chat chat = futureChat.join();
         String response = chat.firstContent();
 
-        this.history.add(
-                ChatMessage.AssistantMessage.of(response, this.character.getType(Character.CharacteristicType.ALIASES).getFirst())
-        );
-        this.makingResponse = false;
+        this.finishedResponse(response);
         return response;
     }
 
     @Override
     public String sendAndStream(String username, String content, Consumer<String> currentResponse){
-        if(makingResponse)
-            throw new RuntimeException("Already generating a response!");
-        this.makingResponse = true;
-        this.limitHistory();
-        this.history.add(
-                ChatMessage.UserMessage.of(username+": "+content, username)
-        );
-        ChatRequest chatRequest = ChatRequest.builder()
-                .maxTokens(this.maxTokens)
-                .model(this.model)
-                .messages(history)
-                .temperature(1.0)
-                .build();
+        this.creatingResponse(username, content);
+
+        ChatRequest chatRequest = createRequest();
         CompletableFuture<Stream<Chat>> futureChat = this.openAI.chatCompletions()
                 .createStream(chatRequest);
         Stream<Chat> chat = futureChat.join();
@@ -96,10 +102,7 @@ public class RoleplayChat implements BotChat {
                     fullResponseWrapper.fullResponse += partialResponse;
                     currentResponse.accept(fullResponseWrapper.fullResponse);
                 });
-        this.history.add(
-                ChatMessage.AssistantMessage.of(fullResponseWrapper.fullResponse, this.character.getType(Character.CharacteristicType.ALIASES).getFirst())
-        );
-        this.makingResponse = false;
+        this.finishedResponse(fullResponseWrapper.fullResponse);
         return fullResponseWrapper.fullResponse;
     }
 

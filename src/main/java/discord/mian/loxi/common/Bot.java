@@ -17,7 +17,7 @@ public class Bot implements AI {
     // Is meant for single-server usage
 
     private final JDA jda;
-    private BotChat chat;
+    private RoleplayChat chat;
     private final BotCommands botCommands;
     private final Prompts prompts;
 
@@ -87,7 +87,7 @@ public class Bot implements AI {
     }
 
     @Override
-    public BotChat getChat() {
+    public RoleplayChat getChat() {
         return this.chat;
     }
 
