@@ -26,7 +26,7 @@ public class RoleplayChat implements BotChat {
 //    private final WorldLore worldLore;
 
     private RoleplayChat(Builder builder){
-        this.openAI = SimpleOpenAI.builder().apiKey(Constants.GROQ_TOKEN).baseUrl(Constants.COSMO_BASE_API).build();
+        this.openAI = SimpleOpenAI.builder().apiKey(Constants.GROQ_TOKEN).baseUrl(Constants.GROQ_BASE_API).build();
         this.instructions = builder.instruction;
         this.character = builder.character;
         this.maxMessages = builder.maxMessages;
@@ -148,7 +148,7 @@ public class RoleplayChat implements BotChat {
         private final Character character;
         private int maxMessages = 70;
         private int maxTokens = 8192;
-        private String model = Constants.COSMO_MODEL;
+        private String model = Constants.LLAMA_MODEL;
 
         private Builder(Instruction instruction, Character character){
             this.instruction = instruction;
