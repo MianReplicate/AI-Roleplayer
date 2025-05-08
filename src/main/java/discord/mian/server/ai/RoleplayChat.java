@@ -1,8 +1,11 @@
 package discord.mian.server.ai;
 
+import com.knuddels.jtokkit.Encodings;
+import com.knuddels.jtokkit.api.Encoding;
+import com.knuddels.jtokkit.api.EncodingRegistry;
+import com.knuddels.jtokkit.api.EncodingType;
 import discord.mian.server.ai.prompt.Character;
 import discord.mian.server.ai.prompt.Instruction;
-import discord.mian.server.api.BotChat;
 import discord.mian.common.util.Constants;
 import io.github.sashirestela.openai.SimpleOpenAI;
 import io.github.sashirestela.openai.domain.chat.Chat;
@@ -10,40 +13,61 @@ import io.github.sashirestela.openai.domain.chat.ChatMessage;
 import io.github.sashirestela.openai.domain.chat.ChatRequest;
 
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-public class RoleplayChat implements BotChat {
-    private SimpleOpenAI openAI;
+public class RoleplayChat {
+    private SimpleOpenAI llm;
     private boolean makingResponse;
     private int maxMessages;
     private int maxTokens;
     private String model;
     private ArrayList<ChatMessage> history;
+    private final EncodingRegistry registry;
     private final Instruction instructions;
     private final Character character;
 //    private final WorldLore worldLore;
 
     private RoleplayChat(Builder builder){
-        this.openAI = SimpleOpenAI.builder()
-                .apiKey("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")
-                .baseUrl("https://openrouter.ai/api")
+        if(Constants.KEY == null || Constants.KEY.isEmpty())
+            throw new RuntimeException("No OpenRouter key set!");
+        this.llm = SimpleOpenAI.builder()
+                .apiKey(Constants.KEY)
+                .baseUrl(Constants.BASE_URL)
                 .build();
         this.instructions = builder.instruction;
         this.character = builder.character;
-        this.maxMessages = builder.maxMessages;
         this.maxTokens = builder.maxTokens;
         this.model = builder.model;
+        this.registry = Encodings.newDefaultEncodingRegistry();
         this.restartHistory();
 //        this.worldLore = worldLore;
     }
 
     public void limitHistory(){
-//        if(this.history.size() >= maxMessages)
-//            history.stream()
-//                    .filter(chatMessage -> chatMessage.getRole() != ChatMessage.ChatRole.SYSTEM)
-//                    .c;
+        Encoding enc = registry.getEncodingForModel(this.model.substring(this.model.indexOf("/")))
+                .orElse(registry.getEncoding(EncodingType.CL100K_BASE)); // Example for OpenAI models
+
+        int tokens = maxTokens;
+        while(tokens >= maxTokens){
+            StringBuilder combinedText = new StringBuilder();
+            for(ChatMessage msg : this.history){
+                if(msg instanceof ChatMessage.UserMessage message){
+                    combinedText.append(message.getContent());
+                } else if(msg instanceof ChatMessage.AssistantMessage message){
+                    combinedText.append(message.getContent());
+                } else if(msg instanceof ChatMessage.SystemMessage message){
+                    combinedText.append(message.getContent());
+                }
+            };
+
+            tokens = enc.countTokens(combinedText.toString());
+            if(tokens >= maxTokens)
+                history.remove(2); // the msg right after system and character
+        }
+        Constants.LOGGER.info(String.valueOf(tokens));
     }
 
     public void responseFailed(){
@@ -77,11 +101,19 @@ public class RoleplayChat implements BotChat {
                 .build();
     }
 
-    @Override
+    public String createResponse(String content){
+        ChatRequest chatRequest = createRequest();
+        CompletableFuture<Chat> futureChat = this.llm.chatCompletions()
+                .create(chatRequest);
+        Chat chat = futureChat.join();
+
+        return chat.firstContent();
+    }
+
     public String sendAndGetResponse(String username, String content) {
         this.creatingResponse(username, content);
         ChatRequest chatRequest = createRequest();
-        CompletableFuture<Chat> futureChat = this.openAI.chatCompletions()
+        CompletableFuture<Chat> futureChat = this.llm.chatCompletions()
                 .create(chatRequest);
         Chat chat = futureChat.join();
         String response = chat.firstContent();
@@ -90,11 +122,10 @@ public class RoleplayChat implements BotChat {
         return response;
     }
 
-    @Override
     public String sendAndStream(String username, String content, Consumer<String> currentResponse){
         this.creatingResponse(username, content);
         ChatRequest chatRequest = createRequest();
-        CompletableFuture<Stream<Chat>> futureChat = this.openAI.chatCompletions()
+        CompletableFuture<Stream<Chat>> futureChat = this.llm.chatCompletions()
                 .createStream(chatRequest);
         Stream<Chat> chat = futureChat.join();
         var fullResponseWrapper = new Object(){String fullResponse = "";};
@@ -108,17 +139,14 @@ public class RoleplayChat implements BotChat {
         return fullResponseWrapper.fullResponse;
     }
 
-    @Override
     public boolean isMakingResponse() {
         return this.makingResponse;
     }
 
-    @Override
     public ArrayList<ChatMessage> getHistory() {
         return this.history;
     }
 
-    @Override
     public void restartHistory(){
         history = new ArrayList<>();
         history.add(instructions.getPrompt());
@@ -126,19 +154,28 @@ public class RoleplayChat implements BotChat {
 //        history.add(worldLore.getPrompt());
     }
 
-    @Override
     public void setMaxMessages(int maxMessages){
         this.maxMessages = maxMessages;
     }
 
-    @Override
     public void setMaxTokens(int maxTokens){
         this.maxTokens = maxTokens;
     }
 
-    @Override
     public void setModel(String model){
         this.model = model;
+    }
+
+    public String getModel(){
+        return model;
+    }
+
+    public Character getCharacter(){
+        return character;
+    }
+
+    public Instruction getInstructions(){
+        return instructions;
     }
 
     public static Builder builder(Instruction instruction, Character character){
@@ -148,17 +185,12 @@ public class RoleplayChat implements BotChat {
     public static class Builder{
         private final Instruction instruction;
         private final Character character;
-        private int maxMessages = 70;
         private int maxTokens = 8192;
-        private String model = Constants.LLAMA_MODEL;
+        private String model = Constants.DEFAULT_MODEL;
 
         private Builder(Instruction instruction, Character character){
             this.instruction = instruction;
             this.character = character;
-        }
-
-        public void setMaxMessages(int maxMessages){
-            this.maxMessages = maxMessages;
         }
 
         public void setMaxTokens(int maxTokens){

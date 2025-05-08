@@ -65,50 +65,7 @@ public class Listener {
             Mentions mentions = msg.getMentions();
             if(mentions.getUsers().stream().anyMatch(user -> user == AIBot.bot.getJDA().getSelfUser())
                     || (msg.getReferencedMessage() != null && msg.getReferencedMessage().getAuthor() == AIBot.bot.getJDA().getSelfUser())){
-                if(AIBot.bot.getChat().isMakingResponse()) {
-                    msg.getChannel().sendMessage(MessageCreateData.fromContent(
-                            Util.botifyMessage("Cannot make a response since I am already generating one!")
-                    )).queue();
-                    return;
-                }
-                MessageCreateAction messageCreateData = msg.getChannel().sendMessage(
-                        MessageCreateData.fromContent(
-                                Util.botifyMessage("Currently creating a response! Check back in a second..")
-                        )
-                );
-                Consumer<Message> messageConsumer = message -> {
-                    try{
-                        String noMentionsContent = msg.getContentRaw().replaceAll("<@"+msg.getAuthor().getId()+">", "");
-//                        String response = AIBot.bot.getChat().sendAndGetResponse(msg.getAuthor().getEffectiveName(), noMentionsContent);
-//                        message.editMessage(MessageEditData.fromContent(response)).queue();
-
-                        // Bottom is streaming code. Add an option between streaming & non streaming later on.
-                        AtomicBoolean queued = new AtomicBoolean(false);
-                        AtomicLong timeResponseMade = new AtomicLong(System.currentTimeMillis());
-                        double timeBetween = 1;
-
-                        String fullResponse = AIBot.bot.getChat().sendAndStream(msg.getAuthor().getEffectiveName(), noMentionsContent,
-                                currentResponse -> {
-                                    if(!queued.get() && System.currentTimeMillis() - timeResponseMade.get() >= timeBetween && !currentResponse.isBlank()){
-                                        queued.set(true);
-                                        Consumer<Message> onComplete = newMsg -> {
-                                            queued.set(false);
-                                            timeResponseMade.set(System.currentTimeMillis());
-                                        };
-                                        message.editMessage(MessageEditData.fromContent(Util.botifyMessage("Message is being streamed: Once the response is complete, this will be gone to let you know the message is done streaming")+"\n"+ currentResponse)).queue(onComplete);
-                                    }
-                                });
-                        //
-
-//                        String fullResponse = "gay";
-                        message.editMessage(MessageEditData.fromContent(fullResponse)).queue();
-                    } catch (Exception e) {
-                        message.editMessage(MessageEditData.fromContent(Util.botifyMessage("Failed to send a response due to an exception :< sowwy.\nError: "+e)))
-                                .queue();
-                        AIBot.bot.getChat().responseFailed();
-                    }
-                };
-                messageCreateData.queue(messageConsumer);
+                AIBot.bot.userChatted(event.getMessage());
             }
         }
     }

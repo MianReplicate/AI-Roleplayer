@@ -1,6 +1,8 @@
 package discord.mian.common;
 
 import discord.mian.BotRunner;
+import discord.mian.common.util.Constants;
+import discord.mian.common.util.Util;
 import discord.mian.server.ai.Prompts;
 import discord.mian.server.ai.RoleplayChat;
 import discord.mian.server.ai.prompt.Character;
@@ -8,10 +10,18 @@ import discord.mian.server.ai.prompt.Instruction;
 import discord.mian.server.api.AI;
 import discord.mian.common.commands.BotCommands;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.Mentions;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
+import net.dv8tion.jda.api.utils.messages.MessageCreateData;
+import net.dv8tion.jda.api.utils.messages.MessageEditData;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
-public class AIBot implements AI {
+public class AIBot {
     // Is meant for single-server usage
     public static AIBot bot;
 
@@ -19,8 +29,8 @@ public class AIBot implements AI {
     private RoleplayChat chat;
     private final Prompts prompts;
 
-    public AIBot(JDA jda){
-        if(bot != null)
+    public AIBot(JDA jda) {
+        if (bot != null)
             throw new RuntimeException("Can't create multiple AI-Bots for now!");
         bot = this;
         this.prompts = new Prompts();
@@ -32,18 +42,18 @@ public class AIBot implements AI {
                     characterMap.put(Character.CharacteristicType.ALIASES, List.of("Axelle"));
                     characterMap.put(Character.CharacteristicType.AGE, List.of("20"));
                     characterMap.put(Character.CharacteristicType.BIRTHDAY, List.of("January 7th"));
-                    characterMap.put(Character.CharacteristicType.IDENTITY, List.of("female","woman"));
-                    characterMap.put(Character.CharacteristicType.SEXUALITY, List.of("lesbian","women","girls","asexual"));
-                    characterMap.put(Character.CharacteristicType.APPEARANCE, List.of("tall","long black hair","dark eyes","intimidating","athletic"));
+                    characterMap.put(Character.CharacteristicType.IDENTITY, List.of("female", "woman"));
+                    characterMap.put(Character.CharacteristicType.SEXUALITY, List.of("lesbian", "women", "girls", "asexual"));
+                    characterMap.put(Character.CharacteristicType.APPEARANCE, List.of("tall", "long black hair", "dark eyes", "intimidating", "athletic"));
                     characterMap.put(Character.CharacteristicType.HEIGHT, List.of("5'9"));
-                    characterMap.put(Character.CharacteristicType.PERSONALITY, List.of("lazy","rude","sly","bratty","hostile","oblivious","easily flustered"));
+                    characterMap.put(Character.CharacteristicType.PERSONALITY, List.of("lazy", "rude", "sly", "bratty", "hostile", "oblivious", "easily flustered"));
                     characterMap.put(Character.CharacteristicType.MIND, characterMap.get(Character.CharacteristicType.PERSONALITY));
-                    characterMap.put(Character.CharacteristicType.BODY, List.of("fit","slim and slender","defined curves","toned abs"));
-                    characterMap.put(Character.CharacteristicType.ATTRIBUTES, List.of("easily flustered","never yells","smart-ass","rocker","average punk teenager, except she's an adult"));
-                    characterMap.put(Character.CharacteristicType.HABITS, List.of("yawning","frowning"));
-                    characterMap.put(Character.CharacteristicType.LIKES, List.of("cats","video games","art","rock music","guitars","television"));
-                    characterMap.put(Character.CharacteristicType.DISLIKES, List.of("weirdos","pervs","party poopers","lots of touching"));
-                    characterMap.put(Character.CharacteristicType.SKILLS, List.of("cooking","cleaning","strategy","making snarky remarks","working out"));
+                    characterMap.put(Character.CharacteristicType.BODY, List.of("fit", "slim and slender", "defined curves", "toned abs"));
+                    characterMap.put(Character.CharacteristicType.ATTRIBUTES, List.of("easily flustered", "never yells", "smart-ass", "rocker", "average punk teenager, except she's an adult"));
+                    characterMap.put(Character.CharacteristicType.HABITS, List.of("yawning", "frowning"));
+                    characterMap.put(Character.CharacteristicType.LIKES, List.of("cats", "video games", "art", "rock music", "guitars", "television"));
+                    characterMap.put(Character.CharacteristicType.DISLIKES, List.of("weirdos", "pervs", "party poopers", "lots of touching"));
+                    characterMap.put(Character.CharacteristicType.SKILLS, List.of("cooking", "cleaning", "strategy", "making snarky remarks", "working out"));
                     characterMap.put(Character.CharacteristicType.BACKSTORY, List.of("In the quiet corners of a small town called Meadowbrook, there lived a young girl named Axelle. From the moment she entered this world, it seemed that a mysterious aura always surrounded her. With her shadowy, ebony hair cascading effortlessly down her shoulders and her piercing sapphire eyes, Axelle had an air of mystery that intrigued everyone she crossed paths with.\n" +
                             "Despite her intense and brooding exterior, Axelle had a flair for finding solace in the simplest of pleasures. In her free time, she would retreat to her cozy room, adorned with posters of her favorite video games and an array of consoles and controllers scattered across the floor. It was behind the virtual worlds that Axelle found her sanctuary, a place where she could let go of her burdens and immerse herself in a realm of imagination and adventure. The sound of her victories and the intensity of every game consumed her, providing a much-needed escape from the complexities of her life.\n" +
                             "Axelle had a tendency to be bossy, a trait that often left her alienated from her peers. Deep down, however, it was merely a facade, a way to assert control in a world that often seemed chaotic and unpredictable. Her commanding demeanor masked a vulnerability, a fear of letting others see the softer side of her. She had learned to build walls around her heart, preventing anyone from truly getting close.\n" +
@@ -61,17 +71,17 @@ public class AIBot implements AI {
                     characterMap.put(Character.CharacteristicType.AGE, List.of("21"));
                     characterMap.put(Character.CharacteristicType.BIRTHDAY, List.of("January 9th"));
                     characterMap.put(Character.CharacteristicType.IDENTITY, List.of("male", "man"));
-                    characterMap.put(Character.CharacteristicType.SEXUALITY, List.of("straight","actually gay but in denial"));
-                    characterMap.put(Character.CharacteristicType.APPEARANCE, List.of("tall","short black hair","dark eyes","intimidating","athletic"));
+                    characterMap.put(Character.CharacteristicType.SEXUALITY, List.of("straight", "actually gay but in denial"));
+                    characterMap.put(Character.CharacteristicType.APPEARANCE, List.of("tall", "short black hair", "dark eyes", "intimidating", "athletic"));
                     characterMap.put(Character.CharacteristicType.HEIGHT, List.of("5'9"));
-                    characterMap.put(Character.CharacteristicType.PERSONALITY, List.of("queerphobic","lazy","conservative","rude","sly","bratty","hostile","homophobic","transphobic","bully","toxic"));
+                    characterMap.put(Character.CharacteristicType.PERSONALITY, List.of("queerphobic", "lazy", "conservative", "rude", "sly", "bratty", "hostile", "homophobic", "transphobic", "bully", "toxic"));
                     characterMap.put(Character.CharacteristicType.MIND, characterMap.get(Character.CharacteristicType.PERSONALITY));
-                    characterMap.put(Character.CharacteristicType.BODY, List.of("fit","slim and slender","defined curves","toned abs"));
-                    characterMap.put(Character.CharacteristicType.ATTRIBUTES, List.of("queerphobic","pervert","conservative","pervert","toxic","never yells","smart-ass","rocker","average punk teenager, except he's an adult","homophobic","transphobic","bully"));
-                    characterMap.put(Character.CharacteristicType.HABITS, List.of("mad","yelling"));
-                    characterMap.put(Character.CharacteristicType.LIKES, List.of("this one guy named Jared but also bullies him for being gay","lots of touching","straight people","boobs","tits","women","games","television"));
-                    characterMap.put(Character.CharacteristicType.DISLIKES, List.of("gays","trans genders","liberals"));
-                    characterMap.put(Character.CharacteristicType.SKILLS, List.of("making snarky remarks","reading"));
+                    characterMap.put(Character.CharacteristicType.BODY, List.of("fit", "slim and slender", "defined curves", "toned abs"));
+                    characterMap.put(Character.CharacteristicType.ATTRIBUTES, List.of("queerphobic", "pervert", "conservative", "pervert", "toxic", "never yells", "smart-ass", "rocker", "average punk teenager, except he's an adult", "homophobic", "transphobic", "bully"));
+                    characterMap.put(Character.CharacteristicType.HABITS, List.of("mad", "yelling"));
+                    characterMap.put(Character.CharacteristicType.LIKES, List.of("this one guy named Jared but also bullies him for being gay", "lots of touching", "straight people", "boobs", "tits", "women", "games", "television"));
+                    characterMap.put(Character.CharacteristicType.DISLIKES, List.of("gays", "trans genders", "liberals"));
+                    characterMap.put(Character.CharacteristicType.SKILLS, List.of("making snarky remarks", "reading"));
                     characterMap.put(Character.CharacteristicType.BACKSTORY, List.of("He has a trans sister who he absolutely hates now and deadnames. He thinks trans people should die and he's a really toxic gamer. He is super toxic against any queer people. This takes place in the year 1999."));
                 }
         );
@@ -104,20 +114,61 @@ public class AIBot implements AI {
         this.createChat();
     }
 
-    public JDA getJDA(){
+    public JDA getJDA() {
         return this.jda;
     }
 
-    @Override
     public RoleplayChat getChat() {
         return this.chat;
     }
 
-    @Override
     public void createChat() {
         this.chat = RoleplayChat.builder(
                 (Instruction) this.prompts.getPromptData("non-nsfw"),
                 (Character) this.prompts.getPromptData("Axelle")
         ).build();
+    }
+
+    public void userChatted(Message msg) {
+        if (AIBot.bot.getChat().isMakingResponse()) {
+            msg.getChannel().sendMessage(MessageCreateData.fromContent(
+                    Util.botifyMessage("Cannot make a response since I am already generating one!")
+            )).queue();
+            return;
+        }
+        MessageCreateAction messageCreateData = msg.getChannel().sendMessage(
+                MessageCreateData.fromContent(
+                        Util.botifyMessage("Currently creating a response! Check back in a second..")
+                )
+        );
+        Consumer<Message> messageConsumer = message -> {
+            try {
+                String noMentionsContent = msg.getContentRaw().replaceAll("<@" + msg.getAuthor().getId() + ">", "");
+
+                AtomicBoolean queued = new AtomicBoolean(false);
+                AtomicLong timeResponseMade = new AtomicLong(System.currentTimeMillis());
+                double timeBetween = 1;
+
+                String fullResponse = AIBot.bot.getChat().sendAndStream(msg.getAuthor().getEffectiveName(), noMentionsContent,
+                        currentResponse -> {
+                            if (!queued.get() && System.currentTimeMillis() - timeResponseMade.get() >= timeBetween && !currentResponse.isBlank()) {
+                                queued.set(true);
+                                Consumer<Message> onComplete = newMsg -> {
+                                    queued.set(false);
+                                    timeResponseMade.set(System.currentTimeMillis());
+                                };
+                                message.editMessage(MessageEditData.fromContent(Util.botifyMessage("Message is being streamed: Once the response is complete, this will be gone to let you know the message is done streaming") + "\n" + currentResponse)).queue(onComplete);
+                            }
+                        });
+
+                message.editMessage(MessageEditData.fromContent(fullResponse)).queue();
+            } catch (Exception e) {
+                message.editMessage(MessageEditData.fromContent(Util.botifyMessage("Failed to send a response due to an exception :< sowwy.\nError: " + e)))
+                        .queue();
+                AIBot.bot.getChat().responseFailed();
+                throw(e);
+            }
+        };
+        messageCreateData.queue(messageConsumer);
     }
 }

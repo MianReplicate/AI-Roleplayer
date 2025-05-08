@@ -7,13 +7,10 @@ import java.util.List;
 
 public class Constants {
     public static final Logger LOGGER = LoggerFactory.getLogger("Loxi-AI");
-//    public static final String GROQ_TOKEN = System.getenv("GROQ_TOKEN");
-//    public static final String SPOTIFY_TOKEN
-//    public static final String GROQ_BASE_API = "https://api.groq.com/openai";
-//    public static final String LLAMA_MODEL = "llama3-70b-8192";
-public static final String LLAMA_MODEL = "meta-llama/llama-3.1-8b-instruct:free";
-//    public static final String COSMO_MODEL = "cosmosrp";
-//    public static final String COSMO_BASE_API = "https://api.pawan.krd/cosmosrp";
+    public static final String KEY = System.getenv("OPENROUTER_TOKEN");
+    public static final String BASE_URL = "https://openrouter.ai/api";
+    public static final String DEFAULT_MODEL = "google/gemini-2.0-flash-exp:free";
+
     public static final List<String> ALLOWED_USER_IDS = List.of(
             "546194587920760853"
     );

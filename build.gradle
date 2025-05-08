@@ -17,6 +17,7 @@ repositories{
 
 dependencies{
     implementation("net.dv8tion:JDA:$jda_version")
+    implementation("com.knuddels:jtokkit:$jtokkit_version")
     implementation("io.github.sashirestela:simple-openai:$openai_version")
     implementation("org.xerial:sqlite-jdbc:$sqllite_version")
     implementation("ch.qos.logback:logback-classic:$logback_version")

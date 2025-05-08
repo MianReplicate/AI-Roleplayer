@@ -2,9 +2,7 @@ package discord.mian.common.commands;
 
 import discord.mian.common.AIBot;
 import discord.mian.common.commands.api.CommandHandler;
-import discord.mian.common.commands.custom.GetPrompt;
-import discord.mian.common.commands.custom.Menu;
-import discord.mian.common.commands.custom.NewChat;
+import discord.mian.common.commands.custom.*;
 import discord.mian.common.util.Constants;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.GenericCommandInteractionEvent;
@@ -16,6 +14,8 @@ public class BotCommands {
     private static final List<CommandHandler> commands = List.of(
             new NewChat(),
             new GetPrompt(),
+            new ChangeModel(),
+            new Talk(),
             new Menu()
     );
 
