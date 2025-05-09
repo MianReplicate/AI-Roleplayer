@@ -1,9 +1,7 @@
 package discord.mian;
 
-import discord.mian.common.AIBot;
-import discord.mian.common.Cats;
-import discord.mian.common.Listener;
-import discord.mian.common.util.Constants;
+import discord.mian.custom.Cats;
+import discord.mian.custom.Constants;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.hooks.AnnotatedEventManager;
 import net.dv8tion.jda.api.requests.GatewayIntent;
@@ -13,15 +11,17 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 //TODO:
-// AI chatting should be specific to each server
+// (done? we need to save prompts on each server tho) AI chatting should be specific to each server
 // Allow saving for AI chats, characters, yk, yk
 // Add system prompt / introductions
 // Add option to add prompts via messages or use an interactive UI menu to add to each type
-// Add option to swipe on messages
+// (done) Add option to swipe on messages
 // GROUP CAHTSSS
 // (done) store messages as IDs, if users wanna delete bot/user messages, they can just delete it in discordd and it will reflect here auto
-// use webhooks for roleplaying the characters
+// (done, but we need pictures) use webhooks for roleplaying the characters
 // character names will be given eventually not through prompts (cuz prompts will become custom soon)
+// add ability to edit character messages
+// automatic character talking?
 
 public class BotRunner {
     public static void main(String[] args) throws InterruptedException {
