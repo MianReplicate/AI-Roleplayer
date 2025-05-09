@@ -34,7 +34,8 @@ public class Talk extends SlashCommand {
                             .findFirst();
                     if(message.isPresent()){
                         AIBot.bot.userChatted(message.get());
-                        event.getHook().editOriginal("Got your most recent message and sent it!").queue();
+                        String link = message.get().getJumpUrl();
+                        event.getHook().editOriginal("Got your most recent [message]("+link+") and sent it!").queue();
                         return true;
                     }
                 }

@@ -9,7 +9,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Random;
 
-public class Cat {
+public class Cats {
     private static byte[] file;
     private static boolean IsGif = false;
 

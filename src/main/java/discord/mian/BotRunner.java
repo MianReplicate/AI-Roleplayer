@@ -1,7 +1,7 @@
 package discord.mian;
 
 import discord.mian.common.AIBot;
-import discord.mian.common.Cat;
+import discord.mian.common.Cats;
 import discord.mian.common.Listener;
 import discord.mian.common.util.Constants;
 import net.dv8tion.jda.api.JDABuilder;
@@ -14,16 +14,17 @@ import java.util.concurrent.TimeUnit;
 
 //TODO:
 // AI chatting should be specific to each server
-// Allow saving for AI chats
+// Allow saving for AI chats, characters, yk, yk
 // Add system prompt / introductions
 // Add option to add prompts via messages or use an interactive UI menu to add to each type
 // Add option to swipe on messages
-// store messages as IDs, if users wanna delete bot/user messages, they can just delete it in discordd and it will reflect here auto
+// GROUP CAHTSSS
+// (done) store messages as IDs, if users wanna delete bot/user messages, they can just delete it in discordd and it will reflect here auto
 // use webhooks for roleplaying the characters
 // character names will be given eventually not through prompts (cuz prompts will become custom soon)
 
 public class BotRunner {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         String discord_bot_token = args[0];
 
         Constants.LOGGER.info("IT'S TIME TO ROLEPLAY KIDDOS");
@@ -37,10 +38,10 @@ public class BotRunner {
             throw t;
         }
 
-        Cat.create();
+        Cats.create();
         try (ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor()) {
             Constants.LOGGER.info("Set up randomizing cat every hour..");
-            scheduler.scheduleAtFixedRate(Cat::create, 0, 1, TimeUnit.HOURS);
+            scheduler.scheduleAtFixedRate(Cats::create, 0, 1, TimeUnit.HOURS);
         }
     }
 }

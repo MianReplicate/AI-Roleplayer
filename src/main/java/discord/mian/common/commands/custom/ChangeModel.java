@@ -30,7 +30,7 @@ public class ChangeModel extends SlashCommand {
     public boolean handle(SlashCommandInteractionEvent event) throws Exception {
         if(super.handle(event)){
             String model = event.getOption("model", OptionMapping::getAsString);
-            Consumer<InteractionHook> consumer = (interactionHook) -> AIBot.bot.getChat().setModel(model);
+            Consumer<InteractionHook> consumer = (interactionHook) -> AIBot.bot.getChat(event.getGuild()).setModel(model);
             ReplyCallbackAction reply = event.reply("Changed model!").setEphemeral(true);
             reply.queue(consumer);
 

@@ -1,9 +1,9 @@
 package discord.mian.server.api;
 
-import discord.mian.server.ai.RoleplayChat;
+import discord.mian.server.ai.DiscordRoleplay;
 
 public interface AI {
-    RoleplayChat getChat();
+    DiscordRoleplay getChat();
     void createChat();
 
 }

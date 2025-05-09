@@ -23,12 +23,12 @@ import java.util.function.Consumer;
 
 public class Listener {
     @SubscribeEvent
-    public void onSlashCommandInteraction(SlashCommandInteractionEvent event){
+    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) throws Exception {
         BotCommands.handleCommand(event);
     }
 
     @SubscribeEvent
-    public void onCommandAutoCompleteInteraction(CommandAutoCompleteInteractionEvent event){
+    public void onCommandAutoCompleteInteraction(CommandAutoCompleteInteractionEvent event) throws Exception{
         BotCommands.handleAutoComplete(event);
     }
 

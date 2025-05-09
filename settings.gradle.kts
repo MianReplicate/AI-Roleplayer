@@ -4,4 +4,4 @@ pluginManagement {
     }
 }
 
-rootProject.name = "Loxi-AI"
+rootProject.name = "AI-Roleplayer"

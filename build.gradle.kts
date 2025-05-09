@@ -1,0 +1,37 @@
+plugins {
+    application
+    id("com.gradleup.shadow") version "8.3.2"
+}
+
+application.mainClass = "discord.mian.BotRunner"
+group = "discord.mian"
+version = "0.2.0"
+
+repositories{
+    mavenLocal()
+    mavenCentral()
+}
+
+
+val jda_version: String by properties
+val sqlite_version: String by properties
+val jtokkit_version: String by properties
+val openai_version: String by properties
+val logback_version: String by properties
+
+dependencies{
+    implementation("net.dv8tion:JDA:$jda_version")
+    implementation("com.knuddels:jtokkit:$jtokkit_version")
+    implementation("io.github.sashirestela:simple-openai:$openai_version")
+    implementation("org.xerial:sqlite-jdbc:$sqlite_version")
+    implementation("ch.qos.logback:logback-classic:$logback_version")
+}
+
+tasks.withType<JavaCompile> {
+    options.encoding = "UTF-8"
+    options.isIncremental = true
+
+    // Set this to the version of java you want to use,
+    // the minimum required for JDA is 1.8
+    sourceCompatibility = "21"
+}

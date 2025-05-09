@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 public class Constants {
-    public static final Logger LOGGER = LoggerFactory.getLogger("Loxi-AI");
+    public static final Logger LOGGER = LoggerFactory.getLogger("AI Roleplayer");
     public static final String KEY = System.getenv("OPENROUTER_TOKEN");
     public static final String BASE_URL = "https://openrouter.ai/api";
     public static final String DEFAULT_MODEL = "google/gemini-2.0-flash-exp:free";

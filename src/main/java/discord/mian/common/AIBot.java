@@ -1,37 +1,40 @@
 package discord.mian.common;
 
-import discord.mian.BotRunner;
-import discord.mian.common.util.Constants;
 import discord.mian.common.util.Util;
 import discord.mian.server.ai.Prompts;
-import discord.mian.server.ai.RoleplayChat;
+import discord.mian.server.ai.DiscordRoleplay;
 import discord.mian.server.ai.prompt.Character;
 import discord.mian.server.ai.prompt.Instruction;
-import discord.mian.server.api.AI;
 import discord.mian.common.commands.BotCommands;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.Mentions;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import net.dv8tion.jda.api.utils.messages.MessageEditData;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 public class AIBot {
-    // Is meant for single-server usage
     public static AIBot bot;
 
     private final JDA jda;
-    private RoleplayChat chat;
+
+    private Map<Guild, DiscordRoleplay> chats;
+    // will handle all servers
+
     private final Prompts prompts;
 
-    public AIBot(JDA jda) {
+    public AIBot(JDA jda) throws InterruptedException {
         if (bot != null)
-            throw new RuntimeException("Can't create multiple AI-Bots for now!");
+            throw new RuntimeException("Can't create multiple AI-Bots!");
+        jda.awaitReady();
         bot = this;
         this.prompts = new Prompts();
 
@@ -95,6 +98,7 @@ public class AIBot {
                     instructionMap.put(Instruction.InstructionType.RULES,
                             List.of(
                                     "Remember that you are speaking in FIRST person!",
+                                    "Wrap dialogue around quotation marks. Actions should be italicized",
                                     "Do not ever speak for users or any other character.",
                                     "Ensure you are speaking for yourself and not another character. If the previous message is said from another character’s POV, DON’T speak from theirs. Speak from your CHARACTER’s POV. Ensure the names match.",
                                     "{{char}} must ALWAYS stay in character and react accordingly to the description.",
@@ -107,68 +111,39 @@ public class AIBot {
                                     "{{char}} should not be forceful with their approaches unless that is in their character definition. However, {{user}} has the highest level of authority and is allowed to demand that {{char}} does not do this if they say so."));
                 }
         );
-
+        this.chats = new HashMap<>();
         this.jda = jda;
 
         BotCommands.addCommands().queue();
-        this.createChat();
+
+        this.jda.getGuildCache().forEach(this::createChat);
     }
 
     public JDA getJDA() {
         return this.jda;
     }
 
-    public RoleplayChat getChat() {
-        return this.chat;
+    public DiscordRoleplay getChat(Guild guild) {
+        return this.chats.get(guild);
     }
 
-    public void createChat() {
-        this.chat = RoleplayChat.builder(
+    public void createChat(Guild guild) {
+        DiscordRoleplay chat = DiscordRoleplay.builder(
+                guild,
                 (Instruction) this.prompts.getPromptData("non-nsfw"),
                 (Character) this.prompts.getPromptData("Axelle")
         ).build();
+        this.chats.put(guild, chat);
+//        this.funnyMessage = chat.createCustomResponse("[System Command: Respond to the following message in 10 or less words]: \"Fuck you lol, what you gonna do\"");
     }
 
     public void userChatted(Message msg) {
-        if (AIBot.bot.getChat().isMakingResponse()) {
-            msg.getChannel().sendMessage(MessageCreateData.fromContent(
-                    Util.botifyMessage("Cannot make a response since I am already generating one!")
-            )).queue();
-            return;
-        }
-        MessageCreateAction messageCreateData = msg.getChannel().sendMessage(
-                MessageCreateData.fromContent(
-                        Util.botifyMessage("Currently creating a response! Check back in a second..")
-                )
-        );
-        Consumer<Message> messageConsumer = message -> {
-            try {
-                String noMentionsContent = msg.getContentRaw().replaceAll("<@" + msg.getAuthor().getId() + ">", "");
-
-                AtomicBoolean queued = new AtomicBoolean(false);
-                AtomicLong timeResponseMade = new AtomicLong(System.currentTimeMillis());
-                double timeBetween = 1;
-
-                String fullResponse = AIBot.bot.getChat().sendAndStream(msg.getAuthor().getEffectiveName(), noMentionsContent,
-                        currentResponse -> {
-                            if (!queued.get() && System.currentTimeMillis() - timeResponseMade.get() >= timeBetween && !currentResponse.isBlank()) {
-                                queued.set(true);
-                                Consumer<Message> onComplete = newMsg -> {
-                                    queued.set(false);
-                                    timeResponseMade.set(System.currentTimeMillis());
-                                };
-                                message.editMessage(MessageEditData.fromContent(Util.botifyMessage("Message is being streamed: Once the response is complete, this will be gone to let you know the message is done streaming") + "\n" + currentResponse)).queue(onComplete);
-                            }
-                        });
-
-                message.editMessage(MessageEditData.fromContent(fullResponse)).queue();
-            } catch (Exception e) {
-                message.editMessage(MessageEditData.fromContent(Util.botifyMessage("Failed to send a response due to an exception :< sowwy.\nError: " + e)))
-                        .queue();
-                AIBot.bot.getChat().responseFailed();
-                throw(e);
-            }
-        };
-        messageCreateData.queue(messageConsumer);
+        AIBot.bot.getChat(msg.getGuild()).sendDiscordMsgAndStream(msg);
     }
+
+//    public String getFunnyMessage(Guild guild){
+//        if(funnyMessage == null || funnyMessage.isEmpty())
+//            chats.get(guild).
+//        return funnyMessage;
+//    }
 }

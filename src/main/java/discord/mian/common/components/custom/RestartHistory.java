@@ -16,7 +16,7 @@ public class RestartHistory extends Component<ButtonInteractionEvent> {
     @Override
     public boolean handle(ButtonInteractionEvent event) throws Exception {
         if(super.handle(event)){
-            Consumer<InteractionHook> consumer = (interactionHook) -> AIBot.bot.getChat().restartHistory();
+            Consumer<InteractionHook> consumer = (interactionHook) -> AIBot.bot.getChat(event.getGuild()).restartHistory();
             ReplyCallbackAction reply = event.reply("Restarting history!");
             reply.queue(consumer);
 
