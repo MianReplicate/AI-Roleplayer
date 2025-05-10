@@ -10,6 +10,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.Base64;
@@ -37,8 +39,13 @@ public class Util {
 
     public static File getDataFolder(){
         File data = new File("data");
-        if(!data.exists())
+        if(!data.exists()) {
             data.mkdir();
+
+            new File("data\\defaults").mkdir();
+            new File("data\\defaults\\characters").mkdir();
+            new File("data\\defaults\\instructions").mkdir();
+        }
         return data;
     }
 
@@ -141,5 +148,21 @@ public class Util {
         Constants.LOGGER.info("Uploaded " + image.getName() + ": " + link);
 
         return link;
+    }
+
+    public static void copyDirectory(Path source, Path target) throws IOException {
+        // Walk the file tree starting from the source path
+        Files.walk(source).forEach(sourcePath -> {
+            try {
+                Path targetPath = target.resolve(source.relativize(sourcePath));
+                if (Files.isDirectory(sourcePath)) {
+                    Files.createDirectories(targetPath);
+                } else {
+                    Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+                }
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to copy: " + sourcePath, e);
+            }
+        });
     }
 }

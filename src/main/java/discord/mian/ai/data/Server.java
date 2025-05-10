@@ -20,8 +20,18 @@ public class Server {
 
     public File getServerData(){
         File serverFolder = Util.createFileRelativeToData(getServerPath());
-        if(!serverFolder.exists())
+        if(!serverFolder.exists()){
             serverFolder.mkdir();
+
+            // new server, let's add some data :D
+            File defaults = new File(Util.getDataFolder().getPath() + "\\defaults");
+            try{
+                Util.copyDirectory(defaults.toPath(), serverFolder.toPath());
+            }catch(Exception ignored){
+                // whoops, we tried :(
+                Constants.LOGGER.info("Failed to copy default files!");
+            }
+        }
 
         return serverFolder;
     }
