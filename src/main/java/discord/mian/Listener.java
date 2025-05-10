@@ -1,11 +1,15 @@
 package discord.mian;
 
+import discord.mian.ai.AIBot;
+import discord.mian.ai.data.CharacterData;
 import discord.mian.commands.BotCommands;
 import discord.mian.components.Component;
 import discord.mian.components.Components;
 import discord.mian.custom.Constants;
-import discord.mian.ai.prompt.Character;
+import discord.mian.modals.Modal;
+import discord.mian.modals.Modals;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -16,6 +20,25 @@ import net.dv8tion.jda.api.hooks.SubscribeEvent;
 import java.util.Optional;
 
 public class Listener {
+    @SubscribeEvent
+    public void onModalInteraction(ModalInteractionEvent event) throws Exception{
+        Optional<Modal> optional = Modals.modals.stream().filter(modal -> modal.id.equals(event.getModalId()))
+                .findFirst();
+
+        if(optional.isPresent()){
+            Modal modal = optional.get();
+            try{
+                modal.handle(event);
+            } catch (Exception e) {
+                event.getHook().retrieveOriginal().queue(
+                        message -> message.editMessage("An unexpected error occurred :<").queue(),
+                        failure -> event.reply("An unexpected error occurred :<").setEphemeral(true).queue()
+                );
+                throw(e);
+            };
+        }
+    }
+
     @SubscribeEvent
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) throws Exception {
         if(AIBot.bot.getChat(event.getGuild()) == null){
@@ -46,7 +69,7 @@ public class Listener {
             } catch (Exception e) {
                 event.getHook().retrieveOriginal().queue(
                         message -> message.editMessage("Failed to activate button :<").queue(),
-                        failure -> event.reply("Failed to activate button").setEphemeral(true).queue()
+                        failure -> event.reply("Failed to activate button :<").setEphemeral(true).queue()
                 );
                 throw(e);
             };
@@ -77,8 +100,8 @@ public class Listener {
         if(Constants.ALLOWED_USER_IDS.contains(event.getAuthor().getId()) || Constants.ALLOWED_SERVERS.contains(event.getGuild().getId()) || Constants.PUBLIC){
             Message msg = event.getMessage();
             if(msg.getReferencedMessage() != null && msg.getReferencedMessage().isWebhookMessage()){
-                Character character = (Character)
-                        AIBot.bot.getPrompts().getPromptData(msg.getReferencedMessage().getAuthor().getName());
+                CharacterData character =
+                        AIBot.bot.getServerData(event.getGuild()).getCharacterDatas().get(msg.getReferencedMessage().getAuthor().getName());
 
                 if(character == null || !AIBot.bot.getChat(event.getGuild()).getCharacters().containsKey(character.getName())){
                     return;

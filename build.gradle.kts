@@ -5,7 +5,7 @@ plugins {
 
 application.mainClass = "discord.mian.BotRunner"
 group = "discord.mian"
-version = "0.2.0"
+version = "1.0.0"
 
 repositories{
     mavenLocal()
@@ -14,6 +14,7 @@ repositories{
 
 
 val jda_version: String by properties
+val jackson_version: String by properties
 val sqlite_version: String by properties
 val jtokkit_version: String by properties
 val openai_version: String by properties
@@ -21,6 +22,7 @@ val logback_version: String by properties
 
 dependencies{
     implementation("net.dv8tion:JDA:$jda_version")
+    implementation("com.fasterxml.jackson.core:jackson-core:$jackson_version");
     implementation("com.knuddels:jtokkit:$jtokkit_version")
     implementation("io.github.sashirestela:simple-openai:$openai_version")
     implementation("org.xerial:sqlite-jdbc:$sqlite_version")

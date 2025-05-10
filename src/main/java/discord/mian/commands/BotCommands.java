@@ -1,6 +1,6 @@
 package discord.mian.commands;
 
-import discord.mian.AIBot;
+import discord.mian.ai.AIBot;
 import discord.mian.commands.api.CommandHandler;
 import discord.mian.commands.custom.*;
 import discord.mian.custom.Constants;
@@ -14,7 +14,6 @@ import java.util.Optional;
 public class BotCommands {
     private static final List<CommandHandler> commands = List.of(
             new NewChat(),
-            new GetPrompt(),
             new ChangeModel(),
             new Talk(),
             new Menu()

@@ -1,41 +1,40 @@
 package discord.mian;
 
+import discord.mian.ai.AIBot;
 import discord.mian.custom.Cats;
 import discord.mian.custom.Constants;
+import discord.mian.custom.Util;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.hooks.AnnotatedEventManager;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 
+import java.io.File;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 //TODO:
-// (done? we need to save prompts on each server tho) AI chatting should be specific to each server
-// Allow saving for AI chats, characters, yk, yk
-// Add system prompt / introductions
-// Add option to add prompts via messages or use an interactive UI menu to add to each type
-// (done) Add option to swipe on messages
-// GROUP CAHTSSS
-// (done) store messages as IDs, if users wanna delete bot/user messages, they can just delete it in discordd and it will reflect here auto
-// (done, but we need pictures) use webhooks for roleplaying the characters
-// character names will be given eventually not through prompts (cuz prompts will become custom soon)
-// add ability to edit character messages
+// adding/removing characters, instructions
 // automatic character talking?
 
 public class BotRunner {
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws Exception {
         String discord_bot_token = args[0];
 
         Constants.LOGGER.info("IT'S TIME TO ROLEPLAY KIDDOS");
+
+        File serverDatas = Util.createFileRelativeToData("servers");
+        if(!serverDatas.exists())
+            serverDatas.mkdir();
+
         try{
             new AIBot(JDABuilder.create(discord_bot_token, GatewayIntent.getIntents(GatewayIntent.ALL_INTENTS))
                     .setEventManager(new AnnotatedEventManager())
                     .addEventListeners(new Listener())
                     .build());
-        }catch(Throwable t){
-            Constants.LOGGER.error("Failure during initialization", t);
-            throw t;
+        }catch(Exception e){
+            Constants.LOGGER.error("Failure during initialization", e);
+            throw e;
         }
 
         Cats.create();

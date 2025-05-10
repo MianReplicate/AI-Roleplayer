@@ -1,6 +1,6 @@
 package discord.mian.components.custom;
 
-import discord.mian.AIBot;
+import discord.mian.ai.AIBot;
 import discord.mian.ai.DiscordRoleplay;
 import discord.mian.components.Component;
 import discord.mian.custom.Direction;
@@ -14,7 +14,7 @@ public class DirectionSwap extends Component<ButtonInteractionEvent> {
     @Override
     public boolean handle(ButtonInteractionEvent event) throws Exception {
         if(super.handle(event)){
-            event.deferReply().setEphemeral(true).queue();
+            event.deferEdit().queue();
 
             DiscordRoleplay roleplay = AIBot.bot.getChat(event.getGuild());
             if(roleplay.isRunningRoleplay()){

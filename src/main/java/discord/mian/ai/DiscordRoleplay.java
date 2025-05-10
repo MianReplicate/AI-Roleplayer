@@ -4,11 +4,10 @@ import com.knuddels.jtokkit.Encodings;
 import com.knuddels.jtokkit.api.Encoding;
 import com.knuddels.jtokkit.api.EncodingRegistry;
 import com.knuddels.jtokkit.api.EncodingType;
-import discord.mian.AIBot;
+import discord.mian.ai.data.CharacterData;
+import discord.mian.ai.data.InstructionData;
 import discord.mian.custom.Direction;
 import discord.mian.custom.Util;
-import discord.mian.ai.prompt.Character;
-import discord.mian.ai.prompt.Instruction;
 import discord.mian.custom.Constants;
 import io.github.sashirestela.openai.SimpleOpenAI;
 import io.github.sashirestela.openai.domain.chat.Chat;
@@ -18,12 +17,14 @@ import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.restaction.WebhookMessageCreateAction;
 import net.dv8tion.jda.api.utils.TimeUtil;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import net.dv8tion.jda.api.utils.messages.MessageEditData;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
@@ -59,20 +60,20 @@ public class DiscordRoleplay {
     private final EncodingRegistry registry;
 
     // make possible to swipe messages
-    private Instruction currentInstructions;
-    private HashMap<String, Character> characters;
-    private Character currentCharacter;
+    private InstructionData currentInstructions;
+    private HashMap<String, CharacterData> characters;
+    private CharacterData currentCharacter;
 //    private String funnyMessage;
 //    private final WorldLore worldLore;
     private boolean runningRoleplay = false;
 
     public DiscordRoleplay(Guild guild){
-        if(Constants.KEY == null || Constants.KEY.isEmpty())
+        if(Constants.LLM_KEY == null || Constants.LLM_KEY.isEmpty())
             throw new RuntimeException("No OpenRouter key set!");
 
         this.llm = SimpleOpenAI.builder()
                 .baseUrl(Constants.BASE_URL)
-                .apiKey(Constants.KEY)
+                .apiKey(Constants.LLM_KEY)
                 .build();
 
         this.maxTokens = 8192;
@@ -82,7 +83,7 @@ public class DiscordRoleplay {
         this.restartHistory();
     }
 
-    public void trimHistoryIfNeeded(Character character){
+    public void trimHistoryIfNeeded(CharacterData character){
         Encoding enc = registry.getEncodingForModel(this.model.substring(this.model.indexOf("/")))
                 .orElse(registry.getEncoding(EncodingType.CL100K_BASE));
 
@@ -121,7 +122,7 @@ public class DiscordRoleplay {
         }
     }
 
-    public void creatingResponseFromDiscordMessage(Character character){
+    public void creatingResponseFromDiscordMessage(CharacterData character){
         if(makingResponse)
             throw new RuntimeException("Already generating a response!");
         this.trimHistoryIfNeeded(character);
@@ -140,12 +141,13 @@ public class DiscordRoleplay {
                     .setActionRow(
                             Button.primary("back", "<--"),
                             Button.primary("next", "-->"),
-                            Button.danger("destroy", Emoji.fromFormatted("🗑")
+                            Button.danger("destroy", Emoji.fromFormatted("🗑")),
+                            Button.success("edit", Emoji.fromFormatted("🪄")
                             )).queue();
         }
     }
 
-    public ChatRequest createRequest(Character character){
+    public ChatRequest createRequest(CharacterData character){
         return ChatRequest.builder()
                 .maxCompletionTokens(this.maxTokens)
                 .model(this.model)
@@ -171,7 +173,7 @@ public class DiscordRoleplay {
         return chat.firstContent();
     }
 
-    private String generateResponse(Character character, Consumer<String> consumer){
+    private String generateResponse(CharacterData character, Consumer<String> consumer){
         ChatRequest chatRequest = createRequest(character);
         CompletableFuture<Stream<Chat>> futureChat = this.llm.chatCompletions()
                 .createStream(chatRequest);
@@ -187,7 +189,7 @@ public class DiscordRoleplay {
         return fullResponseWrapper.fullResponse;
     }
 
-    private String streamOnDiscordMessage(Character character, Message msgToEdit){
+    private String streamOnDiscordMessage(CharacterData character, Message msgToEdit){
         AtomicBoolean queued = new AtomicBoolean(false);
         AtomicLong timeResponseMade = new AtomicLong(System.currentTimeMillis());
         double timeBetween = 1;
@@ -235,7 +237,9 @@ public class DiscordRoleplay {
             if(latestAssistantMessage.getContentRaw().isEmpty())
                 latestAssistantMessage.delete().queue();
             else
-                latestAssistantMessage.editMessageComponents(List.of()).queue();
+                latestAssistantMessage.editMessageComponents(
+                        ActionRow.of(Button.danger("destroy", Emoji.fromFormatted("🗑")),
+                                Button.success("edit", Emoji.fromFormatted("🪄")))).queue();
             latestAssistantMessage = null;
             swipes = null;
             currentSwipe = 0;
@@ -243,9 +247,15 @@ public class DiscordRoleplay {
         this.creatingResponseFromDiscordMessage(currentCharacter);
         this.history.add(userMsg.getIdLong());
 
+        String avatarLink = currentCharacter.getAvatarLink();
+
         WebhookMessageCreateAction<Message> messageCreateData = webhook.sendMessage(
                 Util.botifyMessage("Currently creating a response! Check back in a second.."))
                 .setUsername(currentCharacter.getName());
+
+        if(avatarLink != null){
+            messageCreateData = messageCreateData.setAvatarUrl(avatarLink);
+        }
 
         messageCreateData.queue(aiMsg -> {
             try {
@@ -282,7 +292,7 @@ public class DiscordRoleplay {
                                 .queue();
                         return false;
                     }
-                    Character character = characters.get(latestAssistantMessage.getAuthor().getName());
+                    CharacterData character = characters.get(latestAssistantMessage.getAuthor().getName());
                     this.creatingResponseFromDiscordMessage(character);
 
                     String finalResponse;
@@ -319,7 +329,7 @@ public class DiscordRoleplay {
         return runningRoleplay;
     }
 
-    public ArrayList<ChatMessage> getHistoryConverted(Character character){
+    public ArrayList<ChatMessage> getHistoryConverted(CharacterData character){
         ArrayList<ChatMessage> messages = new ArrayList<>();
 
         messages.add(currentInstructions.getPrompt());
@@ -376,7 +386,10 @@ public class DiscordRoleplay {
         return messages;
     }
 
-    public void startRoleplay(TextChannel channel, Instruction instructions, List<Character> characterList) throws ExecutionException, InterruptedException, IOException {
+    public void startRoleplay(TextChannel channel, InstructionData instructions, List<CharacterData> characterList) throws ExecutionException, InterruptedException, IOException {
+        if(instructions == null)
+            throw new RuntimeException("No instructions given!");
+
         this.channel = channel;
 
         Webhook webhook;
@@ -419,11 +432,11 @@ public class DiscordRoleplay {
         return model;
     }
 
-    public HashMap<String, Character> getCharacters() {
+    public HashMap<String, CharacterData> getCharacters() {
         return characters;
     }
 
-    public Character getCurrentCharacter(){
+    public CharacterData getCurrentCharacter(){
         return currentCharacter;
     }
 
@@ -435,13 +448,13 @@ public class DiscordRoleplay {
         currentCharacter = characters.get(name);
     }
 
-    public void addCharacter(Character character){
+    public void addCharacter(CharacterData character){
         characters.putIfAbsent(character.getName(), character);
         if(currentCharacter == null)
             currentCharacter = character;
     }
 
-    public void setCurrentInstructions(Instruction currentInstructions){
+    public void setCurrentInstructions(InstructionData currentInstructions){
         this.currentInstructions = currentInstructions;
     }
 }

@@ -1,6 +1,6 @@
 package discord.mian.commands.custom;
 
-import discord.mian.AIBot;
+import discord.mian.ai.AIBot;
 import discord.mian.commands.SlashCommand;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
