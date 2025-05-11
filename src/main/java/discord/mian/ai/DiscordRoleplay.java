@@ -246,7 +246,12 @@ public class DiscordRoleplay {
         this.creatingResponseFromDiscordMessage(currentCharacter);
         this.history.add(userMsg.getIdLong());
 
-        String avatarLink = currentCharacter.getAvatarLink();
+        String avatarLink = null;
+        try{
+            avatarLink = currentCharacter.getAvatarLink();
+        } catch (Exception ignored) {
+
+        }
 
         WebhookMessageCreateAction<Message> messageCreateData = webhook.sendMessage(
                 Util.botifyMessage("Currently creating a response! Check back in a second.."))

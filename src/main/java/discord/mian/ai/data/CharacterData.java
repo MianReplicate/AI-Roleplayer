@@ -46,14 +46,15 @@ public class CharacterData implements Data, Chattable {
                     link = map.get("avatar_link");
 
                     if(link != null && !link.isEmpty()){
-                        HttpClient httpClient = HttpClient.newHttpClient();
-                        HttpRequest request = HttpRequest
-                                .newBuilder(URI.create(link))
-                                .method("HEAD", HttpRequest.BodyPublishers.noBody())
-                                .timeout(Duration.ofSeconds(5)) // wait 5 seconds and if it doesn't work, fuck it
-                                .build();
-                        int statusCode = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream()).statusCode();
-                        if(statusCode >= 200 && statusCode < 400)
+                        // if the link breaks, users can manually fix it by adding a new avatar
+//                        HttpClient httpClient = HttpClient.newHttpClient();
+//                        HttpRequest request = HttpRequest
+//                                .newBuilder(URI.create(link))
+//                                .method("HEAD", HttpRequest.BodyPublishers.noBody())
+//                                .timeout(Duration.ofSeconds(5)) // wait 5 seconds and if it doesn't work, fuck it
+//                                .build();
+//                        int statusCode = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream()).statusCode();
+//                        if(statusCode >= 200 && statusCode < 400)
                             success = true;
                         Constants.LOGGER.info("Found avatar link for " + getName());
                     }
