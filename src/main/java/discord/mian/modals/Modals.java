@@ -1,11 +1,13 @@
 package discord.mian.modals;
 
-import discord.mian.modals.custom.Edit;
+import discord.mian.modals.custom.EditMsg;
+import discord.mian.modals.custom.PromptEditor;
 
 import java.util.List;
 
 public class Modals {
     public static final List<Modal> modals = List.of(
-            new Edit()
+            new EditMsg(),
+            new PromptEditor()
     );
 }

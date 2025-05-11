@@ -3,8 +3,8 @@ package discord.mian.modals.custom;
 import discord.mian.modals.Modal;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 
-public class Edit extends Modal {
-    public Edit(){
+public class EditMsg extends Modal {
+    public EditMsg(){
         super("edit");
     }
 

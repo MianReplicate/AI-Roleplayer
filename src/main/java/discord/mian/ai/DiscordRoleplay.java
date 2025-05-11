@@ -24,7 +24,6 @@ import net.dv8tion.jda.api.utils.TimeUtil;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import net.dv8tion.jda.api.utils.messages.MessageEditData;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
@@ -60,7 +59,7 @@ public class DiscordRoleplay {
     private final EncodingRegistry registry;
 
     // make possible to swipe messages
-    private InstructionData currentInstructions;
+    private ArrayList<InstructionData> instructions;
     private HashMap<String, CharacterData> characters;
     private CharacterData currentCharacter;
 //    private String funnyMessage;
@@ -84,7 +83,7 @@ public class DiscordRoleplay {
     }
 
     public void trimHistoryIfNeeded(CharacterData character){
-        Encoding enc = registry.getEncodingForModel(this.model.substring(this.model.indexOf("/")))
+        Encoding enc = registry.getEncodingForModel(this.model.substring(this.model.lastIndexOf("/")))
                 .orElse(registry.getEncoding(EncodingType.CL100K_BASE));
 
         StringBuilder combinedText = new StringBuilder();
@@ -139,8 +138,8 @@ public class DiscordRoleplay {
         if(latestAssistantMessage != null && finalResponse != null){
             latestAssistantMessage.editMessage(finalResponse)
                     .setActionRow(
-                            Button.primary("back", "<--"),
-                            Button.primary("next", "-->"),
+                            Button.primary("back_swipe", "<--"),
+                            Button.primary("next_swipe", "-->"),
                             Button.danger("destroy", Emoji.fromFormatted("🗑")),
                             Button.success("edit", Emoji.fromFormatted("🪄")
                             )).queue();
@@ -332,8 +331,12 @@ public class DiscordRoleplay {
     public ArrayList<ChatMessage> getHistoryConverted(CharacterData character){
         ArrayList<ChatMessage> messages = new ArrayList<>();
 
-        messages.add(currentInstructions.getPrompt());
-        messages.add(character.getPrompt());
+        messages.add(ChatMessage.SystemMessage.of("<INSTRUCTIONS>\nFollow the instructions below! You are the Game Master and will follow these rules!", "INSTRUCTIONS"));
+        for(InstructionData instructionData : instructions){
+            messages.add(instructionData.getChatMessage(character));
+        }
+        messages.add(ChatMessage.SystemMessage.of("<CHARACTER>\nUnderstand the character definition below! This is the character you will be playing in the roleplay.", "CHARACTER"));
+        messages.add(character.getChatMessage(character));
 
         if(!history.isEmpty()){
             Message firstMsg = null;
@@ -388,7 +391,7 @@ public class DiscordRoleplay {
 
     public void startRoleplay(TextChannel channel, InstructionData instructions, List<CharacterData> characterList) throws ExecutionException, InterruptedException, IOException {
         if(instructions == null)
-            throw new RuntimeException("No instructions given!");
+            throw new RuntimeException("No initial instructions given!");
 
         this.channel = channel;
 
@@ -406,8 +409,9 @@ public class DiscordRoleplay {
         restartHistory();
         characters = new HashMap<>();
         characterList.forEach(this::addCharacter);
+        this.instructions = new ArrayList<>();
 
-        setCurrentInstructions(instructions);
+        addInstructions(instructions);
         Stream<String> stream = characters.keySet().stream();
         stream.findAny().ifPresent(this::setCurrentCharacter);
     }
@@ -454,7 +458,7 @@ public class DiscordRoleplay {
             currentCharacter = character;
     }
 
-    public void setCurrentInstructions(InstructionData currentInstructions){
-        this.currentInstructions = currentInstructions;
+    public void addInstructions(InstructionData instructionData){
+        this.instructions.add(instructionData);
     }
 }

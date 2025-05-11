@@ -7,12 +7,17 @@ import java.util.List;
 public class Components {
     public static final List<Component> components = List.of(
             new NewRoleplay(),
-            new DirectionSwap("back"),
-            new DirectionSwap("next"),
+            new Swipe("back"),
+            new Swipe("next"),
+            new PromptSwipe("back"),
+            new PromptSwipe("next"),
             new Destroy(),
-            new Edit(),
+            new EditMessage(),
             new ViewInstalledDatas("characters"),
-            new ViewInstalledDatas("introductions"),
-            new ViewMenu()
+            new ViewInstalledDatas("instructions"),
+            new ViewMenu(),
+            new EditPrompt(),
+            new CreatePrompt(),
+            new DeletePrompt()
     );
 }

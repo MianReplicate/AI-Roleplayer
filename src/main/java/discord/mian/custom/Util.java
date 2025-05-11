@@ -3,22 +3,25 @@ package discord.mian.custom;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import javax.imageio.ImageIO;
 import java.io.*;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 public class Util {
+    public static final List<String> imageExtensions = List.of(".jpg", ".jpeg", ".png", ".gif", ".webp");
+
     public static String botifyMessage(String string){
         return "```" + string + "```";
     }
@@ -41,11 +44,35 @@ public class Util {
         File data = new File("data");
         if(!data.exists()) {
             data.mkdir();
-
-            new File("data\\defaults").mkdir();
-            new File("data\\defaults\\characters").mkdir();
-            new File("data\\defaults\\instructions").mkdir();
         }
+
+        // ensures there's a default folder
+        File defaultFolder = new File("data\\defaults");
+        if(!new File("data\\defaults").exists()){
+            try (InputStream in = Util.class.getClassLoader().getResourceAsStream("defaults.zip")) {
+                assert in != null;
+                ZipInputStream zip = new ZipInputStream(in);
+                ZipEntry entry;
+
+                while ((entry = zip.getNextEntry()) != null) {
+                    // entry.getName() is a path
+                    Path outPath = defaultFolder.toPath().resolve(entry.getName());
+
+                    // creates directory if entry is a directory
+                    if (entry.isDirectory()) {
+                        Files.createDirectories(outPath);
+                    } else {
+                        // creates directory for file and then copies the file
+                        Files.createDirectories(outPath.getParent());
+                        Files.copy(zip, outPath, StandardCopyOption.REPLACE_EXISTING);
+                    }
+                    zip.closeEntry();
+                }
+            } catch (IOException ignored) {
+                Constants.LOGGER.info("Failed to create default folder!");
+            }
+        }
+
         return data;
     }
 
@@ -70,16 +97,14 @@ public class Util {
         return Files.readAllBytes(randomImage.toPath());
     }
 
-    public static boolean isValidImage(File image){
-        List<String> extensions = List.of(".jpg", ".jpeg", ".png", ".gif", ".webp");
-
+    public static boolean isValidImage(File image) throws IOException {
         if(!image.exists())
             return false;
 
         String name = image.getName();
-        String extension = name.substring(name.indexOf("."));
+        String extension = name.substring(name.lastIndexOf("."));
 
-        return extensions.contains(extension);
+        return imageExtensions.contains(extension) && ImageIO.read(image) != null;
     }
 
     public static String uploadImageToImgur(File image) throws IOException, InterruptedException {

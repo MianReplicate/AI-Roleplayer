@@ -14,8 +14,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 //TODO:
-// adding/removing characters, instructions
 // automatic character talking?
+// rework new roleplay to allow you to add characters and instructions via prompt options :D
+// Allow the use of multiple instructions (allow putting them in a specific order)
+// ability to set keys
+// maybe ability to save chat history i dunno
+// permissions
 
 public class BotRunner {
     public static void main(String[] args) throws Exception {

@@ -82,11 +82,9 @@ public class Menu extends SlashCommand {
                 .setActionRow(
                         Button.success("new_roleplay", "New Roleplay")
                                 .withEmoji(Emoji.fromFormatted("🪄")),
-                        Button.primary("menu", "View Dashboard")
-                                .withEmoji(Emoji.fromFormatted("🔝")),
                         Button.primary("characters", "View Characters")
                                 .withEmoji(Emoji.fromFormatted("🧝")),
-                        Button.primary("introductions", "View Introductions")
+                        Button.primary("instructions", "View Introductions")
                                 .withEmoji(Emoji.fromFormatted("📋")),
                         Button.link("https://openrouter.ai/models?order=pricing-low-to-high", "Free AI models")
                 );

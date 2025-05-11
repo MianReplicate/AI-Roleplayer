@@ -4,6 +4,7 @@ import java.io.IOException;
 
 public interface Data {
     String getName();
-    String getDefinition() throws IOException;
-    void nuke();
+    String getPrompt() throws IOException;
+    void addOrReplacePrompt(String text) throws IOException;
+    void nuke() throws IOException;
 }

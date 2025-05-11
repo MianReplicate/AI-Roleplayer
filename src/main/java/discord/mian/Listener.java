@@ -41,11 +41,11 @@ public class Listener {
 
     @SubscribeEvent
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) throws Exception {
-        if(AIBot.bot.getChat(event.getGuild()) == null){
+//        if(AIBot.bot.getChat(event.getGuild()) == null){
 //            event.reply("Bot is not initialized for this guild yet! Please wait a moment..").queue();
-            AIBot.bot.createChat(event.getGuild());
+//            AIBot.bot.createChat(event.getGuild());
 //            return;
-        }
+//        }
         BotCommands.handleCommand(event);
     }
 

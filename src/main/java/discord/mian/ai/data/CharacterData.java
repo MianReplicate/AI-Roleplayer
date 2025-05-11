@@ -1,15 +1,14 @@
 package discord.mian.ai.data;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.mian.api.Data;
-import discord.mian.api.Promptable;
+import discord.mian.api.Chattable;
 import discord.mian.custom.Constants;
 import discord.mian.custom.Util;
 import io.github.sashirestela.openai.domain.chat.ChatMessage;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -17,18 +16,18 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
-public class CharacterData implements Data, Promptable {
+public class CharacterData implements Data, Chattable {
     private final File characterFolder;
 
     public CharacterData(File characterFolder) throws IOException {
         this.characterFolder = characterFolder;
 
-        if(getDefinition() == null)
+        if(getPrompt() == null)
             throw new RuntimeException("Invalid character!");
-        getAvatarLink(); // upload avatar
     }
 
     public String getAvatarLink(){
@@ -51,6 +50,7 @@ public class CharacterData implements Data, Promptable {
                         HttpRequest request = HttpRequest
                                 .newBuilder(URI.create(link))
                                 .method("HEAD", HttpRequest.BodyPublishers.noBody())
+                                .timeout(Duration.ofSeconds(5)) // wait 5 seconds and if it doesn't work, fuck it
                                 .build();
                         int statusCode = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream()).statusCode();
                         if(statusCode >= 200 && statusCode < 400)
@@ -67,10 +67,14 @@ public class CharacterData implements Data, Promptable {
                     Constants.LOGGER.info("Writing avatar link for " + getName());
                 }
             } catch (InterruptedException | IOException e) {
-                throw new RuntimeException("Failed to upload avatar for this character: " + e);
+                throw new RuntimeException("Failed to find a valid avatar link for this character: " + e);
             }
         }
         return link;
+    }
+
+    public File getCharacterFolder() {
+        return characterFolder;
     }
 
     public File getAvatar() {
@@ -92,7 +96,7 @@ public class CharacterData implements Data, Promptable {
         return characterFolder.getName();
     }
 
-    public String getDefinition() throws IOException {
+    public String getPrompt() throws IOException {
         File definition = new File(characterFolder.getPath() + "/definition.txt");
         if(!definition.exists())
             return null;
@@ -100,13 +104,24 @@ public class CharacterData implements Data, Promptable {
         return Files.readString(definition.toPath(), StandardCharsets.UTF_8);
     }
 
-    public ChatMessage getPrompt(){
+    public void addOrReplacePrompt(String text) throws IOException {
+        File definition = new File(characterFolder.getPath() + "/definition.txt");
+        if(!definition.exists())
+            definition.createNewFile();
+
+        FileWriter writer = new FileWriter(definition.getPath());
+        writer.write(text);
+        writer.close();
+    }
+
+    public ChatMessage getChatMessage(CharacterData ignored){
         String definition;
         try {
-            definition = getDefinition();
+            definition = getPrompt();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        definition = definition.replaceAll("\\{\\{char}}", getName());
 
         return ChatMessage.SystemMessage.of(
                 definition,
@@ -115,8 +130,10 @@ public class CharacterData implements Data, Promptable {
     }
 
     // when worst comes to worst!
-    public void nuke(){
-        if(characterFolder.exists())
-            characterFolder.delete();
+    public void nuke() throws IOException {
+        if(characterFolder.exists()){
+            Files.walk(characterFolder.toPath()).forEach(path -> path.toFile().delete());
+        }
+        characterFolder.delete();
     }
 }

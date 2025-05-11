@@ -48,6 +48,9 @@ public class AIBot {
     }
 
     public DiscordRoleplay getChat(Guild guild) {
+        if(!this.chats.containsKey(guild))
+            AIBot.bot.createChat(guild);
+
         return this.chats.get(guild);
     }
 
@@ -58,7 +61,7 @@ public class AIBot {
     public void createChat(Guild guild) {
         DiscordRoleplay chat = new DiscordRoleplay(guild);
         Server serverData = getServerData(guild);
-        chat.setCurrentInstructions(serverData.getInstructionDatas().get("non-nsfw"));
+//        chat.addInstructions(serverData.getInstructionDatas().get("non-nsfw"));
 
         this.chats.put(guild, chat);
 //        this.funnyMessage = chat.createCustomResponse("[System Command: Respond to the following message in 10 or less words]: \"Fuck you lol, what you gonna do\"");

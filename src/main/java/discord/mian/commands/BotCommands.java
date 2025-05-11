@@ -16,7 +16,8 @@ public class BotCommands {
             new NewChat(),
             new ChangeModel(),
             new Talk(),
-            new Menu()
+            new Menu(),
+            new AddAvatar()
     );
 
     public static CommandListUpdateAction addCommands(){
