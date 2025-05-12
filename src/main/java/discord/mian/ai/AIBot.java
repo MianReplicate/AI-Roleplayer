@@ -2,7 +2,7 @@ package discord.mian.ai;
 
 import discord.mian.ai.data.CharacterData;
 import discord.mian.ai.data.Server;
-import discord.mian.commands.BotCommands;
+import discord.mian.commands.Commands;
 import discord.mian.custom.Util;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
@@ -30,7 +30,7 @@ public class AIBot {
         this.chats = new HashMap<>();
         this.jda = jda;
 
-        BotCommands.addCommands().queue();
+//        Commands.addCommands();
 
         for(Guild guild : jda.getGuildCache()){
             servers.put(guild, new Server(guild));

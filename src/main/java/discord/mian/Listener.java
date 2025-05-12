@@ -2,7 +2,6 @@ package discord.mian;
 
 import discord.mian.ai.AIBot;
 import discord.mian.ai.data.CharacterData;
-import discord.mian.commands.BotCommands;
 import discord.mian.components.Component;
 import discord.mian.components.Components;
 import discord.mian.custom.Constants;
@@ -10,8 +9,6 @@ import discord.mian.modals.Modal;
 import discord.mian.modals.Modals;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
-import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
-import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -39,23 +36,23 @@ public class Listener {
         }
     }
 
-    @SubscribeEvent
-    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) throws Exception {
+//    @SubscribeEvent
+//    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) throws Exception {
+////        if(AIBot.bot.getChat(event.getGuild()) == null){
+////            event.reply("Bot is not initialized for this guild yet! Please wait a moment..").queue();
+////            AIBot.bot.createChat(event.getGuild());
+////            return;
+////        }
+//        BotCommands.handleCommand(event);
+//    }
+//
+//    @SubscribeEvent
+//    public void onCommandAutoCompleteInteraction(CommandAutoCompleteInteractionEvent event) {
 //        if(AIBot.bot.getChat(event.getGuild()) == null){
-//            event.reply("Bot is not initialized for this guild yet! Please wait a moment..").queue();
-//            AIBot.bot.createChat(event.getGuild());
 //            return;
 //        }
-        BotCommands.handleCommand(event);
-    }
-
-    @SubscribeEvent
-    public void onCommandAutoCompleteInteraction(CommandAutoCompleteInteractionEvent event) {
-        if(AIBot.bot.getChat(event.getGuild()) == null){
-            return;
-        }
-        BotCommands.handleAutoComplete(event);
-    }
+//        BotCommands.handleAutoComplete(event);
+//    }
 
     @SubscribeEvent
     public void onButtonInteraction(ButtonInteractionEvent event) throws Exception {

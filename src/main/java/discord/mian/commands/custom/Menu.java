@@ -1,14 +1,21 @@
 package discord.mian.commands.custom;
 
 import discord.mian.ai.AIBot;
-import discord.mian.commands.SlashCommand;
 import discord.mian.ai.DiscordRoleplay;
+import discord.mian.commands.PermissionCommand;
+import discord.mian.commands.SlashCommand;
+import discord.mian.commands.api.CommandHandler;
 import discord.mian.custom.Cats;
 import discord.mian.custom.Util;
+import io.github.freya022.botcommands.api.commands.annotations.Command;
+import io.github.freya022.botcommands.api.commands.application.ApplicationCommand;
+import io.github.freya022.botcommands.api.commands.application.slash.GuildSlashEvent;
+import io.github.freya022.botcommands.api.commands.application.slash.annotations.JDASlashCommand;
+import io.github.freya022.botcommands.api.components.Buttons;
+import io.github.freya022.botcommands.api.components.annotations.RequiresComponents;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
-import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.restaction.MessageEditAction;
 import net.dv8tion.jda.api.utils.FileUpload;
@@ -19,21 +26,23 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Random;
 
-public class Menu extends SlashCommand {
+@Command
+@RequiresComponents
+public class Menu extends PermissionCommand {
+    private final Buttons buttons;
+    public Menu(Buttons buttons){
+        this.buttons = buttons;
 
-
-    public Menu(){
-        super("menu", "Open the AI menu");
+//        super("menu", "Open the AI menu");
     }
 
-    @Override
-    public boolean handle(SlashCommandInteractionEvent event) throws Exception {
-        if(super.handle(event)){
+//    @Override
+    @JDASlashCommand(name = "menu", description = "Open the AI menu")
+    public void handle(GuildSlashEvent event) throws Exception {
+        if(permissionHandler.handle(event)){
             event.deferReply().queue();
             createMenu(event.getHook().retrieveOriginal().submit().get());
-            return true;
         }
-        return false;
     }
 
     public static void createMenu(Message message) throws IOException {
