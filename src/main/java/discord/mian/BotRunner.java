@@ -15,11 +15,13 @@ import java.util.concurrent.TimeUnit;
 
 //TODO:
 // automatic character talking?
-// rework new roleplay to allow you to add characters and instructions via prompt options :D
+// rework new roleplay button to allow you to add characters and instructions via prompt options :D
 // Allow the use of multiple instructions (allow putting them in a specific order)
-// ability to set keys
+// ability to set keys for each server
 // maybe ability to save chat history i dunno
-// permissions
+// set up permissions
+// chat history should change slightly, it should include every msg beginnign from start of roleplay
+// allow for retrying a broken response (remove broken response if a new respoen gets generated)
 
 public class BotRunner {
     public static void main(String[] args) throws Exception {

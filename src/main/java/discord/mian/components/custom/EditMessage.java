@@ -15,13 +15,14 @@ public class EditMessage extends Component<ButtonInteractionEvent> {
     @Override
     public boolean handle(ButtonInteractionEvent event) throws Exception {
         if(super.handle(event)){
-            TextInput subject = TextInput.create("content", "Content", TextInputStyle.PARAGRAPH)
+            TextInput content = TextInput.create("content", "Content", TextInputStyle.PARAGRAPH)
                     .setPlaceholder("The content that will replace this message's original content")
+                    .setValue(event.getMessage().getContentRaw())
                     .build();
 
             event.replyModal(
                     Modal.create("edit", "Edit Message")
-                            .addComponents(ActionRow.of(subject)).build()
+                            .addComponents(ActionRow.of(content)).build()
             ).queue();
             return true;
         }

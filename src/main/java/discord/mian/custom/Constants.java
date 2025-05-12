@@ -10,7 +10,7 @@ public class Constants {
     public static final String LLM_KEY = System.getenv("OPENROUTER_TOKEN");
     public static final String IMGBB_TOKEN = System.getenv("IMGBB_TOKEN");
     public static final String BASE_URL = "https://openrouter.ai/api";
-    public static final String DEFAULT_MODEL = "meta-llama/llama-3.3-70b-instruct:free";
+    public static final String DEFAULT_MODEL = "deepseek/deepseek-chat-v3-0324:free";
 
     public static final List<String> ALLOWED_USER_IDS = List.of(
             "546194587920760853"

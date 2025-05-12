@@ -113,7 +113,7 @@ public class Server {
         File charactersFolder = getCharactersFolder();
         File characterFolder = new File(charactersFolder.getPath() + "/" + name);
 
-        String defPath = charactersFolder.getPath() + "/" + "definition.txt";
+        String defPath = characterFolder.getPath() + "/" + "definition.txt";
 
         if(!characterFolder.mkdir())
             characterFolder.mkdir();

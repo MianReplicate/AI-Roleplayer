@@ -232,7 +232,8 @@ public class DiscordRoleplay {
         }
 
         if(this.latestAssistantMessage != null){
-            history.add(latestAssistantMessage.getIdLong());
+            if(!this.history.contains(latestAssistantMessage.getIdLong()))
+                history.add(latestAssistantMessage.getIdLong());
             if(latestAssistantMessage.getContentRaw().isEmpty())
                 latestAssistantMessage.delete().queue();
             else
@@ -244,7 +245,8 @@ public class DiscordRoleplay {
             currentSwipe = 0;
         }
         this.creatingResponseFromDiscordMessage(currentCharacter);
-        this.history.add(userMsg.getIdLong());
+        if(!this.history.contains(userMsg.getIdLong())) // don't repeat msgs
+            this.history.add(userMsg.getIdLong());
 
         String avatarLink = null;
         try{
@@ -370,14 +372,17 @@ public class DiscordRoleplay {
                         if(history.contains(message.getIdLong())){
                             String contents = message.getContentRaw();
                             String username = message.getAuthor().getGlobalName();
+                            if(username == null)
+                                username = message.getAuthor().getName();
 
                             String formatted = contents.replaceAll("<@" + message.getAuthor().getId() + ">", "");
 
-                            if(message.getAuthor() == AIBot.bot.getJDA().getSelfUser()){
+                            if(message.isWebhookMessage()){
                                 messages.add(
-                                        ChatMessage.AssistantMessage.of(
-                                                username +": " + formatted
-                                        )
+                                        ChatMessage.AssistantMessage.builder()
+                                                .content(username + ": " + formatted)
+                                                        .name(username)
+                                                .build()
                                 );
                             } else {
                                 messages.add(ChatMessage.UserMessage.of(username+": "+formatted, username));
@@ -451,6 +456,10 @@ public class DiscordRoleplay {
 
     public TextChannel getChannel(){
         return channel;
+    }
+
+    public Message getLatestAssistantMessage(){
+        return latestAssistantMessage;
     }
 
     public void setCurrentCharacter(String name){

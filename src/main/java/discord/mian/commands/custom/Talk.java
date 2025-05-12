@@ -37,23 +37,30 @@ public class Talk extends SlashCommand {
 
                     TextChannel channel = roleplay.getChannel();
                     if(event.getChannel().getIdLong() == channel.getIdLong()){
+                        CharacterData character = AIBot.bot.getServerData(event.getGuild())
+                                .getCharacterDatas().get(event.getOption("character", OptionMapping::getAsString));
+                        if(character == null){
+                            event.getHook().editOriginal("Invalid character!").queue();
+                            return true;
+                        }
+
+                        long lastMsg = roleplay.getLatestAssistantMessage() != null ?
+                                roleplay.getLatestAssistantMessage().getIdLong() : 0L;
+
                         Date date = new Date();
                         long dayAgo = date.getTime() - 86400000L;
                         long discordDayAgo = TimeUtil.getDiscordTimestamp(dayAgo);
 
-                        Optional<Message> message = channel.getIterableHistory().deadline(discordDayAgo).stream().filter(msg -> msg.getAuthor() == event.getUser())
-                                .findFirst();
+                        Optional<Message> message = Optional.ofNullable(channel.retrieveMessageById(lastMsg).submit()
+                                .handle((msg1, throwable) -> msg1).get()).or(() ->
+                                channel.getIterableHistory().deadline(discordDayAgo).stream()
+                                        .filter(msg -> msg.getAuthor() == event.getUser()).findFirst()
+                        );
                         if(message.isPresent()){
-                            CharacterData character = AIBot.bot.getServerData(event.getGuild())
-                                    .getCharacterDatas().get(event.getOption("character", OptionMapping::getAsString));
-                            if(character == null){
-                                event.getHook().editOriginal("Invalid character!").queue();
-                                return true;
-                            }
 
                             AIBot.bot.userChattedTo(character, message.get());
                             String link = message.get().getJumpUrl();
-                            event.getHook().editOriginal("Got your most recent [message]("+link+") and sent it!").queue();
+                            event.getHook().editOriginal("Got the most recent relevant [message]("+link+") and sent it!").queue();
                             return true;
                         }
                     } else {

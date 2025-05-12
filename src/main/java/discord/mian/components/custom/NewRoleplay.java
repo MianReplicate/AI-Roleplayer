@@ -19,7 +19,7 @@ public class NewRoleplay extends Component<ButtonInteractionEvent> {
                 AIBot.bot.getChat(event.getGuild())
                         .startRoleplay(event.getGuildChannel().asTextChannel(),
                                  AIBot.bot.getServerData(event.getGuild()).getInstructionDatas().get("non-nsfw"), List.of());
-                event.reply("Started new chat!").queue();
+                event.reply("Started new chat! From here on out, characters will be listening :o").queue();
             } catch (ExecutionException | InterruptedException e) {
                 event.reply("Failed to start chat!").queue();
                 throw new RuntimeException(e);
