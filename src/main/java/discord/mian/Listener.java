@@ -17,24 +17,24 @@ import net.dv8tion.jda.api.hooks.SubscribeEvent;
 import java.util.Optional;
 
 public class Listener {
-    @SubscribeEvent
-    public void onModalInteraction(ModalInteractionEvent event) throws Exception{
-        Optional<Modal> optional = Modals.modals.stream().filter(modal -> modal.id.equals(event.getModalId()))
-                .findFirst();
-
-        if(optional.isPresent()){
-            Modal modal = optional.get();
-            try{
-                modal.handle(event);
-            } catch (Exception e) {
-                event.getHook().retrieveOriginal().queue(
-                        message -> message.editMessage("An unexpected error occurred :<").queue(),
-                        failure -> event.reply("An unexpected error occurred :<").setEphemeral(true).queue()
-                );
-                throw(e);
-            };
-        }
-    }
+//    @SubscribeEvent
+//    public void onModalInteraction(ModalInteractionEvent event) throws Exception{
+//        Optional<Modal> optional = Modals.modals.stream().filter(modal -> modal.id.equals(event.getModalId()))
+//                .findFirst();
+//
+//        if(optional.isPresent()){
+//            Modal modal = optional.get();
+//            try{
+//                modal.handle(event);
+//            } catch (Exception e) {
+//                event.getHook().retrieveOriginal().queue(
+//                        message -> message.editMessage("An unexpected error occurred :<").queue(),
+//                        failure -> event.reply("An unexpected error occurred :<").setEphemeral(true).queue()
+//                );
+//                throw(e);
+//            };
+//        }
+//    }
 
 //    @SubscribeEvent
 //    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) throws Exception {
@@ -53,44 +53,44 @@ public class Listener {
 //        }
 //        BotCommands.handleAutoComplete(event);
 //    }
-
-    @SubscribeEvent
-    public void onButtonInteraction(ButtonInteractionEvent event) throws Exception {
-        Optional<Component> optional = Components.components.stream().filter(component -> component.id.equals(event.getComponentId()))
-                .findFirst();
-
-        if(optional.isPresent()){
-            Component component = optional.get();
-            try{
-                component.handle(event);
-            } catch (Exception e) {
-                event.getHook().retrieveOriginal().queue(
-                        message -> message.editMessage("Failed to activate button :<").queue(),
-                        failure -> event.reply("Failed to activate button :<").setEphemeral(true).queue()
-                );
-                throw(e);
-            };
-        }
-    }
-
-    @SubscribeEvent
-    public void onStringSelectInteraction(StringSelectInteractionEvent event) throws Exception {
-        Optional<Component> optional = Components.components.stream().filter(component -> component.id.equals(event.getComponentId()))
-                .findFirst();
-
-        if(optional.isPresent()){
-            Component component = optional.get();
-            try{
-                component.handle(event);
-            } catch (Exception e) {
-                event.getHook().retrieveOriginal().queue(
-                        message -> message.editMessage("Failed to select :<").queue(),
-                        failure -> event.reply("Failed to select :<").setEphemeral(true).queue()
-                );
-                throw(e);
-            };
-        }
-    }
+//
+//    @SubscribeEvent
+//    public void onButtonInteraction(ButtonInteractionEvent event) throws Exception {
+//        Optional<Component> optional = Components.components.stream().filter(component -> component.id.equals(event.getComponentId()))
+//                .findFirst();
+//
+//        if(optional.isPresent()){
+//            Component component = optional.get();
+//            try{
+//                component.handle(event);
+//            } catch (Exception e) {
+//                event.getHook().retrieveOriginal().queue(
+//                        message -> message.editMessage("Failed to activate button :<").queue(),
+//                        failure -> event.reply("Failed to activate button :<").setEphemeral(true).queue()
+//                );
+//                throw(e);
+//            };
+//        }
+//    }
+//
+//    @SubscribeEvent
+//    public void onStringSelectInteraction(StringSelectInteractionEvent event) throws Exception {
+//        Optional<Component> optional = Components.components.stream().filter(component -> component.id.equals(event.getComponentId()))
+//                .findFirst();
+//
+//        if(optional.isPresent()){
+//            Component component = optional.get();
+//            try{
+//                component.handle(event);
+//            } catch (Exception e) {
+//                event.getHook().retrieveOriginal().queue(
+//                        message -> message.editMessage("Failed to select :<").queue(),
+//                        failure -> event.reply("Failed to select :<").setEphemeral(true).queue()
+//                );
+//                throw(e);
+//            };
+//        }
+//    }
 
     @SubscribeEvent
     public void onMessageReceived(MessageReceivedEvent event) {

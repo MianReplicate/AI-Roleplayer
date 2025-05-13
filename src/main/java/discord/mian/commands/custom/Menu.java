@@ -6,14 +6,18 @@ import discord.mian.commands.PermissionCommand;
 import discord.mian.commands.SlashCommand;
 import discord.mian.commands.api.CommandHandler;
 import discord.mian.custom.Cats;
+import discord.mian.custom.Constants;
 import discord.mian.custom.Util;
+import io.github.freya022.botcommands.api.commands.annotations.BotPermissions;
 import io.github.freya022.botcommands.api.commands.annotations.Command;
+import io.github.freya022.botcommands.api.commands.annotations.UserPermissions;
 import io.github.freya022.botcommands.api.commands.application.ApplicationCommand;
 import io.github.freya022.botcommands.api.commands.application.slash.GuildSlashEvent;
 import io.github.freya022.botcommands.api.commands.application.slash.annotations.JDASlashCommand;
 import io.github.freya022.botcommands.api.components.Buttons;
 import io.github.freya022.botcommands.api.components.annotations.RequiresComponents;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
@@ -27,8 +31,7 @@ import java.util.List;
 import java.util.Random;
 
 @Command
-@RequiresComponents
-public class Menu extends PermissionCommand {
+public class Menu extends ApplicationCommand {
     private final Buttons buttons;
     public Menu(Buttons buttons){
         this.buttons = buttons;
@@ -39,10 +42,11 @@ public class Menu extends PermissionCommand {
 //    @Override
     @JDASlashCommand(name = "menu", description = "Open the AI menu")
     public void handle(GuildSlashEvent event) throws Exception {
-        if(permissionHandler.handle(event)){
+        Constants.LOGGER.info("meow");
+//        if(permissionHandler.handle(event)){
             event.deferReply().queue();
             createMenu(event.getHook().retrieveOriginal().submit().get());
-        }
+//        }
     }
 
     public static void createMenu(Message message) throws IOException {
