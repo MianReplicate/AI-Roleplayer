@@ -4,6 +4,7 @@ import discord.mian.ai.AIBot;
 import discord.mian.components.Component;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -15,15 +16,15 @@ public class NewRoleplay extends Component<ButtonInteractionEvent> {
     @Override
     public boolean handle(ButtonInteractionEvent event) throws Exception {
         if(super.handle(event)){
-            try {
-                AIBot.bot.getChat(event.getGuild())
-                        .startRoleplay(event.getGuildChannel().asTextChannel(),
-                                 AIBot.bot.getServerData(event.getGuild()).getInstructionDatas().get("non-nsfw"), List.of());
-                event.reply("Started new chat! From here on out, characters will be listening :o").queue();
-            } catch (ExecutionException | InterruptedException e) {
-                event.reply("Failed to start chat!").queue();
-                throw new RuntimeException(e);
-            }
+            event.reply("Started new chat! From here on out, characters will be listening :o").queue(success -> {
+                try {
+                    AIBot.bot.getChat(event.getGuild())
+                            .startRoleplay(success.retrieveOriginal().submit().get(),
+                                    AIBot.bot.getServerData(event.getGuild()).getInstructionDatas().get("non-nsfw"), List.of());
+                } catch (ExecutionException | InterruptedException | IOException e) {
+                    event.getHook().editOriginal("Failed to start chat!").queue();
+                }
+            });
 
             return true;
         }

@@ -19,6 +19,7 @@ import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.requests.restaction.WebhookMessageCreateAction;
 import net.dv8tion.jda.api.utils.TimeUtil;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
@@ -26,8 +27,8 @@ import net.dv8tion.jda.api.utils.messages.MessageEditData;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -51,8 +52,11 @@ public class DiscordRoleplay {
 
     // need to create a new arraylist that stores chats
     private ArrayList<Long> history;
+    // start of history
+    private OffsetDateTime historyStart;
 
     private Message latestAssistantMessage;
+    private Message errorMsgCleanup;
     private int currentSwipe;
     private ArrayList<String> swipes;
 
@@ -87,7 +91,7 @@ public class DiscordRoleplay {
                 .orElse(registry.getEncoding(EncodingType.CL100K_BASE));
 
         StringBuilder combinedText = new StringBuilder();
-        ArrayList<ChatMessage> msgs = getHistoryConverted(character);
+        ArrayList<ChatMessage> msgs = getHistory(character);
         for(ChatMessage msg : msgs){
             if(msg instanceof ChatMessage.UserMessage message){
                 combinedText.append(message.getContent());
@@ -150,7 +154,7 @@ public class DiscordRoleplay {
         return ChatRequest.builder()
                 .maxCompletionTokens(this.maxTokens)
                 .model(this.model)
-                .messages(getHistoryConverted(character))
+                .messages(getHistory(character))
                 .temperature(1.0)
                 .build();
     }
@@ -193,7 +197,7 @@ public class DiscordRoleplay {
         AtomicLong timeResponseMade = new AtomicLong(System.currentTimeMillis());
         double timeBetween = 1;
 
-        String botUser = character.getName() + ": ";
+        String botUser = character.getName() + ":";
         String finalResponse = generateResponse(character,response -> {
             if (!queued.get() && System.currentTimeMillis() - timeResponseMade.get() >= timeBetween && !response.isBlank()) {
                 queued.set(true);
@@ -231,6 +235,11 @@ public class DiscordRoleplay {
             return;
         }
 
+        if(this.errorMsgCleanup != null){
+            this.errorMsgCleanup.delete().queue(RestAction.getDefaultSuccess(), toThrow -> {});
+            this.errorMsgCleanup = null;
+        }
+
         if(this.latestAssistantMessage != null){
             if(!this.history.contains(latestAssistantMessage.getIdLong()))
                 history.add(latestAssistantMessage.getIdLong());
@@ -264,16 +273,18 @@ public class DiscordRoleplay {
         }
 
         messageCreateData.queue(aiMsg -> {
+            latestAssistantMessage = aiMsg;
+            swipes = new ArrayList<>();
             try {
                 String finalResponse = streamOnDiscordMessage(currentCharacter, aiMsg);
-                latestAssistantMessage = aiMsg;
-                swipes = new ArrayList<>();
+//                latestAssistantMessage = aiMsg;
                 swipes.add(finalResponse);
+                errorMsgCleanup = null;
                 this.finishedDiscordResponse(finalResponse);
             } catch (Exception e) {
-                this.finishedDiscordResponse(null);
-                aiMsg.editMessage(MessageEditData.fromContent(Util.botifyMessage("Failed to send a response due to an exception :< sowwy. Try using a different AI model.\nError: " + e.toString().substring(0, Math.min(e.toString().length(), 1925)))))
-                        .queue();
+                this.finishedDiscordResponse(Util.botifyMessage("Failed to send a response due to an exception :< sowwy. Try using a different AI model.\nError: " + e.toString().substring(0, Math.min(e.toString().length(), 1925))));
+                errorMsgCleanup = aiMsg;
+                currentSwipe = -1;
                 throw(e);
             }
         });
@@ -306,10 +317,9 @@ public class DiscordRoleplay {
                         finalResponse = streamOnDiscordMessage(character, latestAssistantMessage);
                         currentSwipe++;
                         swipes.add(finalResponse);
+                        errorMsgCleanup = null;
                     }catch(Exception e){
-                        event.getHook().editOriginal("Failed to make a new response!")
-                                .queue();
-                        throw(e);
+                        finalResponse = "```Failed to make a new response!```";
                     }
                     this.finishedDiscordResponse(finalResponse);
                 } else {
@@ -327,83 +337,105 @@ public class DiscordRoleplay {
         return this.makingResponse;
     }
 
-    public ArrayList<Long> getHistory() {
-        return this.history;
-    }
+//    public ArrayList<Long> getHistory() {
+//        return this.history;
+//    }
 
     public boolean isRunningRoleplay(){
         return runningRoleplay;
     }
 
-    public ArrayList<ChatMessage> getHistoryConverted(CharacterData character){
+    public ArrayList<ChatMessage> getHistory(){
+        return getHistory(null);
+    }
+
+    // beginning prompts not included if no character is provided
+    public ArrayList<ChatMessage> getHistory(CharacterData character){
+        if(historyStart == null)
+            return new ArrayList<>();
+
         ArrayList<ChatMessage> messages = new ArrayList<>();
 
-        messages.add(ChatMessage.SystemMessage.of("<INSTRUCTIONS>\nFollow the instructions below! You are the Game Master and will follow these rules!", "INSTRUCTIONS"));
-        for(InstructionData instructionData : instructions){
-            messages.add(instructionData.getChatMessage(character));
-        }
-        messages.add(ChatMessage.SystemMessage.of("<CHARACTER>\nUnderstand the character definition below! This is the character you will be playing in the roleplay.", "CHARACTER"));
-        messages.add(character.getChatMessage(character));
-
-        if(!history.isEmpty()){
-            Message firstMsg = null;
-            for(long msgId : history){
-                try {
-                    firstMsg = channel.retrieveMessageById(msgId).submit().get();
-                } catch (InterruptedException | ExecutionException ignored) {
-                }
-                if(firstMsg != null)
-                    break;
+        // for next msg in roleplay?
+        if(character != null){
+            messages.add(ChatMessage.SystemMessage.of("<INSTRUCTIONS>\nFollow the instructions below! You are the Game Master and will follow these rules!", "INSTRUCTIONS"));
+            for(InstructionData instructionData : instructions){
+                messages.add(instructionData.getChatMessage(character));
             }
 
-            if(firstMsg != null){
-                OffsetDateTime dateTime = firstMsg.getTimeCreated();
-                ArrayList<Message> listOfMessages = null;
-                try {
-                    listOfMessages = new ArrayList<>(
-                            channel.getIterableHistory().deadline(TimeUtil.getDiscordTimestamp(dateTime.getLong(ChronoField.INSTANT_SECONDS))).submit().get()
+            StringBuilder multipleCharacters = new StringBuilder("You may play multiple characters in this roleplay as the assistant. Determine which character you'll be playing based on who said a response. Not every response from you is made by the same person. You are {{char}}. Do not play other characters. The group of characters involved in this roleplay are ");
+            for(String name : characters.keySet()){
+                multipleCharacters.append(name).append(", ");
+            };
+            multipleCharacters.replace(multipleCharacters.lastIndexOf(", "), multipleCharacters.length(), ".");
+
+            messages.add(
+                    ChatMessage.SystemMessage.of(multipleCharacters.toString())
+            );
+            messages.add(
+                    ChatMessage.SystemMessage.of("Do not include the character name in your response, this is already provided programmatically by the code.")
+            );
+            messages.add(ChatMessage.SystemMessage.of("<CHARACTER>\nUnderstand the character definition below! This is the character you will be playing in the roleplay.", "CHARACTER"));
+            messages.add(character.getChatMessage(character));
+            messages.add(ChatMessage.SystemMessage.of("<CHAT HISTORY> This is the start of the roleplay."));
+        }
+
+        long discordTime = TimeUtil.getDiscordTimestamp(Instant.ofEpochSecond(historyStart.toInstant().getEpochSecond()).toEpochMilli());
+
+        ArrayList<Message> listOfMessages = new ArrayList<>();
+        try {
+            listOfMessages = new ArrayList<>(
+                    channel.getIterableHistory().deadline(discordTime).submit().get()
+            );
+        } catch (InterruptedException | ExecutionException ignored) {
+        }
+
+        for(int i = listOfMessages.size() - 1; i >= 0; i--) {
+            Message message = listOfMessages.get(i);
+            if(message.getTimeCreated().isAfter(historyStart)){
+                Constants.LOGGER.info(message.getContentRaw());
+                if(message.getAuthor() == AIBot.bot.getJDA().getSelfUser())
+                    continue;
+                if(message.getContentRaw().contains("Currently creating a response"))
+                    continue;
+                if(latestAssistantMessage != null &&
+                        (latestAssistantMessage.getIdLong() == message.getIdLong() ||
+                                latestAssistantMessage.getTimeCreated().isBefore(message.getTimeCreated())))
+                    continue;
+
+                String contents = message.getContentRaw();
+                String username = message.getAuthor().getGlobalName();
+                if (username == null)
+                    username = message.getAuthor().getName();
+
+                String formatted = contents.replaceAll("<@" + message.getAuthor().getId() + ">", "");
+
+                if (message.isWebhookMessage()) {
+                    messages.add(
+                            ChatMessage.AssistantMessage.builder()
+                                    .content(username + ": " + formatted)
+                                    .name(username)
+                                    .build()
                     );
-                } catch (InterruptedException | ExecutionException ignored) {
-                }
-                if(listOfMessages != null){
-                    listOfMessages.addLast(firstMsg);
-                    for(int i = listOfMessages.size() - 1; i >= 0; i--){
-                        Message message = listOfMessages.get(i);
-                        if(history.contains(message.getIdLong())){
-                            String contents = message.getContentRaw();
-                            String username = message.getAuthor().getGlobalName();
-                            if(username == null)
-                                username = message.getAuthor().getName();
-
-                            String formatted = contents.replaceAll("<@" + message.getAuthor().getId() + ">", "");
-
-                            if(message.isWebhookMessage()){
-                                messages.add(
-                                        ChatMessage.AssistantMessage.builder()
-                                                .content(username + ": " + formatted)
-                                                        .name(username)
-                                                .build()
-                                );
-                            } else {
-                                messages.add(ChatMessage.UserMessage.of(username+": "+formatted, username));
-                            }
-                        }
-                    }
+                } else {
+                    messages.add(ChatMessage.UserMessage.of(username + ": " + formatted, username));
                 }
             }
         }
 
         // ngl we might need a max message count just in case it gets too bigggggg
         Constants.LOGGER.info("Recieved messages! Count: "+messages.size());
+        Constants.LOGGER.info(String.valueOf(messages));
 
         return messages;
     }
 
-    public void startRoleplay(TextChannel channel, InstructionData instructions, List<CharacterData> characterList) throws ExecutionException, InterruptedException, IOException {
+    public void startRoleplay(Message introMessage, InstructionData instructions, List<CharacterData> characterList) throws ExecutionException, InterruptedException, IOException {
         if(instructions == null)
             throw new RuntimeException("No initial instructions given!");
 
-        this.channel = channel;
+        historyStart = introMessage.getTimeCreated();
+        this.channel = introMessage.getChannel().asTextChannel();
 
         Webhook webhook;
         webhook = channel.retrieveWebhooks().submit().get().stream().filter(find -> find.getName().equals(AIBot.bot.getJDA().getSelfUser().getName()))

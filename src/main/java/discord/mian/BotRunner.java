@@ -19,6 +19,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+//TODO:
+// automatic character talking?
+// characters talking based on user speaking
+// rework new roleplay button to allow you to add characters and instructions via prompt options :D
+// Allow the use of multiple instructions (allow putting them in a specific order)
+// ability to set keys for each server
+// maybe ability to save chat history i dunno
+// set up permissions
+
 @BService
 public class BotRunner extends JDAService {
     @Override
