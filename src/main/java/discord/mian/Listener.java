@@ -3,12 +3,10 @@ package discord.mian;
 import discord.mian.ai.AIBot;
 import discord.mian.ai.data.CharacterData;
 import discord.mian.commands.BotCommands;
-import discord.mian.components.Component;
-import discord.mian.components.Components;
 import discord.mian.custom.Constants;
-import discord.mian.modals.Modal;
-import discord.mian.modals.Modals;
+import discord.mian.interactions.InteractionCreator;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -18,24 +16,26 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.SubscribeEvent;
 
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public class Listener {
     @SubscribeEvent
-    public void onModalInteraction(ModalInteractionEvent event) throws Exception{
-        Optional<Modal> optional = Modals.modals.stream().filter(modal -> modal.id.equals(event.getModalId()))
-                .findFirst();
+    public void onModalInteraction(ModalInteractionEvent event) {
+        Consumer<? super GenericInteractionCreateEvent> component =
+                InteractionCreator.getComponentConsumer(event.getModalId());
+        if(component == null){
+            event.reply("This interaction has expired! Please redo the same steps you used to get here").setEphemeral(true).queue();
+            return;
+        }
 
-        if(optional.isPresent()){
-            Modal modal = optional.get();
-            try{
-                modal.handle(event);
-            } catch (Exception e) {
-                event.getHook().retrieveOriginal().queue(
-                        message -> message.editMessage("An unexpected error occurred :<").queue(),
-                        failure -> event.reply("An unexpected error occurred :<").setEphemeral(true).queue()
-                );
-                throw(e);
-            };
+        try{
+            component.accept(event);
+        } catch (Exception e) {
+            event.getHook().retrieveOriginal().queue(
+                    message -> message.editMessage("An unexpected error occurred :<").queue(),
+                    failure -> event.reply("An unexpected error occurred :<").setEphemeral(true).queue()
+            );
+            throw(e);
         }
     }
 
@@ -58,40 +58,42 @@ public class Listener {
     }
 
     @SubscribeEvent
-    public void onButtonInteraction(ButtonInteractionEvent event) throws Exception {
-        Optional<Component> optional = Components.components.stream().filter(component -> component.id.equals(event.getComponentId()))
-                .findFirst();
+    public void onButtonInteraction(ButtonInteractionEvent event) {
+        Consumer<? super GenericInteractionCreateEvent> component =
+                InteractionCreator.getComponentConsumer(event.getComponentId());
+        if(component == null){
+            event.reply("This interaction has expired! Please redo the same steps you used to get here").setEphemeral(true).queue();
+            return;
+        }
 
-        if(optional.isPresent()){
-            Component component = optional.get();
-            try{
-                component.handle(event);
-            } catch (Exception e) {
-                event.getHook().retrieveOriginal().queue(
-                        message -> message.editMessage("Failed to activate button :<").queue(),
-                        failure -> event.reply("Failed to activate button :<").setEphemeral(true).queue()
-                );
-                throw(e);
-            };
+        try{
+            component.accept(event);
+        } catch (Exception e) {
+            event.getHook().retrieveOriginal().queue(
+                    message -> message.editMessage("Failed to activate button :<").queue(),
+                    failure -> event.reply("Failed to activate button :<").setEphemeral(true).queue()
+            );
+            throw(e);
         }
     }
 
     @SubscribeEvent
-    public void onStringSelectInteraction(StringSelectInteractionEvent event) throws Exception {
-        Optional<Component> optional = Components.components.stream().filter(component -> component.id.equals(event.getComponentId()))
-                .findFirst();
+    public void onStringSelectInteraction(StringSelectInteractionEvent event) {
+        Consumer<? super GenericInteractionCreateEvent> component =
+                InteractionCreator.getComponentConsumer(event.getComponentId());
+        if(component == null){
+            event.reply("This interaction has expired! Please redo the same steps you used to get here").setEphemeral(true).queue();
+            return;
+        }
 
-        if(optional.isPresent()){
-            Component component = optional.get();
-            try{
-                component.handle(event);
-            } catch (Exception e) {
-                event.getHook().retrieveOriginal().queue(
-                        message -> message.editMessage("Failed to select :<").queue(),
-                        failure -> event.reply("Failed to select :<").setEphemeral(true).queue()
-                );
-                throw(e);
-            };
+        try{
+            component.accept(event);
+        } catch (Exception e) {
+            event.getHook().retrieveOriginal().queue(
+                    message -> message.editMessage("Failed to select options :<").queue(),
+                    failure -> event.reply("Failed to select options :<").setEphemeral(true).queue()
+            );
+            throw(e);
         }
     }
 

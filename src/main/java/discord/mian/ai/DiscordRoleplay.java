@@ -9,6 +9,8 @@ import discord.mian.ai.data.InstructionData;
 import discord.mian.custom.Direction;
 import discord.mian.custom.Util;
 import discord.mian.custom.Constants;
+import discord.mian.interactions.InteractionCreator;
+import discord.mian.interactions.Interactions;
 import io.github.sashirestela.openai.SimpleOpenAI;
 import io.github.sashirestela.openai.domain.chat.Chat;
 import io.github.sashirestela.openai.domain.chat.ChatMessage;
@@ -18,7 +20,9 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
 import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.requests.restaction.WebhookMessageCreateAction;
 import net.dv8tion.jda.api.utils.TimeUtil;
@@ -50,8 +54,6 @@ public class DiscordRoleplay {
     private TextChannel channel;
     private Webhook webhook;
 
-    // need to create a new arraylist that stores chats
-    private ArrayList<Long> history;
     // start of history
     private OffsetDateTime historyStart;
 
@@ -66,8 +68,6 @@ public class DiscordRoleplay {
     private ArrayList<InstructionData> instructions;
     private HashMap<String, CharacterData> characters;
     private CharacterData currentCharacter;
-//    private String funnyMessage;
-//    private final WorldLore worldLore;
     private boolean runningRoleplay = false;
 
     public DiscordRoleplay(Guild guild){
@@ -83,15 +83,13 @@ public class DiscordRoleplay {
         this.model = Constants.DEFAULT_MODEL;
         this.registry = Encodings.newDefaultEncodingRegistry();
         this.guild = guild;
-        this.restartHistory();
     }
 
-    public void trimHistoryIfNeeded(CharacterData character){
+    public List<ChatMessage> trimListToMeetTokens(ArrayList<ChatMessage> msgs, int startAt){
         Encoding enc = registry.getEncodingForModel(this.model.substring(this.model.lastIndexOf("/")))
                 .orElse(registry.getEncoding(EncodingType.CL100K_BASE));
 
         StringBuilder combinedText = new StringBuilder();
-        ArrayList<ChatMessage> msgs = getHistory(character);
         for(ChatMessage msg : msgs){
             if(msg instanceof ChatMessage.UserMessage message){
                 combinedText.append(message.getContent());
@@ -108,7 +106,7 @@ public class DiscordRoleplay {
 
             int toRemove = 0;
             int current = 0;
-            for(int i = 0; i < msgs.size() && current < difference; i++){
+            for(int i = startAt; i < msgs.size() && current < difference; i++){
                 ChatMessage msg = msgs.get(i);
                 String content = null;
                 if(msg instanceof ChatMessage.UserMessage message){
@@ -121,14 +119,17 @@ public class DiscordRoleplay {
                 current += enc.countTokens(content);
                 toRemove++;
             }
-            history = new ArrayList<>(history.subList(toRemove, history.size()));
+            List<ChatMessage> newList = msgs.subList(0, startAt);
+            newList.addAll(msgs.subList(toRemove + startAt, msgs.size()));
+            return newList;
         }
+
+        return msgs;
     }
 
-    public void creatingResponseFromDiscordMessage(CharacterData character){
+    public void creatingResponseFromDiscordMessage(){
         if(makingResponse)
             throw new RuntimeException("Already generating a response!");
-        this.trimHistoryIfNeeded(character);
         this.makingResponse = true;
         if(latestAssistantMessage != null){
             latestAssistantMessage.editMessage(latestAssistantMessage.getContentRaw())
@@ -137,16 +138,23 @@ public class DiscordRoleplay {
     }
 
     public void finishedDiscordResponse(String finalResponse){
-//        this.history.add(message.getIdLong());
         this.makingResponse = false;
         if(latestAssistantMessage != null && finalResponse != null){
+            ArrayList<ItemComponent> components = new ArrayList<>();
+            components.add(InteractionCreator.createButton("<--", Interactions.getSwipe(Direction.BACK))
+                    .withStyle(ButtonStyle.PRIMARY));
+            components.add(InteractionCreator.createButton("-->", Interactions.getSwipe(Direction.NEXT))
+                    .withStyle(ButtonStyle.PRIMARY));
+
+            if(errorMsgCleanup == null){
+                components.add(InteractionCreator.createPermanentButton(Button.danger("danger", Emoji.fromFormatted("🗑")),
+                        Interactions.getDestroyMessage()));
+                components.add(InteractionCreator.createPermanentButton(Button.success("edit", Emoji.fromFormatted("🪄")),
+                        Interactions.getEditMessage()));
+            }
+
             latestAssistantMessage.editMessage(finalResponse)
-                    .setActionRow(
-                            Button.primary("back_swipe", "<--"),
-                            Button.primary("next_swipe", "-->"),
-                            Button.danger("destroy", Emoji.fromFormatted("🗑")),
-                            Button.success("edit", Emoji.fromFormatted("🪄")
-                            )).queue();
+                    .setActionRow(components).queue();
         }
     }
 
@@ -206,7 +214,7 @@ public class DiscordRoleplay {
                     timeResponseMade.set(System.currentTimeMillis());
                 };
                 String newContent = response.replaceAll(botUser, "");
-                msgToEdit.editMessage(MessageEditData.fromContent(Util.botifyMessage("Message is being streamed: Once the response is complete, this will be gone to let you know the message is done streaming") + "\n" + newContent)).queue(onComplete);
+                msgToEdit.editMessage(MessageEditData.fromContent(Util.botifyMessage("Message is currently generating..") + "\n" + newContent)).queue(onComplete);
             }
         });
         String newContent = finalResponse.replaceAll(botUser, "");
@@ -241,8 +249,6 @@ public class DiscordRoleplay {
         }
 
         if(this.latestAssistantMessage != null){
-            if(!this.history.contains(latestAssistantMessage.getIdLong()))
-                history.add(latestAssistantMessage.getIdLong());
             if(latestAssistantMessage.getContentRaw().isEmpty())
                 latestAssistantMessage.delete().queue();
             else
@@ -253,9 +259,7 @@ public class DiscordRoleplay {
             swipes = null;
             currentSwipe = 0;
         }
-        this.creatingResponseFromDiscordMessage(currentCharacter);
-        if(!this.history.contains(userMsg.getIdLong())) // don't repeat msgs
-            this.history.add(userMsg.getIdLong());
+        this.creatingResponseFromDiscordMessage();
 
         String avatarLink = null;
         try{
@@ -284,20 +288,21 @@ public class DiscordRoleplay {
             } catch (Exception e) {
                 this.finishedDiscordResponse(Util.botifyMessage("Failed to send a response due to an exception :< sowwy. Try using a different AI model.\nError: " + e.toString().substring(0, Math.min(e.toString().length(), 1925))));
                 errorMsgCleanup = aiMsg;
-                currentSwipe = -1;
+                currentSwipe = 0;
                 throw(e);
             }
         });
     }
 
-    public boolean swipe(ButtonInteractionEvent event, Direction direction){
+    public void swipe(ButtonInteractionEvent event, Direction direction){
         if(latestAssistantMessage != null){
             if(event.getMessage().getIdLong() != latestAssistantMessage.getIdLong()){
                 event.getHook().editOriginal("You cannot swipe on this message anymore :(, consider editing it instead!")
                         .queue();
-                return false;
+                return;
             }
 
+            String finalResponse = null;
             if(direction == Direction.BACK){
                 currentSwipe--;
                 if(currentSwipe == -1)
@@ -307,19 +312,18 @@ public class DiscordRoleplay {
                     if (isMakingResponse()) {
                         event.getHook().editOriginal("Cannot make a response since I am already generating one!")
                                 .queue();
-                        return false;
+                        return;
                     }
                     CharacterData character = characters.get(latestAssistantMessage.getAuthor().getName());
-                    this.creatingResponseFromDiscordMessage(character);
+                    this.creatingResponseFromDiscordMessage();
 
-                    String finalResponse;
                     try{
                         finalResponse = streamOnDiscordMessage(character, latestAssistantMessage);
                         currentSwipe++;
                         swipes.add(finalResponse);
                         errorMsgCleanup = null;
                     }catch(Exception e){
-                        finalResponse = "```Failed to make a new response!```";
+                        finalResponse = "```Failed to make a new response!\nError: " + e + "```";
                     }
                     this.finishedDiscordResponse(finalResponse);
                 } else {
@@ -328,29 +332,25 @@ public class DiscordRoleplay {
                         currentSwipe = 0;
                 }
             }
-            latestAssistantMessage.editMessage(MessageEditData.fromContent(swipes.get(currentSwipe))).queue();
+            latestAssistantMessage.editMessage(finalResponse != null ? MessageEditData.fromContent(finalResponse) :
+                    MessageEditData.fromContent(swipes.get(currentSwipe))).queue();
         }
-        return true;
     }
 
     public boolean isMakingResponse() {
         return this.makingResponse;
     }
 
-//    public ArrayList<Long> getHistory() {
-//        return this.history;
-//    }
-
     public boolean isRunningRoleplay(){
         return runningRoleplay;
     }
 
-    public ArrayList<ChatMessage> getHistory(){
+    public List<ChatMessage> getHistory(){
         return getHistory(null);
     }
 
     // beginning prompts not included if no character is provided
-    public ArrayList<ChatMessage> getHistory(CharacterData character){
+    public List<ChatMessage> getHistory(CharacterData character){
         if(historyStart == null)
             return new ArrayList<>();
 
@@ -379,6 +379,7 @@ public class DiscordRoleplay {
             messages.add(character.getChatMessage(character));
             messages.add(ChatMessage.SystemMessage.of("<CHAT HISTORY> This is the start of the roleplay."));
         }
+        int required = messages.size();
 
         long discordTime = TimeUtil.getDiscordTimestamp(Instant.ofEpochSecond(historyStart.toInstant().getEpochSecond()).toEpochMilli());
 
@@ -393,7 +394,6 @@ public class DiscordRoleplay {
         for(int i = listOfMessages.size() - 1; i >= 0; i--) {
             Message message = listOfMessages.get(i);
             if(message.getTimeCreated().isAfter(historyStart)){
-                Constants.LOGGER.info(message.getContentRaw());
                 if(message.getAuthor() == AIBot.bot.getJDA().getSelfUser())
                     continue;
                 if(message.getContentRaw().contains("Currently creating a response"))
@@ -427,12 +427,12 @@ public class DiscordRoleplay {
         Constants.LOGGER.info("Recieved messages! Count: "+messages.size());
         Constants.LOGGER.info(String.valueOf(messages));
 
-        return messages;
+        return trimListToMeetTokens(messages, required);
     }
 
-    public void startRoleplay(Message introMessage, InstructionData instructions, List<CharacterData> characterList) throws ExecutionException, InterruptedException, IOException {
-        if(instructions == null)
-            throw new RuntimeException("No initial instructions given!");
+    public void startRoleplay(Message introMessage, List<InstructionData> instructionList, List<CharacterData> characterList) throws ExecutionException, InterruptedException, IOException {
+        if(instructionList.size() <= 0)
+            throw new RuntimeException("Need at least one set of instructions!");
 
         historyStart = introMessage.getTimeCreated();
         this.channel = introMessage.getChannel().asTextChannel();
@@ -448,22 +448,17 @@ public class DiscordRoleplay {
         this.webhook = webhook;
 
         runningRoleplay = true;
-        restartHistory();
+
+        latestAssistantMessage = null;
+        swipes = null;
+        currentSwipe = 0;
+
         characters = new HashMap<>();
         characterList.forEach(this::addCharacter);
         this.instructions = new ArrayList<>();
-
-        addInstructions(instructions);
+        instructionList.forEach(this::addInstructions);
         Stream<String> stream = characters.keySet().stream();
         stream.findAny().ifPresent(this::setCurrentCharacter);
-    }
-
-    public void restartHistory(){
-        history = new ArrayList<>();
-
-        latestAssistantMessage = null;
-        currentSwipe = 0;
-        swipes = null;
     }
 
     public void setMaxTokens(int maxTokens){

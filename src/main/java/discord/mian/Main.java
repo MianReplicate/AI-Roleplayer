@@ -17,12 +17,12 @@ import java.util.concurrent.TimeUnit;
 // automatic character talking?
 // characters talking based on user speaking
 // rework new roleplay button to allow you to add characters and instructions via prompt options :D
-// Allow the use of multiple instructions (allow putting them in a specific order)
 // ability to set keys for each server
 // maybe ability to save chat history i dunno
+// save model being used on bot close
 // set up permissions
 
-public class BotRunner {
+public class Main {
     public static void main(String[] args) throws Exception {
         String discord_bot_token = args[0];
 
