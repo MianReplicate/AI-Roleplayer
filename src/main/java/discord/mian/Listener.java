@@ -15,7 +15,7 @@ import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionE
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.SubscribeEvent;
 
-import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 public class Listener {
@@ -98,7 +98,7 @@ public class Listener {
     }
 
     @SubscribeEvent
-    public void onMessageReceived(MessageReceivedEvent event) {
+    public void onMessageReceived(MessageReceivedEvent event) throws ExecutionException, InterruptedException {
         if(Constants.ALLOWED_USER_IDS.contains(event.getAuthor().getId()) || Constants.ALLOWED_SERVERS.contains(event.getGuild().getId()) || Constants.PUBLIC){
             Message msg = event.getMessage();
             if(msg.getReferencedMessage() != null && msg.getReferencedMessage().isWebhookMessage()){
@@ -108,7 +108,7 @@ public class Listener {
                 if(character == null || !AIBot.bot.getChat(event.getGuild()).getCharacters().containsKey(character.getName())){
                     return;
                 }
-                AIBot.bot.userChattedTo(character, event.getMessage());
+                AIBot.bot.getChat(event.getGuild()).promptCharacterToRoleplay(character, false);
             }
         }
     }

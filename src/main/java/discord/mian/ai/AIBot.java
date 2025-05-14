@@ -6,7 +6,6 @@ import discord.mian.commands.BotCommands;
 import discord.mian.custom.Util;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Message;
 
 import java.io.File;
 import java.util.HashMap;
@@ -65,17 +64,6 @@ public class AIBot {
 
         this.chats.put(guild, chat);
 //        this.funnyMessage = chat.createCustomResponse("[System Command: Respond to the following message in 10 or less words]: \"Fuck you lol, what you gonna do\"");
-    }
-
-    public boolean userChattedTo(CharacterData character, Message msg) {
-        DiscordRoleplay roleplay = AIBot.bot.getChat(msg.getGuild());
-        if(roleplay.isRunningRoleplay()){
-            roleplay.addCharacter(character);
-            roleplay.setCurrentCharacter(character.getName());
-            roleplay.sendRoleplayMessage(msg);
-            return true;
-        }
-        return false;
     }
 
 //    public String getFunnyMessage(Guild guild){

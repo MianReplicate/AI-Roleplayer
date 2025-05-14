@@ -14,12 +14,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 //TODO:
-// automatic character talking?
-// characters talking based on user speaking
-// rework new roleplay button to allow you to add characters and instructions via prompt options :D
+// automatic character talking? (auto mode)
+// characters talk based on new messages (randomly)
+// if a character is not replied to or have their name in another's msgs, then a random one is chosen
 // ability to set keys for each server
 // maybe ability to save chat history i dunno
-// save model being used on bot close
 // set up permissions
 
 public class Main {

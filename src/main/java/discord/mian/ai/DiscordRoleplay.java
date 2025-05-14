@@ -16,6 +16,7 @@ import io.github.sashirestela.openai.domain.chat.Chat;
 import io.github.sashirestela.openai.domain.chat.ChatMessage;
 import io.github.sashirestela.openai.domain.chat.ChatRequest;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.channel.Channel;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -223,21 +224,34 @@ public class DiscordRoleplay {
         return newContent;
     }
 
-    public void sendRoleplayMessage(Message userMsg) {
+    public void promptCharacterToRoleplay(CharacterData character, boolean waitForFinish) throws ExecutionException, InterruptedException {
+        if(isRunningRoleplay()){
+            addCharacter(character);
+            setCurrentCharacter(character.getName());
+            sendRoleplayMessage(waitForFinish);
+        }
+    }
+
+    // selects a random character based on their talking likeliness
+    public void selectRandomCharacter(){
+
+    }
+
+    public void sendRoleplayMessage(boolean waitForFinish) throws ExecutionException, InterruptedException {
         if(!runningRoleplay){
-            userMsg.getChannel().sendMessage(MessageCreateData.fromContent(
+            channel.sendMessage(MessageCreateData.fromContent(
                     Util.botifyMessage("Cannot make a response since there is no ongoing chat!")
             )).queue();
             return;
         }
         if (isMakingResponse()) {
-            userMsg.getChannel().sendMessage(MessageCreateData.fromContent(
+            channel.sendMessage(MessageCreateData.fromContent(
                     Util.botifyMessage("Cannot make a response since I am already generating one!")
             )).queue();
             return;
         }
         if(currentCharacter == null){
-            userMsg.getChannel().sendMessage(MessageCreateData.fromContent(
+            channel.sendMessage(MessageCreateData.fromContent(
                     Util.botifyMessage("Cannot make a response since there are no characters in this chat!")
             )).queue();
             return;
@@ -276,7 +290,7 @@ public class DiscordRoleplay {
             messageCreateData = messageCreateData.setAvatarUrl(avatarLink);
         }
 
-        messageCreateData.queue(aiMsg -> {
+        Consumer<Message> consumer = (aiMsg) -> {
             latestAssistantMessage = aiMsg;
             swipes = new ArrayList<>();
             try {
@@ -291,7 +305,13 @@ public class DiscordRoleplay {
                 currentSwipe = 0;
                 throw(e);
             }
-        });
+        };
+
+        if(waitForFinish){
+            consumer.accept(messageCreateData.submit().get());
+        } else {
+            messageCreateData.queue(consumer);
+        }
     }
 
     public void swipe(ButtonInteractionEvent event, Direction direction){
@@ -359,11 +379,12 @@ public class DiscordRoleplay {
         // for next msg in roleplay?
         if(character != null){
             messages.add(ChatMessage.SystemMessage.of("<INSTRUCTIONS>\nFollow the instructions below! You are the Game Master and will follow these rules!", "INSTRUCTIONS"));
+            messages.add(ChatMessage.SystemMessage.of("This is a chatbot roleplay. You are roleplaying with other users, your responses should only be a few sentences long, should incorporate humor and shouldn't be too serious. The only time this can be overridden is if later instructions conflict with these."));
             for(InstructionData instructionData : instructions){
                 messages.add(instructionData.getChatMessage(character));
             }
 
-            StringBuilder multipleCharacters = new StringBuilder("You may play multiple characters in this roleplay as the assistant. Determine which character you'll be playing based on who said a response. Not every response from you is made by the same person. You are {{char}}. Do not play other characters. The group of characters involved in this roleplay are ");
+            StringBuilder multipleCharacters = new StringBuilder("You are playing {{char}}. Do not play other characters. The group of characters involved in this roleplay are ");
             for(String name : characters.keySet()){
                 multipleCharacters.append(name).append(", ");
             };
@@ -377,7 +398,7 @@ public class DiscordRoleplay {
             );
             messages.add(ChatMessage.SystemMessage.of("<CHARACTER>\nUnderstand the character definition below! This is the character you will be playing in the roleplay.", "CHARACTER"));
             messages.add(character.getChatMessage(character));
-            messages.add(ChatMessage.SystemMessage.of("<CHAT HISTORY> This is the start of the roleplay."));
+            messages.add(ChatMessage.SystemMessage.of("<CHAT HISTORY> This is the start of the roleplay. If this is the most recent message, create your own scenario for the roleplay based on world info! DO not tell the story or scenario. You will instead show it throughout your messages and actions."));
         }
         int required = messages.size();
 
