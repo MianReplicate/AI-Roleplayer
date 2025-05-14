@@ -73,6 +73,8 @@ public class AddAvatar extends SlashCommand {
     @Override
     public void autoComplete(CommandAutoCompleteInteractionEvent event){
         List<String> characterNames = AIBot.bot.getServerData(event.getGuild()).getCharacterDatas().keySet().stream().toList();
+        if(characterNames.size() >= 25)
+            characterNames = characterNames.subList(0, 25);
         List<Command.Choice> choices = new ArrayList<>();
         characterNames.forEach(name -> choices.add(new Command.Choice(name, name)));
 

@@ -2,6 +2,7 @@ package discord.mian.interactions;
 
 import discord.mian.ai.AIBot;
 import discord.mian.ai.DiscordRoleplay;
+import discord.mian.ai.data.CharacterData;
 import discord.mian.ai.data.InstructionData;
 import discord.mian.ai.data.Server;
 import discord.mian.api.Data;
@@ -16,6 +17,8 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.Component;
+import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.LayoutComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
@@ -131,21 +134,31 @@ public class Interactions {
     }
 
     public static void replyCreatingPrompt(GenericComponentInteractionCreateEvent event, boolean isCharacter){
+        List<LayoutComponent> components = new ArrayList<>();
+        components.add(ActionRow.of(
+                TextInput.create("name", "Name", TextInputStyle.SHORT)
+                        .setPlaceholder("Enter a name for the new prompt!")
+                        .build()
+        ));
+        components.add(ActionRow.of(
+                TextInput.create("prompt", "Prompt: {{char}} represents the character", TextInputStyle.PARAGRAPH)
+                        .setPlaceholder("Edit the prompt. {{char}} represents the character")
+                        .build()
+        ));
+
+        if(isCharacter){
+            components.add(ActionRow.of(
+                    TextInput.create("talkability", "Talkability", TextInputStyle.SHORT)
+                            .setPlaceholder("The chances of this character responding when their name is mentioned OR when auto-mode is on\n\nPut one decimal value from 0 to 1 in here. Default: 0.5")
+                            .build()
+            ));
+        }
+
         event.replyModal(
                 InteractionCreator.createModal("Creating Prompt", (modalEvent) -> {
                     String promptName = modalEvent.getValue("name").getAsString();
                     getPromptEditor(isCharacter, promptName).accept(modalEvent);
-                }).addComponents(
-                        ActionRow.of(
-                                TextInput.create("name", "Name", TextInputStyle.SHORT)
-                                        .setPlaceholder("Enter a name for the new prompt!")
-                                        .build()
-                        ),
-                        ActionRow.of(
-                                        TextInput.create("prompt", "Prompt: {{char}} represents the character", TextInputStyle.PARAGRAPH)
-                                                .setPlaceholder("Edit the prompt. {{char}} represents the character")
-                                                .build()
-                                )).build()
+                }).addComponents(components).build()
         ).queue();
     }
 
@@ -162,9 +175,20 @@ public class Interactions {
 
         promptInput.setValue(data.getPrompt());
 
+        List<LayoutComponent> components = new ArrayList<>();
+        components.add(ActionRow.of(promptInput.build()));
+        if(isCharacter){
+            components.add(ActionRow.of(
+                    TextInput.create("talkability", "Talkability: Put a decimal from 0.0 to 1.0", TextInputStyle.SHORT)
+                            .setPlaceholder("Likelihood of responding when mentioned in chat")
+                            .setValue(String.valueOf(((CharacterData) data).getTalkability()))
+                            .build()
+            ));
+        }
+
         event.replyModal(
-                InteractionCreator.createModal("Editing " + promptName, getPromptEditor(isCharacter, promptName)).addComponents(
-                        ActionRow.of(promptInput.build())).build()
+                InteractionCreator.createModal("Editing " + promptName, getPromptEditor(isCharacter, promptName)).addComponents(components)
+                        .build()
         ).queue();
     }
 
@@ -174,6 +198,17 @@ public class Interactions {
 
             String name = promptName != null ? promptName : event.getValue("name").getAsString();
             String prompt = event.getValue("prompt").getAsString();
+
+            Function<String, Double> tryParse = (string) -> {
+                try{
+                    return Double.parseDouble(string);
+                } catch(Exception ignored){
+                    return 0.5;
+                }
+            };
+
+            double talkability = Math.min(1, Math.max(0, event.getValue("talkability") != null ?
+                    tryParse.apply(event.getValue("talkability").getAsString()) : 0.5));
             Server server = AIBot.bot.getServerData(event.getGuild());
 
             Data data = isCharacter ? server.getCharacterDatas().get(name)
@@ -182,9 +217,11 @@ public class Interactions {
             try{
                 if(data != null){
                     data.addOrReplacePrompt(prompt);
+                    if(isCharacter)
+                        ((CharacterData) data).setTalkability(talkability);
                 } else {
                     if(isCharacter)
-                        server.createCharacter(name, prompt);
+                        server.createCharacter(name, prompt, talkability);
                     else
                         server.createInstruction(name, prompt);
                 }
@@ -342,20 +379,23 @@ public class Interactions {
         if(buttons.length > 0)
             components.add(ActionRow.of(buttons));
 
-        if(canGoBack){
-            components.add(ActionRow.of(
-                    InteractionCreator.createButton("View Dashboard", (event) -> {
-                        event.deferEdit().queue();
-                        try {
-                            createDashboard(event.getMessage());
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }).withEmoji(Emoji.fromFormatted("🔝")).withStyle(ButtonStyle.SECONDARY),
+        if(canGoBack || editable){
+            ArrayList<ItemComponent> itemComponents = new ArrayList<>();
+            if(canGoBack)
+                itemComponents.add(InteractionCreator.createButton("View Dashboard", (event) -> {
+                    event.deferEdit().queue();
+                    try {
+                        createDashboard(event.getMessage());
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }).withEmoji(Emoji.fromFormatted("🔝")).withStyle(ButtonStyle.SECONDARY));
+            if(editable)
+                itemComponents.add(InteractionCreator.createButton("Create Prompt", (event) -> {
+                    replyCreatingPrompt(event, isCharacter);
+                }).withEmoji(Emoji.fromFormatted("🪄")));
 
-                    InteractionCreator.createButton("Create Prompt", (event) -> {
-                        replyCreatingPrompt(event, isCharacter);
-                    }).withEmoji(Emoji.fromFormatted("🪄"))));
+            components.add(ActionRow.of(itemComponents));
         }
 
         MessageEditAction editAction = message
@@ -428,7 +468,7 @@ public class Interactions {
                                             event.getMessage(),
                                             "Select instruction prompts to use in the roleplay.",
                                             false,
-                                            direction), event.getMessage(), false, false, false,
+                                            direction), event.getMessage(), false, false, true,
                                     (onSelectInstructions) -> {
                                         onSelectInstructions.deferReply(true).queue();
                                         onSelectInstructions.getSelectedOptions().forEach(selectOption -> {
@@ -448,7 +488,7 @@ public class Interactions {
                                                         buttonEvent.getMessage(),
                                                         "Select character prompts to use in the roleplay.",
                                                         true,
-                                                        direction), buttonEvent.getMessage(), true, false, false,
+                                                        direction), buttonEvent.getMessage(), true, false, true,
                                                 (onSelectInstructions) -> {
 
                                                     onSelectInstructions.deferReply(true).queue();
@@ -480,7 +520,7 @@ public class Interactions {
                                                             roleplay.getCharacters().forEach((name, characterData) ->
                                                             {
                                                                 try {
-                                                                    roleplay.promptCharacterToRoleplay(characterData, true);
+                                                                    roleplay.promptCharacterToRoleplay(characterData, null, false, true);
                                                                 } catch (ExecutionException | InterruptedException ignored) {
 
                                                                 }

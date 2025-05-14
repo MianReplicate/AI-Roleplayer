@@ -109,7 +109,7 @@ public class Server {
         return instructionsFolder;
     }
 
-    public void createCharacter(String name, String definition) throws IOException {
+    public void createCharacter(String name, String definition, double talkability) throws IOException {
         File charactersFolder = getCharactersFolder();
         File characterFolder = new File(charactersFolder.getPath() + "/" + name);
 
@@ -126,7 +126,10 @@ public class Server {
         writer.write(definition);
         writer.close();
 
-        characterDatas.putIfAbsent(name, new CharacterData(characterFolder));
+        CharacterData data = new CharacterData(characterFolder);
+        data.setTalkability(talkability);
+
+        characterDatas.putIfAbsent(name, data);
     }
 
     public void createInstruction(String name, String prompt) throws IOException {

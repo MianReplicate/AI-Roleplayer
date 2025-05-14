@@ -6,6 +6,7 @@ import com.knuddels.jtokkit.api.EncodingRegistry;
 import com.knuddels.jtokkit.api.EncodingType;
 import discord.mian.ai.data.CharacterData;
 import discord.mian.ai.data.InstructionData;
+import discord.mian.ai.data.Server;
 import discord.mian.custom.Direction;
 import discord.mian.custom.Util;
 import discord.mian.custom.Constants;
@@ -29,14 +30,13 @@ import net.dv8tion.jda.api.requests.restaction.WebhookMessageCreateAction;
 import net.dv8tion.jda.api.utils.TimeUtil;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import net.dv8tion.jda.api.utils.messages.MessageEditData;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -159,6 +159,36 @@ public class DiscordRoleplay {
         }
     }
 
+    public CharacterData findRespondingCharacterFromContent(String content){
+        content = content.toLowerCase();
+        final String finalContent = content;
+        Server server = AIBot.bot.getServerData(guild);
+
+        Optional<CharacterData> foundCharacter = server.getCharacterDatas().entrySet().stream().filter(entry ->
+                        finalContent.contains(entry.getValue().getFirstName().toLowerCase())).map(entry -> entry.getValue())
+                .findFirst();
+
+        if(foundCharacter.isPresent() && getCharacters().containsKey(foundCharacter.get().getName())){
+            return foundCharacter.get();
+        }
+        return null;
+    }
+
+    public CharacterData findRespondingCharacterFromMessage(Message msg){
+//            if(msg.getReferencedMessage() != null && msg.getReferencedMessage().isWebhookMessage()){
+        // check for name in response first
+         if(msg.getReferencedMessage() != null && msg.getReferencedMessage().isWebhookMessage()){
+            CharacterData character =
+                    AIBot.bot.getServerData(guild).getCharacterDatas().get(msg.getReferencedMessage().getAuthor().getName());
+
+            if(character == null || !getCharacters().containsKey(character.getName())){
+                return null;
+            }
+            return character;
+        }
+        return null;
+    }
+
     public ChatRequest createRequest(CharacterData character){
         return ChatRequest.builder()
                 .maxCompletionTokens(this.maxTokens)
@@ -224,11 +254,11 @@ public class DiscordRoleplay {
         return newContent;
     }
 
-    public void promptCharacterToRoleplay(CharacterData character, boolean waitForFinish) throws ExecutionException, InterruptedException {
+    public void promptCharacterToRoleplay(CharacterData character, Message replyTo, boolean triggerAutoResponse, boolean waitForFinish) throws ExecutionException, InterruptedException {
         if(isRunningRoleplay()){
             addCharacter(character);
             setCurrentCharacter(character.getName());
-            sendRoleplayMessage(waitForFinish);
+            sendRoleplayMessage(triggerAutoResponse, waitForFinish);
         }
     }
 
@@ -237,7 +267,7 @@ public class DiscordRoleplay {
 
     }
 
-    public void sendRoleplayMessage(boolean waitForFinish) throws ExecutionException, InterruptedException {
+    public void sendRoleplayMessage(boolean triggerAutoResponse, boolean waitForFinish) throws ExecutionException, InterruptedException {
         if(!runningRoleplay){
             channel.sendMessage(MessageCreateData.fromContent(
                     Util.botifyMessage("Cannot make a response since there is no ongoing chat!")
@@ -299,8 +329,26 @@ public class DiscordRoleplay {
                 swipes.add(finalResponse);
                 errorMsgCleanup = null;
                 this.finishedDiscordResponse(finalResponse);
+
+                // if able to reply to other bots..
+                // add chaining
+                if(triggerAutoResponse){
+                    CharacterData data = findRespondingCharacterFromContent(finalResponse);
+                    if(data != null) {
+                        try{
+                            promptCharacterToRoleplay(data, latestAssistantMessage, data.getTalkability() >= Math.random(), waitForFinish);
+                        } catch (Exception ignored){
+
+                        }
+                    }
+                }
             } catch (Exception e) {
-                this.finishedDiscordResponse(Util.botifyMessage("Failed to send a response due to an exception :< sowwy. Try using a different AI model.\nError: " + e.toString().substring(0, Math.min(e.toString().length(), 1925))));
+                String overrideError = null;
+                if(e instanceof IllegalArgumentException ignored){
+                    overrideError = "Response is too long!";
+                }
+
+                this.finishedDiscordResponse(Util.botifyMessage("Failed to send a response due to an exception :< sowwy. Try using a different AI model.\nError: " + (overrideError != null ? overrideError : e.toString().substring(0, Math.min(e.toString().length(), 1750)))));
                 errorMsgCleanup = aiMsg;
                 currentSwipe = 0;
                 throw(e);
@@ -378,13 +426,13 @@ public class DiscordRoleplay {
 
         // for next msg in roleplay?
         if(character != null){
-            messages.add(ChatMessage.SystemMessage.of("<INSTRUCTIONS>\nFollow the instructions below! You are the Game Master and will follow these rules!", "INSTRUCTIONS"));
+            messages.add(ChatMessage.SystemMessage.of("<INSTRUCTIONS>\nFollow the instructions below! You are participating in a roleplay with other users!", "INSTRUCTIONS"));
             messages.add(ChatMessage.SystemMessage.of("This is a chatbot roleplay. You are roleplaying with other users, your responses should only be a few sentences long, should incorporate humor and shouldn't be too serious. The only time this can be overridden is if later instructions conflict with these."));
             for(InstructionData instructionData : instructions){
                 messages.add(instructionData.getChatMessage(character));
             }
 
-            StringBuilder multipleCharacters = new StringBuilder("You are playing {{char}}. Do not play other characters. The group of characters involved in this roleplay are ");
+            StringBuilder multipleCharacters = new StringBuilder("For your response, you will be replying as {{char}}. Do not respond as any of the other characters in this group except {{char}}: ");
             for(String name : characters.keySet()){
                 multipleCharacters.append(name).append(", ");
             };

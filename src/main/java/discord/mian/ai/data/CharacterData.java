@@ -30,41 +30,69 @@ public class CharacterData implements Data, Chattable {
             throw new RuntimeException("Invalid character!");
     }
 
+    public boolean saveToJson(Map<String, Object> map) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        try{
+            objectMapper.writeValue(new File(characterFolder.getPath() + "/data.json"), map);
+            return true;
+        } catch(Exception ignored){
+
+        }
+        return false;
+    }
+
+    public Map<String, Object> getJson() {
+        File dataJson = new File(characterFolder.getPath() + "/data.json");
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        try{
+            if(!dataJson.exists())
+                objectMapper.writeValue(dataJson, new HashMap<String, Object>());
+
+            return objectMapper.readValue(dataJson, Map.class);
+        } catch (Exception ignored){
+
+        }
+        return null;
+    }
+
+    public boolean setTalkability(double amount){
+        Map<String, Object> data = getJson();
+
+        if(data != null){
+            data.put("talkability", amount);
+            return saveToJson(data);
+        }
+
+        return false;
+    }
+
+    public double getTalkability(){
+        Map<String, Object> data = getJson();
+        if(data != null)
+            return (double) data.getOrDefault("talkability", 0.5);
+        return 0.5;
+    }
+
     public String getAvatarLink(){
         File file = getAvatar();
         String link = null;
         if(file != null){
             try {
                 boolean success = false;
-                File dataJson = new File(characterFolder.getPath() + "/data.json");
 
-                ObjectMapper objectMapper = new ObjectMapper();
-                if(!dataJson.exists())
-                    objectMapper.writeValue(dataJson, new HashMap<String, String>());
-                else{
-                    Map<String, String> map = objectMapper.readValue(dataJson, Map.class);
-                    link = map.get("avatar_link");
+                Map<String, Object> map = getJson();
+                link = (String) map.get("avatar_link");
 
-                    if(link != null && !link.isEmpty()){
-                        // if the link breaks, users can manually fix it by adding a new avatar
-//                        HttpClient httpClient = HttpClient.newHttpClient();
-//                        HttpRequest request = HttpRequest
-//                                .newBuilder(URI.create(link))
-//                                .method("HEAD", HttpRequest.BodyPublishers.noBody())
-//                                .timeout(Duration.ofSeconds(5)) // wait 5 seconds and if it doesn't work, fuck it
-//                                .build();
-//                        int statusCode = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream()).statusCode();
-//                        if(statusCode >= 200 && statusCode < 400)
-                            success = true;
-                        Constants.LOGGER.info("Found avatar link for " + getName());
-                    }
+                if(link != null && !link.isEmpty()){
+                    success = true;
+                    Constants.LOGGER.info("Found avatar link for " + getName());
                 }
 
                 if(!success){
-                    Map<String, String> map = objectMapper.readValue(dataJson, Map.class);
                     link = Util.uploadImageToImgur(file);
                     map.put("avatar_link", link);
-                    objectMapper.writeValue(dataJson, map);
+                    saveToJson(map);
                     Constants.LOGGER.info("Writing avatar link for " + getName());
                 }
             } catch (InterruptedException | IOException e) {
@@ -91,6 +119,15 @@ public class CharacterData implements Data, Chattable {
         }
 
         return avatar;
+    }
+
+    public String getFirstName(){
+        String name = getName();
+        int spaceIndex = name.indexOf(" ");
+        if(spaceIndex != -1)
+            return name.substring(0, spaceIndex);
+        else
+            return name;
     }
 
     public String getName(){
