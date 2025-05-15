@@ -3,7 +3,7 @@ plugins {
     id("com.gradleup.shadow") version "8.3.2"
 }
 
-application.mainClass = "discord.mian.BotRunner"
+application.mainClass = "discord.mian.Main"
 group = "discord.mian"
 version = "1.0.0"
 
