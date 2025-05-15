@@ -14,7 +14,7 @@ public class Menu extends SlashCommand {
     @Override
     public boolean handle(SlashCommandInteractionEvent event) throws Exception {
         if(super.handle(event)){
-            event.deferReply().queue();
+            event.deferReply().setEphemeral(true).queue();
             Interactions.createDashboard(event.getHook().retrieveOriginal().submit().get());
             return true;
         }

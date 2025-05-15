@@ -2,6 +2,7 @@ package discord.mian.commands.custom;
 
 import discord.mian.ai.AIBot;
 import discord.mian.commands.SlashCommand;
+import discord.mian.custom.Util;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
@@ -27,6 +28,11 @@ public class ChangeModel extends SlashCommand {
     @Override
     public boolean handle(SlashCommandInteractionEvent event) throws Exception {
         if(super.handle(event)){
+            if(!Util.hasMasterPermission(event.getMember())){
+                event.reply("nuh uh little bro bro, you dont got permission").setEphemeral(true).queue();
+                return true;
+            }
+
             String model = event.getOption("model", OptionMapping::getAsString);
             Consumer<InteractionHook> consumer = (interactionHook) -> AIBot.bot.getChat(event.getGuild()).setModel(model);
             ReplyCallbackAction reply = event.reply("Changed model!").setEphemeral(true);

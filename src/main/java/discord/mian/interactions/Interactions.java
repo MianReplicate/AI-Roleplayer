@@ -111,7 +111,7 @@ public class Interactions {
 
                 event.replyModal(
                         InteractionCreator.createPermanentModal(Modal.create("edit", "Edit Message")
-                                .addComponents(ActionRow.of(contentInput)).build(),modalEvent -> {
+                                .addComponents(ActionRow.of(contentInput)),modalEvent -> {
                             String content = modalEvent.getValue("content").getAsString();
                             modalEvent.editMessage(content).queue();
                             // replaces the content at that swipe
@@ -127,13 +127,12 @@ public class Interactions {
 
     public static Consumer<ButtonInteractionEvent> getSwipe(Direction direction){
         return event -> {
-            event.deferEdit().queue();
-
             DiscordRoleplay roleplay = AIBot.bot.getChat(event.getGuild());
             if(roleplay.isRunningRoleplay()){
+                event.deferEdit().queue();
                 roleplay.swipe(event, direction);
             } else {
-                event.getHook().editOriginal("Roleplay isn't running currently!").queue();
+                event.reply("Roleplay isn't running currently!").setEphemeral(true).queue();
             }
         };
     }
@@ -501,8 +500,7 @@ public class Interactions {
             if(onSelects != null){
                 for(StringSelectMenu.Builder builder : onSelects){
                     components.add(ActionRow.of(
-                            builder.setMaxValues(25)
-                                    .addOptions(options)
+                            builder.addOptions(options)
                                     .build()));
                 }
             }
@@ -639,8 +637,8 @@ public class Interactions {
         } else {
             roleplayComponents.add(InteractionCreator.createButton("New Roleplay", (event) -> {
                 Server server = AIBot.bot.getServerData(event.getGuild());
-                if(server.getInstructionDatas().entrySet().isEmpty() || server.getCharacterDatas().entrySet().isEmpty()){
-                    event.reply("Must at least have one instruction and one character created in the bot in order to start a roleplay!").queue();
+                if(server.getInstructionDatas().entrySet().isEmpty() || server.getCharacterDatas().entrySet().isEmpty() || server.getWorldDatas().entrySet().isEmpty()){
+                    event.reply("Must at least have one instruction, character and world created in the bot in order to start a roleplay!").setEphemeral(true).queue();
                     return;
                 }
 
@@ -682,7 +680,7 @@ public class Interactions {
                             instructions.add(selectOption.getValue());
                     });
                     onSelect.getHook().editOriginal("Added selected instructions!").queue();
-                }).setPlaceholder("Add Prompts"));
+                }).setMaxValues(25).setPlaceholder("Add Prompts"));
 
                 instructionSelects.add(
                         InteractionCreator.createStringMenu(onSelect ->
@@ -714,7 +712,7 @@ public class Interactions {
                                         worlds.add(selectOption.getValue());
                                 });
                                 onSelect.getHook().editOriginal("Added selected worlds!").queue();
-                            }).setPlaceholder("Add Prompts"));
+                            }).setMaxValues(25).setPlaceholder("Add Prompts"));
 
                             worldSelects.add(
                                     InteractionCreator.createStringMenu(onSelect ->
@@ -746,7 +744,7 @@ public class Interactions {
                                                     characters.add(selectOption.getValue());
                                             });
                                             onSelect.getHook().editOriginal("Added selected characters!").queue();
-                                        }).setPlaceholder("Add Prompts"));
+                                        }).setMaxValues(25).setPlaceholder("Add Prompts"));
 
                                         characterSelects.add(
                                                 InteractionCreator.createStringMenu(onSelect ->

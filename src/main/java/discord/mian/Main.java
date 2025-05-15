@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 
 //TODO:
 // there needs to be better instructions to get characters not to tlak for each other
-// add world lore
+// edit temp?
 
 public class Main {
     public static void main(String[] args) throws Exception {

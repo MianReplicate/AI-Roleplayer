@@ -19,6 +19,8 @@ import io.github.sashirestela.openai.SimpleOpenAI;
 import io.github.sashirestela.openai.domain.chat.Chat;
 import io.github.sashirestela.openai.domain.chat.ChatMessage;
 import io.github.sashirestela.openai.domain.chat.ChatRequest;
+import io.github.sashirestela.openai.domain.completion.Completion;
+import io.github.sashirestela.openai.domain.completion.CompletionRequest;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
@@ -40,7 +42,6 @@ import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -85,20 +86,35 @@ public class DiscordRoleplay {
         this.guild = guild;
     }
 
-    public List<ChatMessage> trimListToMeetTokens(ArrayList<ChatMessage> msgs, int startAt){
-        Encoding enc = registry.getEncodingForModel(this.model.substring(this.model.lastIndexOf("/")))
-                .orElse(registry.getEncoding(EncodingType.CL100K_BASE));
-
+    public String combinePrompts(List<ChatMessage> msgs){
+        String prevType = "";
         StringBuilder combinedText = new StringBuilder();
         for(ChatMessage msg : msgs){
             if(msg instanceof ChatMessage.UserMessage message){
-                combinedText.append(message.getContent());
+//                if(!prevType.equals("user"))
+//                    combinedText.append("USER:");
+                combinedText.append("\n").append(message.getContent());
+                prevType="user";
             } else if(msg instanceof ChatMessage.AssistantMessage message){
-                combinedText.append(message.getContent());
+//                if(!prevType.equals("assistant"))
+//                    combinedText.append("ASSISTANT:");
+                combinedText.append("\n").append(message.getContent());
+                prevType="assistant";
             } else if(msg instanceof ChatMessage.SystemMessage message){
-                combinedText.append(message.getContent());
+                if(!prevType.equals("system"))
+                    combinedText.append("SYSTEM:");
+                combinedText.append("\n").append(message.getContent());
+                prevType="system";
             }
         };
+        return combinedText.toString();
+    }
+
+    public List<ChatMessage> trimListToMeetTokens(List<ChatMessage> msgs, int startAt){
+        Encoding enc = registry.getEncodingForModel(this.model.substring(this.model.lastIndexOf("/")))
+                .orElse(registry.getEncoding(EncodingType.CL100K_BASE));
+
+        String combinedText = combinePrompts(msgs);
 
         int tokens = enc.countTokens(combinedText.toString());
         if(tokens >= maxTokens){
@@ -147,7 +163,7 @@ public class DiscordRoleplay {
                     .withStyle(ButtonStyle.PRIMARY));
 
             if(errorMsgCleanup == null){
-                components.add(InteractionCreator.createPermanentButton(Button.danger("danger", Emoji.fromFormatted("🗑")),
+                components.add(InteractionCreator.createPermanentButton(Button.danger("destroy", Emoji.fromFormatted("🗑")),
                         Interactions.getDestroyMessage()));
                 components.add(InteractionCreator.createPermanentButton(Button.success("edit", Emoji.fromFormatted("🪄")),
                         Interactions.getEditMessage()));
@@ -186,7 +202,16 @@ public class DiscordRoleplay {
         return null;
     }
 
-    public ChatRequest createRequest(CharacterData character){
+    public CompletionRequest createTextRequest(CharacterData character){
+        return CompletionRequest.builder()
+                .maxTokens(this.maxTokens)
+                .model(this.model)
+                .prompt(combinePrompts(getHistory(character)))
+                .temperature(1.0)
+                .build();
+    }
+
+    public ChatRequest createChatRequest(CharacterData character){
         return ChatRequest.builder()
                 .maxCompletionTokens(this.maxTokens)
                 .model(this.model)
@@ -229,8 +254,9 @@ public class DiscordRoleplay {
         return chat.firstContent();
     }
 
-    private String generateResponse(CharacterData character, Consumer<String> consumer){
-        ChatRequest chatRequest = createRequest(character);
+    private String generateResponse(CharacterData character, boolean useChatCompletion, Consumer<String> consumer){
+        ChatRequest chatRequest = useChatCompletion ? createChatRequest(character) : null;
+        CompletionRequest completionRequest = !useChatCompletion ? createTextRequest(character) : null;
 
         SimpleOpenAI llm = createLLM();
 
@@ -239,22 +265,40 @@ public class DiscordRoleplay {
         }
 
         try{
-            CompletableFuture<Stream<Chat>> futureChat = llm.chatCompletions()
-                    .createStream(chatRequest);
-            Stream<Chat> chat = futureChat.join();
+            CompletableFuture<Stream<Chat>> futureChat = useChatCompletion ? llm.chatCompletions()
+                    .createStream(chatRequest) : null;
+            CompletableFuture<Stream<Completion>> futureCompletion = !useChatCompletion ? llm.completions()
+                    .createStream(completionRequest) : null;
+
+            Stream<Chat> chat = futureChat != null ? futureChat.join() : null;
+            Stream<Completion> completion = futureCompletion != null ? futureCompletion.join() : null;
+
             var fullResponseWrapper = new Object(){String fullResponse = "";};
 
-            chat.filter(chatResp -> chatResp.getChoices() != null && !chatResp.getChoices().isEmpty() && chatResp.firstContent() != null)
-                    .map(Chat::firstContent)
-                    .forEach(partialResponse -> {
-                        fullResponseWrapper.fullResponse += partialResponse;
-                        consumer.accept(fullResponseWrapper.fullResponse);
-                    });
+            if(chat != null){
+                chat.filter(chatResp -> chatResp.getChoices() != null && !chatResp.getChoices().isEmpty() && chatResp.firstContent() != null)
+                        .map(Chat::firstContent)
+                        .forEach(partialResponse -> {
+                            fullResponseWrapper.fullResponse += partialResponse;
+                            consumer.accept(fullResponseWrapper.fullResponse);
+                        });
+            } else {
+                completion.filter(chatResp -> chatResp.getChoices() != null && !chatResp.getChoices().isEmpty() && chatResp.firstText() != null)
+                        .map(Completion::firstText)
+                        .forEach(partialResponse -> {
+                            fullResponseWrapper.fullResponse += partialResponse;
+                            consumer.accept(fullResponseWrapper.fullResponse);
+                        });
+            }
 
             return fullResponseWrapper.fullResponse;
         }catch(CleverClientException e){
             return null;
         }
+    }
+
+    public boolean usingChatCompletion(){
+        return ((ConfigEntry.BoolConfig)AIBot.bot.getServerData(guild).getConfig().get("use_chat_completions")).value;
     }
 
     private String streamOnDiscordMessage(CharacterData character, Message msgToEdit){
@@ -263,7 +307,8 @@ public class DiscordRoleplay {
         double timeBetween = 1;
 
         String botUser = character.getName() + ":";
-        String finalResponse = generateResponse(character,response -> {
+
+        String finalResponse = generateResponse(character, usingChatCompletion(), response -> {
             if (!queued.get() && System.currentTimeMillis() - timeResponseMade.get() >= timeBetween && !response.isBlank()) {
                 queued.set(true);
                 Consumer<Message> onComplete = newMsg -> {
@@ -327,8 +372,8 @@ public class DiscordRoleplay {
                 latestAssistantMessage.delete().queue();
             else
                 latestAssistantMessage.editMessageComponents(
-                        ActionRow.of(Button.danger("destroy", Emoji.fromFormatted("🗑")),
-                                Button.success("edit", Emoji.fromFormatted("🪄")))).queue();
+                        ActionRow.of(Button.danger("destroy_button", Emoji.fromFormatted("🗑")),
+                                Button.success("edit_button", Emoji.fromFormatted("🪄")))).queue();
             latestAssistantMessage = null;
             swipes = null;
             currentSwipe = 0;
@@ -421,7 +466,8 @@ public class DiscordRoleplay {
                         swipes.add(finalResponse);
                         errorMsgCleanup = null;
                     }catch(Exception e){
-                        finalResponse = "```Failed to make a new response!\nError: " + e + "```";
+                        String msg = e.toString().contains("Content may not be longer") ? "Content is too long!" : e.toString();
+                        finalResponse = "```Failed to make a new response!\nError: " + msg + "```";
                     }
                     this.finishedDiscordResponse(finalResponse);
                 } else {
@@ -456,31 +502,31 @@ public class DiscordRoleplay {
 
         if(character != null){
             messages.add(ChatMessage.SystemMessage.of("<INSTRUCTIONS>\nFollow the instructions below! You are participating in a roleplay with other users!", "INSTRUCTIONS"));
-            messages.add(ChatMessage.SystemMessage.of("This is a chatbot roleplay. You are roleplaying with other users, your responses should only be a few sentences long, should incorporate humor and shouldn't be too serious. The only time this can be overridden is if later instructions conflict with these."));
+            messages.add(ChatMessage.SystemMessage.of("This is a chatbot roleplay. You are roleplaying with other users, your responses should only be a few sentences long, should incorporate humor and shouldn't be too serious. The only time this can be overridden is if later instructions conflict with these. Keep responses within a few sentences!"));
             for(InstructionData instructionData : instructions){
                 messages.add(instructionData.getChatMessage(character));
             }
 
-            messages.add(ChatMessage.SystemMessage.of("</INSTRUCTIONS> <WORLD LORE>\n The following is lore and information about the world that this roleplay takes place in!"));
+            messages.add(ChatMessage.SystemMessage.of("<WORLD LORE>\n The following is lore and information about the world that this roleplay takes place in!"));
             for(WorldData worldData : worldLore){
                 messages.add(worldData.getChatMessage(character));
             }
 
-            StringBuilder multipleCharacters = new StringBuilder("</WORLD LORE>For your response, you will be replying as {{char}}. Do not respond as any of the other characters in this group except {{char}}: ");
-            for(String name : characters.keySet()){
-                multipleCharacters.append(name).append(", ");
-            };
-            multipleCharacters.replace(multipleCharacters.lastIndexOf(", "), multipleCharacters.length(), ".");
-
-            messages.add(
-                    ChatMessage.SystemMessage.of(multipleCharacters.toString())
-            );
+//            StringBuilder multipleCharacters = new StringBuilder("For your response, you will be replying as {{char}}. Do not respond as any of the other characters in this group except {{char}}: ");
+//            for(String name : characters.keySet()){
+//                multipleCharacters.append(name).append(", ");
+//            };
+//            multipleCharacters.replace(multipleCharacters.lastIndexOf(", "), multipleCharacters.length(), ".");
+//
+//            messages.add(
+//                    ChatMessage.SystemMessage.of(multipleCharacters.toString())
+//            );
             messages.add(
                     ChatMessage.SystemMessage.of("Do not include the character name in your response, this is already provided programmatically by the code.")
             );
-            messages.add(ChatMessage.SystemMessage.of("<CHARACTER>\nUnderstand the character definition below! This is the character you will be playing in the roleplay.", "CHARACTER"));
+            messages.add(ChatMessage.SystemMessage.of("<CHARACTER PERSONA>\nUnderstand the character definition below! This is the character you will be playing in the roleplay.", "CHARACTER"));
             messages.add(character.getChatMessage(character));
-            messages.add(ChatMessage.SystemMessage.of("<CHAT HISTORY> This is the start of the roleplay. If this is the most recent message, create your own scenario for the roleplay based on world info! DO not tell the story or scenario. You will instead show it throughout your messages and actions."));
+            messages.add(ChatMessage.SystemMessage.of("<CHAT HISTORY>"));
         }
         int required = messages.size();
 
@@ -494,6 +540,7 @@ public class DiscordRoleplay {
         } catch (InterruptedException | ExecutionException ignored) {
         }
 
+        boolean isChatCompletion = usingChatCompletion();
         for(int i = listOfMessages.size() - 1; i >= 0; i--) {
             Message message = listOfMessages.get(i);
             if(message.getTimeCreated().isAfter(historyStart)){
@@ -511,20 +558,29 @@ public class DiscordRoleplay {
                 if (username == null)
                     username = message.getAuthor().getName();
 
-                String formatted = contents.replaceAll("<@" + message.getAuthor().getId() + ">", "");
+                String formatted = contents
+                        .replaceAll("<@" + message.getAuthor().getId() + ">", "")
+                        .replaceAll("<|im_end|>", "");
+                String finalContent = "";
+                if(!isChatCompletion){
+                    finalContent += "<|im_end|>\n";
+                }
+                finalContent += username + ": " + formatted;
 
                 if (message.isWebhookMessage()) {
                     messages.add(
                             ChatMessage.AssistantMessage.builder()
-                                    .content(username + ": " + formatted)
+                                    .content(finalContent)
                                     .name(username)
                                     .build()
                     );
                 } else {
-                    messages.add(ChatMessage.UserMessage.of(username + ": " + formatted, username));
+                    messages.add(ChatMessage.UserMessage.of(finalContent, username));
                 }
             }
         }
+        if(isChatCompletion && character != null)
+            messages.add(ChatMessage.SystemMessage.of("Write as " + character.getName() + " for your next response!"));
         return trimListToMeetTokens(messages, required);
     }
 

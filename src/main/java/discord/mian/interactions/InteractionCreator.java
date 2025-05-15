@@ -45,9 +45,10 @@ public class InteractionCreator {
 
     // permanent
     public static Button createPermanentButton(Button button, Consumer<ButtonInteractionEvent> eventConsumer){
-        PERM_INTERACTIONS.putIfAbsent(button.getId(), (event) -> {
+        PERM_INTERACTIONS.putIfAbsent(button.getId() + "_button", (event) -> {
             eventConsumer.accept((ButtonInteractionEvent) event);
         });
+        button = button.withId(button.getId() + "_button");
         return button;
     }
 
@@ -62,11 +63,12 @@ public class InteractionCreator {
         return selectMenu;
     }
 
-    public static Modal createPermanentModal(Modal modal, Consumer<ModalInteractionEvent> eventConsumer){
-        PERM_INTERACTIONS.putIfAbsent(modal.getId(), (event) -> {
+    public static Modal createPermanentModal(Modal.Builder modal, Consumer<ModalInteractionEvent> eventConsumer){
+        PERM_INTERACTIONS.putIfAbsent(modal.getId() + "_modal", (event) -> {
             eventConsumer.accept((ModalInteractionEvent) event);
         });
-        return modal;
+        modal = modal.setId(modal.getId() + "_modal");
+        return modal.build();
     }
 
     public static Modal.Builder createModal(String label, Consumer<ModalInteractionEvent> eventConsumer){

@@ -90,6 +90,11 @@ public class Server {
         botRole.value = 0L;
         configEntries.putIfAbsent("bot_role_id", botRole);
 
+        ConfigEntry.BoolConfig useChatCompletions = new ConfigEntry.BoolConfig();
+        useChatCompletions.description = "Whether to use chat completions for the AI or text completions";
+        useChatCompletions.value = true;
+        configEntries.putIfAbsent("use_chat_completions", useChatCompletions);
+
 //        ConfigEntry.IntConfig autoMode = new ConfigEntry.IntConfig();
 //        autoMode.description = "How many seconds until the AI responds automatically, set to -1 to disable";
 //        autoMode.value = -1;
