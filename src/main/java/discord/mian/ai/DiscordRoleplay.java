@@ -17,7 +17,6 @@ import io.github.sashirestela.openai.domain.chat.Chat;
 import io.github.sashirestela.openai.domain.chat.ChatMessage;
 import io.github.sashirestela.openai.domain.chat.ChatRequest;
 import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.api.entities.channel.Channel;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -30,7 +29,6 @@ import net.dv8tion.jda.api.requests.restaction.WebhookMessageCreateAction;
 import net.dv8tion.jda.api.utils.TimeUtil;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import net.dv8tion.jda.api.utils.messages.MessageEditData;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -175,8 +173,6 @@ public class DiscordRoleplay {
     }
 
     public CharacterData findRespondingCharacterFromMessage(Message msg){
-//            if(msg.getReferencedMessage() != null && msg.getReferencedMessage().isWebhookMessage()){
-        // check for name in response first
          if(msg.getReferencedMessage() != null && msg.getReferencedMessage().isWebhookMessage()){
             CharacterData character =
                     AIBot.bot.getServerData(guild).getCharacterDatas().get(msg.getReferencedMessage().getAuthor().getName());
@@ -504,7 +500,7 @@ public class DiscordRoleplay {
             throw new RuntimeException("Need at least one set of instructions!");
 
         historyStart = introMessage.getTimeCreated();
-        this.channel = introMessage.getChannel().asTextChannel();
+        channel = introMessage.getChannel().asTextChannel();
 
         Webhook webhook;
         webhook = channel.retrieveWebhooks().submit().get().stream().filter(find -> find.getName().equals(AIBot.bot.getJDA().getSelfUser().getName()))
@@ -524,10 +520,41 @@ public class DiscordRoleplay {
 
         characters = new HashMap<>();
         characterList.forEach(this::addCharacter);
-        this.instructions = new ArrayList<>();
+        instructions = new ArrayList<>();
         instructionList.forEach(this::addInstructions);
         Stream<String> stream = characters.keySet().stream();
         stream.findAny().ifPresent(this::setCurrentCharacter);
+    }
+
+    public void restartRoleplay(Message introMessage){
+        latestAssistantMessage = null;
+        swipes = null;
+        currentSwipe = 0;
+
+        historyStart = introMessage.getTimeCreated();
+        channel = introMessage.getChannel().asTextChannel();
+    }
+
+    public void stopRoleplay(){
+        if(this.isRunningRoleplay()){
+            runningRoleplay = false;
+            historyStart = null;
+            channel = null;
+            webhook = null;
+            latestAssistantMessage = null;
+            swipes = null;
+            currentSwipe = 0;
+            characters = null;
+            instructions = null;
+        }
+    }
+
+    public int getCurrentSwipe(){
+        return currentSwipe;
+    }
+
+    public ArrayList<String> getSwipes(){
+        return swipes;
     }
 
     public void setMaxTokens(int maxTokens){

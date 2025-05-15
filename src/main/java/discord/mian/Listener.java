@@ -115,29 +115,37 @@ public class Listener {
                 return;
             if(roleplay.isMakingResponse())
                 return;
+            if(!roleplay.isRunningRoleplay())
+                return;
 
             if(event.getChannel().getIdLong() == roleplay.getChannel().getIdLong() && roleplay.isRunningRoleplay()){
+                Random random = new Random();
+
                 CharacterData fromContent = roleplay.findRespondingCharacterFromContent(msg.getContentRaw());
-                if(fromContent != null && new Random().nextBoolean() && !fromContent.getName().equals(event.getAuthor().getName()))
+                if(fromContent != null && random.nextBoolean() && !fromContent.getName().equals(event.getAuthor().getName()))
                     roleplay.promptCharacterToRoleplay(fromContent, msg, true, false);
                 else{
                     CharacterData data = roleplay.findRespondingCharacterFromMessage(msg);
                     if(data != null && !data.getName().equals(event.getAuthor().getName())){
                         roleplay.promptCharacterToRoleplay(data, msg, true, false);
                     } else {
-                        final double total = roleplay.getCharacters().values().stream()
-                                .filter(data1 -> !data1.getName().equals(event.getAuthor().getName()))
-                                .mapToDouble(CharacterData::getTalkability).sum();
 
-                        double percentage = Math.random();
-                        List<CharacterData> meetsCriteria = roleplay.getCharacters().values().stream().filter(
-                                characterData -> (characterData.getTalkability() / total) >= percentage &&
-                                        !characterData.getName().equals(event.getAuthor().getName())
-                        ).toList();
+                        // should there be a response?
+                        if(random.nextBoolean()){
+                            final double total = roleplay.getCharacters().values().stream()
+                                    .filter(data1 -> !data1.getName().equals(event.getAuthor().getName()))
+                                    .mapToDouble(CharacterData::getTalkability).sum();
 
-                        if(!meetsCriteria.isEmpty())
-                            roleplay.promptCharacterToRoleplay(meetsCriteria.get((int)(Math.random() * meetsCriteria.size())),
-                                    msg, true, false);
+                            double percentage = Math.random();
+                            List<CharacterData> meetsCriteria = roleplay.getCharacters().values().stream().filter(
+                                    characterData -> (characterData.getTalkability() / total) >= percentage &&
+                                            !characterData.getName().equals(event.getAuthor().getName())
+                            ).toList();
+
+                            if(!meetsCriteria.isEmpty())
+                                roleplay.promptCharacterToRoleplay(meetsCriteria.get((int)(Math.random() * meetsCriteria.size())),
+                                        msg, true, false);
+                        }
                     }
                 }
             }

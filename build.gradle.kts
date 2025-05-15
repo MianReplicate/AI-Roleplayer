@@ -15,7 +15,6 @@ repositories{
 
 val jda_version: String by properties
 val jackson_version: String by properties
-val sqlite_version: String by properties
 val jtokkit_version: String by properties
 val openai_version: String by properties
 val logback_version: String by properties
@@ -25,7 +24,6 @@ dependencies{
     implementation("com.fasterxml.jackson.core:jackson-core:$jackson_version");
     implementation("com.knuddels:jtokkit:$jtokkit_version")
     implementation("io.github.sashirestela:simple-openai:$openai_version")
-    implementation("org.xerial:sqlite-jdbc:$sqlite_version")
     implementation("ch.qos.logback:logback-classic:$logback_version")
 }
 

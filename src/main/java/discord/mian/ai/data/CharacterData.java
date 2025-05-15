@@ -142,6 +142,14 @@ public class CharacterData implements Data, Chattable {
         return Files.readString(definition.toPath(), StandardCharsets.UTF_8);
     }
 
+    public File getPromptFile() {
+        File definition = new File(characterFolder.getPath() + "/definition.txt");
+        if(!definition.exists())
+            return null;
+
+        return definition;
+    }
+
     public void addOrReplacePrompt(String text) throws IOException {
         File definition = new File(characterFolder.getPath() + "/definition.txt");
         if(!definition.exists())

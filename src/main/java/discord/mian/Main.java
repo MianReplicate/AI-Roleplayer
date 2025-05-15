@@ -15,12 +15,11 @@ import java.util.concurrent.TimeUnit;
 
 //TODO:
 // automatic character talking? (auto mode)
-// restart history button next to start roleplay if there is an ongoing chat
-// stop roleplay button
 // there needs to be better instructions to get characters not to tlak for each other
 // ability to set keys for each server
-// maybe ability to save chat history i dunno
 // set up permissions
+// configurationssss
+// allow changing base url for server
 
 public class Main {
     public static void main(String[] args) throws Exception {

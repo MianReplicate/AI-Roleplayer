@@ -28,6 +28,13 @@ public class InstructionData implements Data, Chattable {
         return Files.readString(instructionFile.toPath(), StandardCharsets.UTF_8);
     }
 
+    public File getPromptFile() {
+        if(!instructionFile.exists())
+            return null;
+
+        return instructionFile;
+    }
+
     public void addOrReplacePrompt(String text) throws IOException {
         if(!instructionFile.exists())
             instructionFile.createNewFile();

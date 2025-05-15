@@ -1,5 +1,7 @@
 package discord.mian.ai.data;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import discord.mian.custom.Constants;
 import discord.mian.custom.Util;
 import net.dv8tion.jda.api.entities.Guild;
@@ -8,14 +10,9 @@ import net.dv8tion.jda.api.entities.Message;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.CopyOption;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 
 public class Server {
     private HashMap<String, CharacterData> characterDatas;
@@ -48,6 +45,48 @@ public class Server {
 
     public String getServerPath(){
         return "servers/" + guild.getIdLong();
+    }
+
+    public void generateConfig() throws IOException {
+        File dataJson = new File(getServerPath() + "/config.json");
+
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        ObjectNode root = objectMapper.createObjectNode();
+
+//        ObjectNode onlyPromptWhenRepliedTo = objectMapper.createObjectNode();
+//        onlyPromptWhenRepliedTo.put("description", "");
+
+//        root.putIfAbsent("onlyPromptWhenRepliedTo", onlyPromptWhenRepliedTo);
+
+
+        objectMapper.writeValue(dataJson, root);
+    }
+
+    public boolean saveToConfig(Map<String, Object> map) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        try{
+            objectMapper.writeValue(new File(getServerPath() + "/config.json"), map);
+            return true;
+        } catch(Exception ignored){
+
+        }
+        return false;
+    }
+
+    public Map<String, Object> getConfig() {
+        File dataJson = new File(getServerPath() + "/config.json");
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        try{
+            if(!dataJson.exists())
+                generateConfig();
+
+            return objectMapper.readValue(dataJson, Map.class);
+        } catch (Exception ignored){
+
+        }
+        return null;
     }
 
     public HashMap<String, InstructionData> getInstructionDatas(){
@@ -144,73 +183,5 @@ public class Server {
         writer.close();
 
         instructionDatas.putIfAbsent(name, new InstructionData(instructionFile));
-    }
-
-//    public boolean addCharacter(String name, Message.Attachment definition, Message.Attachment avatar){
-//        File charactersFolder = getCharactersFolder();
-//        File characterFolder = new File(charactersFolder.getPath() + "/" + name);
-//
-//        String defPath = charactersFolder.getPath() + "/" + "definition.txt";
-//        String avatarPath = characterFolder.getPath() + "/" + "avatar." + avatar.getFileExtension();
-//
-//        if(!characterFolder.exists()){
-//            try{
-//                if(definition == null || avatar == null)
-//                    throw new RuntimeException("No definition or avatar provided for " + name);
-//
-//                characterFolder.mkdir();
-//
-//                File definitionFile =
-//                        definition.getProxy()
-//                                .downloadToFile(new File(defPath)).get();
-//
-//                Files.readString(definitionFile.toPath(), StandardCharsets.UTF_8);
-//
-//                File avatarFile =
-//                        avatar.getProxy()
-//                                .downloadToFile(new File(avatarPath)).get();
-//
-//                if(!Util.isValidImage(avatarFile)){
-//                    throw new RuntimeException("Invalid avatar image!");
-//                }
-//            } catch (Exception e){
-//                Constants.LOGGER.info("Failed to add character: " + name);
-//                characterFolder.delete();
-//
-//                return false;
-//            }
-//        } else {
-//            if(definition != null){
-//                try{
-//                    File definitionFile =
-//                            definition.getProxy()
-//                                    .downloadToFile(new File(defPath)).get();
-//                    Files.readString(definitionFile.toPath(), StandardCharsets.UTF_8);
-//                } catch(Exception e){
-//                    Constants.LOGGER.info("Failed to replace definition for character: " + name);
-//                    return false;
-//                }
-//            }
-//            if(avatar != null){
-//                try{
-//                    File avatarFile =
-//                            avatar.getProxy()
-//                                    .downloadToFile(new File(avatarPath)).get();
-//
-//                    if(!Util.isValidImage(avatarFile)){
-//                        throw new RuntimeException("Invalid avatar image!");
-//                    }
-//                } catch(Exception e){
-//                    Constants.LOGGER.info("Failed to replace avatar for character: " + name);
-//                    return false;
-//                }
-//            }
-//        }
-//
-//        return true;
-//    }
-
-    public void removeCharacter(){
-
     }
 }

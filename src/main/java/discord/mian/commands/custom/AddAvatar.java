@@ -85,6 +85,6 @@ public class AddAvatar extends SlashCommand {
         if(image == null)
             return false;
 
-        return image.isImage() && Util.imageExtensions.contains("." + image.getFileExtension());
+        return image.isImage() && Util.IMAGE_EXTENSIONS.contains("." + image.getFileExtension());
     }
 }
