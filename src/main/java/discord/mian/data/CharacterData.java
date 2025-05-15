@@ -87,14 +87,14 @@ public class CharacterData implements Data, Chattable {
 
                 if(link != null && !link.isEmpty()){
                     success = true;
-                    Constants.LOGGER.info("Found avatar link for " + getName());
+//                    Constants.LOGGER.info("Found avatar link for " + getName());
                 }
 
                 if(!success){
                     link = Util.uploadImage(((ConfigEntry.StringConfig)server.getConfig().get("imgbb_key")).value, file);
                     map.put("avatar_link", link);
                     saveToJson(map);
-                    Constants.LOGGER.info("Writing avatar link for " + getName());
+//                    Constants.LOGGER.info("Writing avatar link for " + getName());
                 }
             } catch (InterruptedException | IOException e) {
                 throw new RuntimeException("Failed to find a valid avatar link for this character: " + e);

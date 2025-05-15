@@ -19,10 +19,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class AddAvatar extends SlashCommand {
+public class SetAvatar extends SlashCommand {
 
-    public AddAvatar() {
-        super("addavatar", "Assign an avatar to a character!");
+    public SetAvatar() {
+        super("set_avatar", "Assign an avatar to a character!");
         this.addOptions(
                 new OptionData(OptionType.STRING, "name", "The name of the character", true, true),
                 new OptionData(OptionType.ATTACHMENT, "avatar", "An avatar for the character. Should be a PNG or a JPG", true)
@@ -80,7 +80,7 @@ public class AddAvatar extends SlashCommand {
     @Override
     public void autoComplete(CommandAutoCompleteInteractionEvent event){
         List<String> characterNames = AIBot.bot.getServerData(event.getGuild()).getCharacterDatas().keySet().stream()
-                .filter(string -> string.startsWith(event.getFocusedOption().getName())).toList();
+                .filter(string -> string.toLowerCase().startsWith(event.getFocusedOption().getValue().toLowerCase())).toList();
         if(characterNames.size() >= 25)
             characterNames = characterNames.subList(0, 25);
         List<Command.Choice> choices = new ArrayList<>();

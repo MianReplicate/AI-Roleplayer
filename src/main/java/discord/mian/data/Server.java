@@ -3,9 +3,10 @@ package discord.mian.data;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import discord.mian.api.Data;
 import discord.mian.custom.ConfigEntry;
 import discord.mian.custom.Constants;
+import discord.mian.custom.PromptType;
 import discord.mian.custom.Util;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Role;
@@ -18,6 +19,7 @@ import java.util.*;
 public class Server {
     private HashMap<String, CharacterData> characterDatas;
     private HashMap<String, InstructionData> instructionDatas;
+    private HashMap<String, WorldData> worldDatas;
     private Guild guild;
 
     public Server(Guild guild) {
@@ -121,6 +123,41 @@ public class Server {
         return null;
     }
 
+    public HashMap<String, ? extends Data> getDatas(PromptType promptType){
+        return switch(promptType){
+            case INSTRUCTION -> getInstructionDatas();
+            case CHARACTER -> getCharacterDatas();
+            case WORLD -> getWorldDatas();
+            case null, default -> null;
+        };
+    }
+
+    public HashMap<String, WorldData> getWorldDatas(){
+        File worldsFolder = Util.createFileRelativeToData(getServerPath() + "/worlds");
+        if(!worldsFolder.exists())
+            worldsFolder.mkdir();
+
+        if(worldDatas == null){
+            worldDatas = new HashMap<>();
+        }
+
+        for(File world : Objects.requireNonNull(worldsFolder.listFiles())){
+            try{
+                int place = world.getName().lastIndexOf(".");
+                if(place != -1){
+                    if(world.getName().substring(place).equals(".txt")){
+                        worldDatas.putIfAbsent(world.getName().substring(0, place), new WorldData(world));
+                    }
+                }
+            }catch(Exception e){
+                Constants.LOGGER.info("Failed to load world " + world.getName() + " for guild: "+guild.getName());
+                Constants.LOGGER.error(String.valueOf(e));
+            }
+        }
+
+        return worldDatas;
+    }
+
     public HashMap<String, InstructionData> getInstructionDatas(){
         File instructionsFolder = Util.createFileRelativeToData(getServerPath() + "/instructions");
         if(!instructionsFolder.exists())
@@ -180,6 +217,13 @@ public class Server {
         return instructionsFolder;
     }
 
+    private File getWorldsFolder(){
+        File worldsFolder = Util.createFileRelativeToData(getServerPath() + "/worlds");
+        if(!worldsFolder.exists())
+            worldsFolder.mkdir();
+        return worldsFolder;
+    }
+    
     public void createCharacter(String name, String definition, double talkability) throws IOException {
         File charactersFolder = getCharactersFolder();
         File characterFolder = new File(charactersFolder.getPath() + "/" + name);
@@ -205,7 +249,7 @@ public class Server {
 
     public void createInstruction(String name, String prompt) throws IOException {
         File instructionsFolder = getInstructionsFolder();
-        File instructionFile = new File(instructionsFolder.getPath() + "/" + name);
+        File instructionFile = new File(instructionsFolder.getPath() + "/" + name + ".txt");
 
         if(!instructionFile.exists())
             instructionFile.createNewFile();
@@ -216,4 +260,19 @@ public class Server {
 
         instructionDatas.putIfAbsent(name, new InstructionData(instructionFile));
     }
+
+    public void createWorld(String name, String prompt) throws IOException{
+        File worldsFolder = getWorldsFolder();
+        File worldsFile = new File(worldsFolder.getPath() + "/" + name + ".txt");
+
+        if(!worldsFile.exists())
+            worldsFile.createNewFile();
+
+        FileWriter writer = new FileWriter(worldsFile);
+        writer.write(prompt);
+        writer.close();
+
+        worldDatas.putIfAbsent(name, new WorldData(worldsFile));
+    }
+
 }

@@ -11,6 +11,7 @@ import discord.mian.data.Server;
 import discord.mian.custom.Direction;
 import discord.mian.custom.Util;
 import discord.mian.custom.Constants;
+import discord.mian.data.WorldData;
 import discord.mian.interactions.InteractionCreator;
 import discord.mian.interactions.Interactions;
 import io.github.sashirestela.cleverclient.support.CleverClientException;
@@ -67,6 +68,7 @@ public class DiscordRoleplay {
 
     // make possible to swipe messages
     private ArrayList<InstructionData> instructions;
+    private ArrayList<WorldData> worldLore;
     private HashMap<String, CharacterData> characters;
     private CharacterData currentCharacter;
     private boolean runningRoleplay = false;
@@ -315,6 +317,8 @@ public class DiscordRoleplay {
 
         if(this.errorMsgCleanup != null){
             this.errorMsgCleanup.delete().queue(RestAction.getDefaultSuccess(), toThrow -> {});
+            if(this.latestAssistantMessage == errorMsgCleanup)
+                latestAssistantMessage = null;
             this.errorMsgCleanup = null;
         }
 
@@ -360,7 +364,7 @@ public class DiscordRoleplay {
                 // add chaining
                 if(triggerAutoResponse){
                     CharacterData data = findRespondingCharacterFromContent(finalResponse);
-                    if(data != null) {
+                    if(data != null && data != currentCharacter) {
                         try{
                             promptCharacterToRoleplay(data, latestAssistantMessage, data.getTalkability() >= Math.random(), waitForFinish);
                         } catch (Exception ignored){
@@ -450,7 +454,6 @@ public class DiscordRoleplay {
 
         ArrayList<ChatMessage> messages = new ArrayList<>();
 
-        // for next msg in roleplay?
         if(character != null){
             messages.add(ChatMessage.SystemMessage.of("<INSTRUCTIONS>\nFollow the instructions below! You are participating in a roleplay with other users!", "INSTRUCTIONS"));
             messages.add(ChatMessage.SystemMessage.of("This is a chatbot roleplay. You are roleplaying with other users, your responses should only be a few sentences long, should incorporate humor and shouldn't be too serious. The only time this can be overridden is if later instructions conflict with these."));
@@ -458,7 +461,12 @@ public class DiscordRoleplay {
                 messages.add(instructionData.getChatMessage(character));
             }
 
-            StringBuilder multipleCharacters = new StringBuilder("For your response, you will be replying as {{char}}. Do not respond as any of the other characters in this group except {{char}}: ");
+            messages.add(ChatMessage.SystemMessage.of("</INSTRUCTIONS> <WORLD LORE>\n The following is lore and information about the world that this roleplay takes place in!"));
+            for(WorldData worldData : worldLore){
+                messages.add(worldData.getChatMessage(character));
+            }
+
+            StringBuilder multipleCharacters = new StringBuilder("</WORLD LORE>For your response, you will be replying as {{char}}. Do not respond as any of the other characters in this group except {{char}}: ");
             for(String name : characters.keySet()){
                 multipleCharacters.append(name).append(", ");
             };
@@ -517,17 +525,14 @@ public class DiscordRoleplay {
                 }
             }
         }
-
-        // ngl we might need a max message count just in case it gets too bigggggg
-        Constants.LOGGER.info("Recieved messages! Count: "+messages.size());
-        Constants.LOGGER.info(String.valueOf(messages));
-
         return trimListToMeetTokens(messages, required);
     }
 
-    public void startRoleplay(Message introMessage, List<InstructionData> instructionList, List<CharacterData> characterList) throws ExecutionException, InterruptedException, IOException {
+    public void startRoleplay(Message introMessage, List<InstructionData> instructionList, List<WorldData> worldDatas, List<CharacterData> characterList) throws ExecutionException, InterruptedException, IOException {
         if(instructionList.size() <= 0)
             throw new RuntimeException("Need at least one set of instructions!");
+        if(worldDatas.size() <= 0)
+            throw new RuntimeException("Need at least one set of world lore!");
 
         historyStart = introMessage.getTimeCreated();
         channel = introMessage.getChannel().asTextChannel();
@@ -552,6 +557,9 @@ public class DiscordRoleplay {
         characterList.forEach(this::addCharacter);
         instructions = new ArrayList<>();
         instructionList.forEach(this::addInstructions);
+        worldLore = new ArrayList<>();
+        worldDatas.forEach(this::addWorldLore);
+
         Stream<String> stream = characters.keySet().stream();
         stream.findAny().ifPresent(this::setCurrentCharacter);
     }
@@ -576,6 +584,7 @@ public class DiscordRoleplay {
             currentSwipe = 0;
             characters = null;
             instructions = null;
+            worldLore = null;
         }
     }
 
@@ -627,5 +636,9 @@ public class DiscordRoleplay {
 
     public void addInstructions(InstructionData instructionData){
         this.instructions.add(instructionData);
+    }
+
+    public void addWorldLore(WorldData worldLore){
+        this.worldLore.add(worldLore);
     }
 }

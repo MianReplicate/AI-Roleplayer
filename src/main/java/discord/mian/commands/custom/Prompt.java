@@ -57,7 +57,7 @@ public class Prompt extends SlashCommand {
     @Override
     public void autoComplete(CommandAutoCompleteInteractionEvent event){
         List<String> characterNames = AIBot.bot.getServerData(event.getGuild()).getCharacterDatas().keySet().stream()
-                .filter(string -> string.startsWith(event.getFocusedOption().getName())).toList();
+                .filter(string -> string.toLowerCase().startsWith(event.getFocusedOption().getValue().toLowerCase())).toList();
         if(characterNames.size() >= 25)
             characterNames = characterNames.subList(0, 25);
         List<Command.Choice> choices = new ArrayList<>();

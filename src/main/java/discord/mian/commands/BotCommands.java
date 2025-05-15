@@ -15,7 +15,7 @@ public class BotCommands {
     private static final List<CommandHandler> commands = List.of(
             new ChangeModel(),
             new Menu(),
-            new AddAvatar(),
+            new SetAvatar(),
             new Prompt(),
             new SetBotRole()
     );
