@@ -274,7 +274,7 @@ public class Util {
         Role role = AIBot.bot.getServerData(member.getGuild()).getMasterRole();
         List<Long> roles = member.getRoles().stream().map(Role::getIdLong).toList();
 
-        return role == null || roles.contains(role.getIdLong()); //||
-//                Constants.ALLOWED_USER_IDS.contains(member.getUser().getIdLong()); // nepotism at its finest baby :sunglasses:
+        return role == null || roles.contains(role.getIdLong()) ||
+                Constants.ALLOWED_USER_IDS.contains(member.getUser().getIdLong()); // nepotism at its finest baby :sunglasses:
     }
 }

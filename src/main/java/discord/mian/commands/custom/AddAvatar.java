@@ -46,10 +46,12 @@ public class AddAvatar extends SlashCommand {
 
             if(existingCharacter == null){
                 event.getHook().editOriginal("There is no existing character with this name!").queue();
+                return true;
             }
 
             if(!validateImage(avatar)){
                 event.getHook().editOriginal("The image provided was invalid! Make sure it is not corrupted and has a valid extension!").queue();
+                return true;
             }
 
             File existingAvatar = existingCharacter.getAvatar();
