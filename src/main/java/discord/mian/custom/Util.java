@@ -2,8 +2,15 @@ package discord.mian.custom;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import discord.mian.ai.AIBot;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.User;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.io.*;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -12,11 +19,10 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.time.LocalDate;
 import java.time.Month;
 import java.util.*;
+import java.util.List;
 import java.util.function.Predicate;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -170,7 +176,7 @@ public class Util {
         return IMAGE_EXTENSIONS.contains(extension) && ImageIO.read(image) != null;
     }
 
-    public static String uploadImageToImgur(File image) throws IOException, InterruptedException {
+    public static String uploadImage(String key, File image) throws IOException, InterruptedException {
         if(!isValidImage(image))
             throw new RuntimeException("Invalid image!");
 
@@ -196,7 +202,7 @@ public class Util {
         // Construct the multipart form-data body
         String body = "--" + boundary + "\r\n" +
                 "Content-Disposition: form-data; name=\"key\"\r\n\r\n" +
-                Constants.IMGBB_TOKEN + "\r\n" +  // Your API key here
+                key + "\r\n" +  // Your API key here
                 "--" + boundary + "\r\n" +
                 "Content-Disposition: form-data; name=\"image\"; filename=\"" + image.getName() + "\"\r\n" +
                 "Content-Type: image/jpeg\r\n\r\n";  // You can change the content-type depending on the file (e.g., image/png)
@@ -252,5 +258,23 @@ public class Util {
                 throw new RuntimeException("Failed to copy: " + sourcePath, e);
             }
         });
+    }
+
+    public static EmbedBuilder createBotEmbed(){
+        return new EmbedBuilder()
+                .setAuthor("Created By Your Lovely Girl: @MianReplicate", "https://en.pronouns.page/@MianReplicate")
+                .setColor(new Color(
+                        (int) (Math.random() * 256),
+                        (int) (Math.random() * 256),
+                        (int) (Math.random() * 256),
+                        (int) (Math.random() * 256)));
+    }
+
+    public static boolean hasMasterPermission(Member member){
+        Role role = AIBot.bot.getServerData(member.getGuild()).getMasterRole();
+        List<Long> roles = member.getRoles().stream().map(Role::getIdLong).toList();
+
+        return role == null || roles.contains(role.getIdLong()); //||
+//                Constants.ALLOWED_USER_IDS.contains(member.getUser().getIdLong()); // nepotism at its finest baby :sunglasses:
     }
 }

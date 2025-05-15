@@ -14,12 +14,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 //TODO:
-// automatic character talking? (auto mode)
 // there needs to be better instructions to get characters not to tlak for each other
-// ability to set keys for each server
-// set up permissions
-// configurationssss
-// allow changing base url for server
 
 public class Main {
     public static void main(String[] args) throws Exception {

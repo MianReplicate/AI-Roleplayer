@@ -1,4 +1,4 @@
-package discord.mian.ai.data;
+package discord.mian.data;
 
 import discord.mian.api.Data;
 import discord.mian.api.Chattable;

@@ -1,27 +1,32 @@
-package discord.mian.ai.data;
+package discord.mian.data;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import discord.mian.custom.ConfigEntry;
 import discord.mian.custom.Constants;
 import discord.mian.custom.Util;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.Role;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 public class Server {
     private HashMap<String, CharacterData> characterDatas;
     private HashMap<String, InstructionData> instructionDatas;
     private Guild guild;
 
-    public Server(Guild guild){
+    public Server(Guild guild) {
         this.guild = guild;
         getServerData(); // ensures it exists
+    }
+
+    public Role getMasterRole(){
+        return guild.getRoleById(((ConfigEntry.LongConfig)getConfig().get("bot_role_id")).value);
     }
 
     public File getServerData(){
@@ -48,25 +53,54 @@ public class Server {
     }
 
     public void generateConfig() throws IOException {
-        File dataJson = new File(getServerPath() + "/config.json");
+        File dataJson = Util.createFileRelativeToData(getServerPath() + "/config.json");
+        if(!dataJson.exists())
+            dataJson.createNewFile();
 
         ObjectMapper objectMapper = new ObjectMapper();
+        ObjectWriter writer = objectMapper.writerWithDefaultPrettyPrinter();
 
-        ObjectNode root = objectMapper.createObjectNode();
+        Map<String, ConfigEntry> configEntries;
+        try{
+            configEntries = objectMapper.readValue(dataJson, new TypeReference<HashMap<String, ConfigEntry>>(){});
+        }catch(Exception ignored){
+            configEntries = new HashMap<>();
+        }
 
-//        ObjectNode onlyPromptWhenRepliedTo = objectMapper.createObjectNode();
-//        onlyPromptWhenRepliedTo.put("description", "");
+        ConfigEntry.StringConfig openRouter = new ConfigEntry.StringConfig();
+        openRouter.description = "The API key to use for models on Open Router";
+        openRouter.value = "";
+        configEntries.putIfAbsent("open_router_key", openRouter);
 
-//        root.putIfAbsent("onlyPromptWhenRepliedTo", onlyPromptWhenRepliedTo);
+        ConfigEntry.StringConfig imgbb = new ConfigEntry.StringConfig();
+        imgbb.description = "The API key to use for getting and posting avatars on IMGBB";
+        imgbb.value = "";
+        configEntries.putIfAbsent("imgbb_key", imgbb);
 
+        ConfigEntry.BoolConfig onlyChatOnMention = new ConfigEntry.BoolConfig();
+        onlyChatOnMention.description = "Whether the AI will only reply when mentioned through reply or its name";
+        onlyChatOnMention.value = false;
+        configEntries.putIfAbsent("only_chat_on_mention", onlyChatOnMention);
 
-        objectMapper.writeValue(dataJson, root);
+        ConfigEntry.LongConfig botRole = new ConfigEntry.LongConfig();
+        botRole.description = "Long ID of the bot controller role";
+        botRole.hidden = true;
+        botRole.value = 0L;
+        configEntries.putIfAbsent("bot_role_id", botRole);
+
+//        ConfigEntry.IntConfig autoMode = new ConfigEntry.IntConfig();
+//        autoMode.description = "How many seconds until the AI responds automatically, set to -1 to disable";
+//        autoMode.value = -1;
+//        configEntries.put("auto_mode", autoMode);
+
+        writer.writeValue(dataJson, configEntries);
     }
 
-    public boolean saveToConfig(Map<String, Object> map) {
+    public boolean saveToConfig(HashMap<String, ConfigEntry> entries) {
         ObjectMapper objectMapper = new ObjectMapper();
+        ObjectWriter writer = objectMapper.writerWithDefaultPrettyPrinter();
         try{
-            objectMapper.writeValue(new File(getServerPath() + "/config.json"), map);
+            writer.writeValue(Util.createFileRelativeToData(getServerPath() + "/config.json"), entries);
             return true;
         } catch(Exception ignored){
 
@@ -74,17 +108,15 @@ public class Server {
         return false;
     }
 
-    public Map<String, Object> getConfig() {
-        File dataJson = new File(getServerPath() + "/config.json");
+    public HashMap<String, ConfigEntry> getConfig() {
+        File dataJson = Util.createFileRelativeToData(getServerPath() + "/config.json");
 
         ObjectMapper objectMapper = new ObjectMapper();
         try{
-            if(!dataJson.exists())
-                generateConfig();
-
-            return objectMapper.readValue(dataJson, Map.class);
-        } catch (Exception ignored){
-
+            generateConfig();
+            return objectMapper.readValue(dataJson, new TypeReference<HashMap<String, ConfigEntry>>(){});
+        } catch (Exception exception){
+            Constants.LOGGER.info(String.valueOf(exception));
         }
         return null;
     }
@@ -124,7 +156,7 @@ public class Server {
 
         for(File character : Objects.requireNonNull(charactersFolder.listFiles())){
             try{
-                characterDatas.putIfAbsent(character.getName(), new CharacterData(character));
+                characterDatas.putIfAbsent(character.getName(), new CharacterData(this, character));
             }catch(Exception e){
                 Constants.LOGGER.info("Failed to load character " + character.getName() + " for guild: "+guild.getName());
                 Constants.LOGGER.error(String.valueOf(e));
@@ -165,7 +197,7 @@ public class Server {
         writer.write(definition);
         writer.close();
 
-        CharacterData data = new CharacterData(characterFolder);
+        CharacterData data = new CharacterData(this, characterFolder);
         data.setTalkability(talkability);
 
         characterDatas.putIfAbsent(name, data);

@@ -1,7 +1,6 @@
 package discord.mian.ai;
 
-import discord.mian.ai.data.CharacterData;
-import discord.mian.ai.data.Server;
+import discord.mian.data.Server;
 import discord.mian.commands.BotCommands;
 import discord.mian.custom.Util;
 import net.dv8tion.jda.api.JDA;

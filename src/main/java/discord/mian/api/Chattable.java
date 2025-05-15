@@ -1,6 +1,6 @@
 package discord.mian.api;
 
-import discord.mian.ai.data.CharacterData;
+import discord.mian.data.CharacterData;
 import io.github.sashirestela.openai.domain.chat.ChatMessage;
 
 public interface Chattable {

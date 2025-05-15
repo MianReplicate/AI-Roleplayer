@@ -2,7 +2,7 @@ package discord.mian.commands.custom;
 
 import discord.mian.ai.AIBot;
 import discord.mian.ai.DiscordRoleplay;
-import discord.mian.ai.data.CharacterData;
+import discord.mian.data.CharacterData;
 import discord.mian.commands.SlashCommand;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
@@ -56,7 +56,8 @@ public class Prompt extends SlashCommand {
 
     @Override
     public void autoComplete(CommandAutoCompleteInteractionEvent event){
-        List<String> characterNames = AIBot.bot.getServerData(event.getGuild()).getCharacterDatas().keySet().stream().toList();
+        List<String> characterNames = AIBot.bot.getServerData(event.getGuild()).getCharacterDatas().keySet().stream()
+                .filter(string -> string.startsWith(event.getFocusedOption().getName())).toList();
         if(characterNames.size() >= 25)
             characterNames = characterNames.subList(0, 25);
         List<Command.Choice> choices = new ArrayList<>();

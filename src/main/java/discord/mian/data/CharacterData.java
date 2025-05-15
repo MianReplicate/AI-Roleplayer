@@ -1,8 +1,10 @@
-package discord.mian.ai.data;
+package discord.mian.data;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import discord.mian.api.Data;
 import discord.mian.api.Chattable;
+import discord.mian.custom.ConfigEntry;
 import discord.mian.custom.Constants;
 import discord.mian.custom.Util;
 import io.github.sashirestela.openai.domain.chat.ChatMessage;
@@ -10,21 +12,18 @@ import io.github.sashirestela.openai.domain.chat.ChatMessage;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
 public class CharacterData implements Data, Chattable {
     private final File characterFolder;
+    private final Server server;
 
-    public CharacterData(File characterFolder) throws IOException {
+    public CharacterData(Server server, File characterFolder) throws IOException {
         this.characterFolder = characterFolder;
+        this.server = server;
 
         if(getPrompt() == null)
             throw new RuntimeException("Invalid character!");
@@ -32,8 +31,9 @@ public class CharacterData implements Data, Chattable {
 
     public boolean saveToJson(Map<String, Object> map) {
         ObjectMapper objectMapper = new ObjectMapper();
+        ObjectWriter writer = objectMapper.writerWithDefaultPrettyPrinter();
         try{
-            objectMapper.writeValue(new File(characterFolder.getPath() + "/data.json"), map);
+            writer.writeValue(new File(characterFolder.getPath() + "/data.json"), map);
             return true;
         } catch(Exception ignored){
 
@@ -45,9 +45,10 @@ public class CharacterData implements Data, Chattable {
         File dataJson = new File(characterFolder.getPath() + "/data.json");
 
         ObjectMapper objectMapper = new ObjectMapper();
+        ObjectWriter writer = objectMapper.writerWithDefaultPrettyPrinter();
         try{
             if(!dataJson.exists())
-                objectMapper.writeValue(dataJson, new HashMap<String, Object>());
+                writer.writeValue(dataJson, new HashMap<String, Object>());
 
             return objectMapper.readValue(dataJson, Map.class);
         } catch (Exception ignored){
@@ -90,7 +91,7 @@ public class CharacterData implements Data, Chattable {
                 }
 
                 if(!success){
-                    link = Util.uploadImageToImgur(file);
+                    link = Util.uploadImage(((ConfigEntry.StringConfig)server.getConfig().get("imgbb_key")).value, file);
                     map.put("avatar_link", link);
                     saveToJson(map);
                     Constants.LOGGER.info("Writing avatar link for " + getName());

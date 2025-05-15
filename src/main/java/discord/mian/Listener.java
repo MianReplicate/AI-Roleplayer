@@ -2,8 +2,8 @@ package discord.mian;
 
 import discord.mian.ai.AIBot;
 import discord.mian.ai.DiscordRoleplay;
-import discord.mian.ai.data.CharacterData;
-import discord.mian.ai.data.Server;
+import discord.mian.custom.ConfigEntry;
+import discord.mian.data.CharacterData;
 import discord.mian.commands.BotCommands;
 import discord.mian.custom.Constants;
 import discord.mian.interactions.InteractionCreator;
@@ -18,8 +18,6 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.SubscribeEvent;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
@@ -128,9 +126,9 @@ public class Listener {
                     CharacterData data = roleplay.findRespondingCharacterFromMessage(msg);
                     if(data != null && !data.getName().equals(event.getAuthor().getName())){
                         roleplay.promptCharacterToRoleplay(data, msg, true, false);
-                    } else {
+                    } else if(!((ConfigEntry.BoolConfig) AIBot.bot.getServerData(event.getGuild()).getConfig()
+                            .get("only_chat_on_mention")).value){
 
-                        // should there be a response?
                         if(random.nextBoolean()){
                             final double total = roleplay.getCharacters().values().stream()
                                     .filter(data1 -> !data1.getName().equals(event.getAuthor().getName()))

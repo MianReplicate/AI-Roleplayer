@@ -16,7 +16,8 @@ public class BotCommands {
             new ChangeModel(),
             new Menu(),
             new AddAvatar(),
-            new Prompt()
+            new Prompt(),
+            new SetBotRole()
     );
 
     public static CommandListUpdateAction addCommands(){

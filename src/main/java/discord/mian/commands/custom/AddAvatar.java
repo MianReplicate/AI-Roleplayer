@@ -2,8 +2,8 @@ package discord.mian.commands.custom;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.mian.ai.AIBot;
-import discord.mian.ai.data.CharacterData;
-import discord.mian.ai.data.Server;
+import discord.mian.data.CharacterData;
+import discord.mian.data.Server;
 import discord.mian.commands.SlashCommand;
 import discord.mian.custom.Util;
 import net.dv8tion.jda.api.entities.Message;
@@ -32,6 +32,11 @@ public class AddAvatar extends SlashCommand {
     @Override
     public boolean handle(SlashCommandInteractionEvent event) throws Exception {
         if(super.handle(event)){
+            if(!Util.hasMasterPermission(event.getMember())){
+                event.reply("nuh uh little bro bro, you dont got permission").setEphemeral(true).queue();
+                return true;
+            }
+
             event.deferReply().setEphemeral(true).queue();
             Server server = AIBot.bot.getServerData(event.getGuild());
             String name = event.getOption("name", OptionMapping::getAsString);
@@ -72,7 +77,8 @@ public class AddAvatar extends SlashCommand {
 
     @Override
     public void autoComplete(CommandAutoCompleteInteractionEvent event){
-        List<String> characterNames = AIBot.bot.getServerData(event.getGuild()).getCharacterDatas().keySet().stream().toList();
+        List<String> characterNames = AIBot.bot.getServerData(event.getGuild()).getCharacterDatas().keySet().stream()
+                .filter(string -> string.startsWith(event.getFocusedOption().getName())).toList();
         if(characterNames.size() >= 25)
             characterNames = characterNames.subList(0, 25);
         List<Command.Choice> choices = new ArrayList<>();

@@ -2,8 +2,8 @@ package discord.mian.interactions;
 
 import discord.mian.ai.AIBot;
 import discord.mian.ai.DiscordRoleplay;
-import discord.mian.ai.data.CharacterData;
-import discord.mian.ai.data.Server;
+import discord.mian.data.CharacterData;
+import discord.mian.data.Server;
 import discord.mian.api.Data;
 import discord.mian.custom.*;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -30,10 +30,8 @@ import net.dv8tion.jda.api.utils.messages.MessageEditData;
 
 import java.awt.*;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -46,6 +44,11 @@ public class Interactions {
 
     public static Consumer<StringSelectInteractionEvent> getDeletionMenu(boolean isCharacter){
         return (event -> {
+            if(!Util.hasMasterPermission(event.getMember())){
+                event.reply("nuh uh little bro bro, you dont got permission").setEphemeral(true).queue();
+                return;
+            }
+
             event.deferEdit().queue();
 
             for(SelectOption option : event.getSelectedOptions()){
@@ -73,6 +76,11 @@ public class Interactions {
 
     public static Consumer<StringSelectInteractionEvent> getPromptEditMenu(boolean isCharacter, boolean isCreating){
         return (event -> {
+            if(!Util.hasMasterPermission(event.getMember())){
+                event.reply("nuh uh little bro bro, you dont got permission").setEphemeral(true).queue();
+                return;
+            }
+
             String promptName = event.getSelectedOptions().getFirst().getValue();
 
             try {
@@ -149,8 +157,8 @@ public class Interactions {
 
         if(isCharacter){
             components.add(ActionRow.of(
-                    TextInput.create("talkability", "Talkability", TextInputStyle.SHORT)
-                            .setPlaceholder("The chances of this character responding when their name is mentioned OR when auto-mode is on\n\nPut one decimal value from 0 to 1 in here. Default: 0.5")
+                    TextInput.create("talkability", "Talkability: Put a decimal from 0.0 to 1.0", TextInputStyle.SHORT)
+                            .setPlaceholder("Likelihood of responding when mentioned in chat")
                             .build()
             ));
         }
@@ -235,18 +243,160 @@ public class Interactions {
         });
     }
 
-    public static List<SelectOption> getOptionsFromViewer(String description, Server server, boolean isCharacter){
+    public static List<SelectOption> getOptionsFromViewer(String description){
         if(!description.equals("```\n```")){
             return List.of(description.split("\n"))
-                    .stream().filter(string -> {
-                        if(isCharacter)
-                            return server.getCharacterDatas().containsKey(string);
-                        else
-                            return server.getInstructionDatas().containsKey(string);
-                    }).map(string -> SelectOption.of(string, string)).toList();
+                    .stream().filter(string -> !string.contains("```"))
+                    .map(string -> {
+                        int exclude = string.indexOf(":");
+                        if(exclude != -1)
+                            string = string.substring(0, exclude);
+                        return SelectOption.of(string, string);
+                    }).toList();
         }
         return null;
     }
+
+    public static EmbedBuilder createConfigViewerEmbed(Message message, Direction direction){
+        Server server = AIBot.bot.getServerData(message.getGuild());
+        HashMap<String, ConfigEntry> configEntries = server.getConfig();
+        List<String> display = configEntries.entrySet().stream().filter(entry ->
+                !entry.getValue().hidden).map(Map.Entry::getKey).toList();
+
+        EmbedBuilder builder = Util.createBotEmbed();
+
+        builder.setTitle("Configuration");
+
+        int show = 10;
+        int maxSize = Math.max(1, (int) Math.ceil((double) display.size() / show));
+
+        int index = 0;
+        List<MessageEmbed> embeds = message.getEmbeds();
+        if(!embeds.isEmpty()){
+            String footerText = embeds.getFirst().getFooter().getText();
+            int indexOfSlash = footerText.indexOf("/");
+
+            if(indexOfSlash != -1)
+                index = Integer.parseInt(footerText.substring(indexOfSlash - 1, indexOfSlash));
+            // gets the number before the /
+        }
+        if(direction != null){
+            if(direction == Direction.NEXT)
+                index++;
+            if(direction == Direction.BACK)
+                index--;
+        }
+        index = Math.max(0, Math.min(index, maxSize - 1));
+
+        int start = index * show;
+        int end = Math.min(start + show, display.size());
+        start = Math.min(start, end);
+
+        StringBuilder description = new StringBuilder("```\n");
+
+        display = display.subList(start, end);
+        for(int i = 0; i < display.size(); i++){
+            String string = display.get(i);
+            description.append(string + ": " + configEntries.get(string).description);
+
+            description.append("\n");
+        }
+        description.append("```");
+        builder.setDescription(description.toString());
+
+        builder.setFooter("Displaying Configuration: "+(index+1)+"/"+maxSize);
+        return builder;
+    }
+
+    public static void createConfigViewer(Message message, int forceIndex){
+        List<MessageEmbed> embeds = message.getEmbeds();
+        if(!embeds.isEmpty()){
+            String footerText = embeds.getFirst().getFooter().getText();
+            footerText = footerText.substring(0, footerText.indexOf("/") - 1)
+                    + forceIndex + footerText.substring(footerText.indexOf("/"));
+
+            EmbedBuilder builder = new EmbedBuilder();
+            builder.copyFrom(embeds.getFirst());
+            builder.setFooter(footerText);
+
+            message.editMessageEmbeds(builder.build()).submit();
+        }
+
+        createConfigViewer((direction) -> createConfigViewerEmbed(message, null), message, null);
+    }
+
+    public static void createConfigViewer(Function<Direction, EmbedBuilder> buildEmbed, Message message, Direction direction){
+        EmbedBuilder embed = buildEmbed.apply(direction);
+        ArrayList<LayoutComponent> components = new ArrayList<>();
+
+        List<SelectOption> options =
+                getOptionsFromViewer(embed.getDescriptionBuilder().toString());
+        components.add(
+                ActionRow.of(InteractionCreator.createStringMenu((event -> {
+                            String configOption = event.getSelectedOptions().getFirst().getValue();
+                            ConfigEntry entry = AIBot.bot.getServerData(event.getGuild()).getConfig().get(configOption);
+
+                            TextInput.Builder textInput = TextInput.create("value", "Value", TextInputStyle.SHORT)
+                                    .setPlaceholder("Enter a valid value: For booleans, type \"true\" or \"false\".");
+                            if(entry instanceof ConfigEntry.StringConfig stringConfig && !stringConfig.value.isEmpty())
+                                textInput.setValue(stringConfig.value);
+                            else if(entry instanceof ConfigEntry.BoolConfig boolConfig)
+                                textInput.setValue(String.valueOf(boolConfig.value));
+
+                            event.replyModal(InteractionCreator.createModal("Editing " + configOption.toUpperCase(), (modalEvent) -> {
+                                String value = modalEvent.getValue("value").getAsString();
+                                HashMap<String, ConfigEntry> entries = AIBot.bot.getServerData(modalEvent.getGuild()).getConfig();
+
+                                if(entry instanceof ConfigEntry.StringConfig stringConfig)
+                                    stringConfig.value = value;
+                                else if(entry instanceof ConfigEntry.BoolConfig boolConfig){
+                                    Function<String, Boolean> tryParseBoolean = (string) -> {
+                                        try{
+                                            return Boolean.valueOf(string);
+                                        } catch (Exception ignored){
+                                            return ((ConfigEntry.BoolConfig) entry).value;
+                                        }
+                                    };
+
+                                    boolConfig.value = tryParseBoolean.apply(value);
+                                }
+
+                                entries.put(configOption, entry);
+
+                                if(AIBot.bot.getServerData(modalEvent.getGuild()).saveToConfig(entries))
+                                    modalEvent.reply("Saved config!").queue();
+                                else
+                                    modalEvent.reply("Failed to update config!").queue();
+                            }).addComponents(
+                                    ActionRow.of(textInput.build())).build()).queue();
+                        }))
+                        .setRequiredRange(1, 1)
+                        .setPlaceholder("Configure Option")
+                        .addOptions(options)
+                        .build())
+        );
+
+        components.add(ActionRow.of(
+                InteractionCreator.createButton("<--", (event) -> {
+                    event.deferEdit().queue();
+                    createConfigViewer(buildEmbed, message, Direction.BACK);
+
+                }).withStyle(ButtonStyle.PRIMARY),
+                InteractionCreator.createButton("-->", (event) -> {
+                    event.deferEdit().queue();
+                    createConfigViewer(buildEmbed, message, Direction.NEXT);
+
+                }).withStyle(ButtonStyle.PRIMARY)
+        ));
+
+        MessageEditAction editAction = message
+                .editMessage(MessageEditData.fromEmbeds(embed.build()))
+                .setComponents(components)
+                .setFiles(List.of());
+        editAction.setContent(null);
+        editAction.submit();
+    }
+
 
     public static EmbedBuilder createPromptViewerEmbed(Message message, String preDescription, boolean isCharacter, Direction direction){
         Server server = AIBot.bot.getServerData(message.getGuild());
@@ -337,7 +487,7 @@ public class Interactions {
         ArrayList<LayoutComponent> components = new ArrayList<>();
 
         List<SelectOption> options =
-                getOptionsFromViewer(embed.getDescriptionBuilder().toString(), AIBot.bot.getServerData(message.getGuild()), isCharacter);
+                getOptionsFromViewer(embed.getDescriptionBuilder().toString());
         if(options != null){
             if(editable){
                 components.add(
@@ -364,7 +514,6 @@ public class Interactions {
                 }
             }
         }
-
         components.add(ActionRow.of(
                 InteractionCreator.createButton("<--", (event) -> {
                     event.deferEdit().queue();
@@ -394,6 +543,11 @@ public class Interactions {
                 }).withEmoji(Emoji.fromFormatted("🔝")).withStyle(ButtonStyle.SECONDARY));
             if(editable)
                 itemComponents.add(InteractionCreator.createButton("Create Prompt", (event) -> {
+                    if(!Util.hasMasterPermission(event.getMember())){
+                        event.reply("nuh uh little bro bro, you dont got permission").setEphemeral(true).queue();
+                        return;
+                    }
+
                     replyCreatingPrompt(event, isCharacter);
                 }).withEmoji(Emoji.fromFormatted("🪄")));
 
@@ -409,7 +563,6 @@ public class Interactions {
     }
 
     public static void createDashboard(Message message) throws IOException {
-        EmbedBuilder builder = new EmbedBuilder();
         DiscordRoleplay roleplay = AIBot.bot.getChat(message.getGuild());
 
         boolean isGif = Cats.isGif();
@@ -419,18 +572,14 @@ public class Interactions {
             data = Cats.getCat();
         String fileName = isGif ? "image.gif" : "image.png";
 
+        EmbedBuilder builder = Util.createBotEmbed();
+
         builder.setTitle("AI Roleplay Dashboard");
-        builder.setAuthor("Created By Your Lovely Girl: @MianReplicate", "https://en.pronouns.page/@MianReplicate");
         builder.setImage("attachment://"+fileName);
 
         builder.setFooter(Util.getRandomToolTip()); // random footer msgs
 //            builder.setDescription(AIBot.bot.getFunnyMessage());
-        builder.setColor(new Color(
-                (int) (Math.random() * 256),
-                (int) (Math.random() * 256),
-                (int) (Math.random() * 256),
-                (int) (Math.random() * 256))
-        );
+
         StringBuilder display = new StringBuilder();
         if(roleplay.getCharacters() != null){
             java.util.List<String> keys = roleplay.getCharacters().keySet().stream().toList();
@@ -499,6 +648,12 @@ public class Interactions {
                 Server server = AIBot.bot.getServerData(event.getGuild());
                 if(server.getInstructionDatas().entrySet().isEmpty() || server.getCharacterDatas().entrySet().isEmpty()){
                     event.reply("Must at least have one instruction and one character created in the bot in order to start a roleplay!").queue();
+                    return;
+                }
+
+                String key = ((ConfigEntry.StringConfig) server.getConfig().get("open_router_key")).value;
+                if(key == null || key.isEmpty()){
+                    event.reply("No API key set! One must be set in the configuration first in order to roleplay!").queue();
                     return;
                 }
 
@@ -626,8 +781,25 @@ public class Interactions {
                                 InteractionCreator.createButton("View Introductions", (event) -> {
                                     event.deferEdit().queue();
                                     createPromptViewer(message, false, 0);
-                                }).withStyle(ButtonStyle.PRIMARY).withEmoji(Emoji.fromFormatted("📋")),
-                                Button.link("https://openrouter.ai/models?order=pricing-low-to-high", "Free AI models"))
+                                }).withStyle(ButtonStyle.PRIMARY).withEmoji(Emoji.fromFormatted("📋"))),
+                        ActionRow.of(
+                                InteractionCreator.createButton("Server Configuration", (event) -> {
+                                    event.reply("Opening configuration menu").setEphemeral(true).queue(success ->
+                                    {
+                                        try {
+                                            if(!Util.hasMasterPermission(event.getMember())){
+                                                event.getHook().editOriginal("nuh uh little bro bro, you dont got permission").queue();
+                                                return;
+                                            }
+
+                                            createConfigViewer(success.retrieveOriginal().submit().get(), 0);
+                                        } catch (InterruptedException | ExecutionException e) {
+                                            throw new RuntimeException(e);
+                                        }
+                                    });
+                                }).withStyle(ButtonStyle.SECONDARY).withEmoji(Emoji.fromFormatted("⚙️")),
+                                Button.link("https://openrouter.ai/models?order=pricing-low-to-high", "Free AI models")
+                                        .withEmoji(Emoji.fromFormatted("🤖")))
                 );
         if(data != null)
             editAction.setFiles(FileUpload.fromData(data, fileName));

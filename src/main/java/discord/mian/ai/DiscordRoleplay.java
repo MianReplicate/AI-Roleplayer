@@ -4,14 +4,16 @@ import com.knuddels.jtokkit.Encodings;
 import com.knuddels.jtokkit.api.Encoding;
 import com.knuddels.jtokkit.api.EncodingRegistry;
 import com.knuddels.jtokkit.api.EncodingType;
-import discord.mian.ai.data.CharacterData;
-import discord.mian.ai.data.InstructionData;
-import discord.mian.ai.data.Server;
+import discord.mian.custom.ConfigEntry;
+import discord.mian.data.CharacterData;
+import discord.mian.data.InstructionData;
+import discord.mian.data.Server;
 import discord.mian.custom.Direction;
 import discord.mian.custom.Util;
 import discord.mian.custom.Constants;
 import discord.mian.interactions.InteractionCreator;
 import discord.mian.interactions.Interactions;
+import io.github.sashirestela.cleverclient.support.CleverClientException;
 import io.github.sashirestela.openai.SimpleOpenAI;
 import io.github.sashirestela.openai.domain.chat.Chat;
 import io.github.sashirestela.openai.domain.chat.ChatMessage;
@@ -37,6 +39,7 @@ import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -45,7 +48,6 @@ import java.util.stream.Stream;
 public class DiscordRoleplay {
     // limit roleplay to one channel lmfao
 
-    private SimpleOpenAI llm;
     private boolean makingResponse;
     private int maxTokens;
     private String model;
@@ -70,13 +72,10 @@ public class DiscordRoleplay {
     private boolean runningRoleplay = false;
 
     public DiscordRoleplay(Guild guild){
-        if(Constants.LLM_KEY == null || Constants.LLM_KEY.isEmpty())
-            throw new RuntimeException("No OpenRouter key set!");
-
-        this.llm = SimpleOpenAI.builder()
-                .baseUrl(Constants.BASE_URL)
-                .apiKey(Constants.LLM_KEY)
-                .build();
+//        this.llm = SimpleOpenAI.builder()
+//                .baseUrl(Constants.BASE_URL)
+//                .apiKey(Constants.LLM_KEY)
+//                .build();
 
         this.maxTokens = 8192;
         this.model = Constants.DEFAULT_MODEL;
@@ -194,6 +193,17 @@ public class DiscordRoleplay {
                 .build();
     }
 
+    public SimpleOpenAI createLLM(){
+        try {
+            return SimpleOpenAI.builder()
+                    .baseUrl(Constants.BASE_URL)
+                    .apiKey(((ConfigEntry.StringConfig) AIBot.bot.getServerData(guild).getConfig().get("open_router_key")).value)
+                    .build();
+        } catch(Exception e){
+            return null;
+        }
+    }
+
     public String createCustomResponse(String content){
         ArrayList<ChatMessage> history = new ArrayList<>();
         history.add(ChatMessage.UserMessage.of(content, "Admin"));
@@ -204,7 +214,13 @@ public class DiscordRoleplay {
                 .messages(history)
                 .build();
 
-        CompletableFuture<Chat> futureChat = this.llm.chatCompletions()
+        SimpleOpenAI llm = createLLM();
+
+        if(llm == null){
+            return null;
+        }
+
+        CompletableFuture<Chat> futureChat = llm.chatCompletions()
                 .create(chatRequest);
         Chat chat = futureChat.join();
 
@@ -213,18 +229,30 @@ public class DiscordRoleplay {
 
     private String generateResponse(CharacterData character, Consumer<String> consumer){
         ChatRequest chatRequest = createRequest(character);
-        CompletableFuture<Stream<Chat>> futureChat = this.llm.chatCompletions()
-                .createStream(chatRequest);
-        Stream<Chat> chat = futureChat.join();
-        var fullResponseWrapper = new Object(){String fullResponse = "";};
 
-        chat.filter(chatResp -> chatResp.getChoices() != null && !chatResp.getChoices().isEmpty() && chatResp.firstContent() != null)
-                .map(Chat::firstContent)
-                .forEach(partialResponse -> {
-                    fullResponseWrapper.fullResponse += partialResponse;
-                    consumer.accept(fullResponseWrapper.fullResponse);
-                });
-        return fullResponseWrapper.fullResponse;
+        SimpleOpenAI llm = createLLM();
+
+        if(llm == null){
+            return null;
+        }
+
+        try{
+            CompletableFuture<Stream<Chat>> futureChat = llm.chatCompletions()
+                    .createStream(chatRequest);
+            Stream<Chat> chat = futureChat.join();
+            var fullResponseWrapper = new Object(){String fullResponse = "";};
+
+            chat.filter(chatResp -> chatResp.getChoices() != null && !chatResp.getChoices().isEmpty() && chatResp.firstContent() != null)
+                    .map(Chat::firstContent)
+                    .forEach(partialResponse -> {
+                        fullResponseWrapper.fullResponse += partialResponse;
+                        consumer.accept(fullResponseWrapper.fullResponse);
+                    });
+
+            return fullResponseWrapper.fullResponse;
+        }catch(CleverClientException e){
+            return null;
+        }
     }
 
     private String streamOnDiscordMessage(CharacterData character, Message msgToEdit){
@@ -244,6 +272,8 @@ public class DiscordRoleplay {
                 msgToEdit.editMessage(MessageEditData.fromContent(Util.botifyMessage("Message is currently generating..") + "\n" + newContent)).queue(onComplete);
             }
         });
+        if(finalResponse == null)
+            throw new RuntimeException("Failed to create the LLM! Ensure that the API key is valid!");
         String newContent = finalResponse.replaceAll(botUser, "");
         if(newContent.isEmpty())
             throw new RuntimeException("Empty message! :(");
