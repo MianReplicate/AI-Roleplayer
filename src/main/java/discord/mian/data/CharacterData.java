@@ -112,7 +112,7 @@ public class CharacterData implements Data, Chattable {
 
         File avatar = null;
         for(String extension : extensions){
-            File temp = new File(characterFolder.getPath()+"\\avatar"+extension);
+            File temp = new File(characterFolder.getPath()+"/avatar"+extension);
             if(temp.exists()){
                 avatar = temp;
                 break;
