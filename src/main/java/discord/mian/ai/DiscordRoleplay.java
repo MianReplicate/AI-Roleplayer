@@ -364,9 +364,9 @@ public class DiscordRoleplay {
                 // add chaining
                 if(triggerAutoResponse){
                     CharacterData data = findRespondingCharacterFromContent(finalResponse);
-                    if(data != null && data != currentCharacter) {
+                    if(data != null && data != currentCharacter && data.getTalkability() >= Math.random()) {
                         try{
-                            promptCharacterToRoleplay(data, latestAssistantMessage, data.getTalkability() >= Math.random(), waitForFinish);
+                            promptCharacterToRoleplay(data, latestAssistantMessage, true, waitForFinish);
                         } catch (Exception ignored){
 
                         }

@@ -120,7 +120,7 @@ public class Listener {
                 Random random = new Random();
 
                 CharacterData fromContent = roleplay.findRespondingCharacterFromContent(msg.getContentRaw());
-                if(fromContent != null && random.nextBoolean() && !fromContent.getName().equals(event.getAuthor().getName()))
+                if(fromContent != null && !fromContent.getName().equals(event.getAuthor().getName()))
                     roleplay.promptCharacterToRoleplay(fromContent, msg, true, false);
                 else{
                     CharacterData data = roleplay.findRespondingCharacterFromMessage(msg);
