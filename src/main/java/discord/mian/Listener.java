@@ -105,12 +105,15 @@ public class Listener {
     public void onMessageReceived(MessageReceivedEvent event) throws ExecutionException, InterruptedException {
         if(Constants.ALLOWED_USER_IDS.contains(event.getAuthor().getIdLong()) || Constants.PUBLIC){
             Message msg = event.getMessage();
-            DiscordRoleplay roleplay = AIBot.bot.getChat(event.getGuild());
 
+            if(!msg.isFromGuild())
+                return;
             if(msg.getAuthor() == AIBot.bot.getJDA().getSelfUser())
                 return;
             if(msg.isWebhookMessage())
                 return;
+
+            DiscordRoleplay roleplay = AIBot.bot.getChat(event.getGuild());
             if(roleplay.isMakingResponse())
                 return;
             if(!roleplay.isRunningRoleplay())
