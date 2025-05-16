@@ -7,14 +7,10 @@ import discord.mian.custom.Util;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.hooks.AnnotatedEventManager;
 import net.dv8tion.jda.api.requests.GatewayIntent;
-
 import java.io.File;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
-//TODO:
-// there needs to be better instructions to get characters not to tlak for each other
 
 public class Main {
     public static void main(String[] args) throws Exception {
