@@ -7,6 +7,7 @@ import discord.mian.custom.Util;
 import discord.mian.data.Server;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.InteractionContextType;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 
@@ -16,6 +17,7 @@ public class SetBotRole extends SlashCommand {
     public SetBotRole(){
         super("set_bot_role", "Sets the master role for the roleplayer");
         this.addOption(OptionType.ROLE, "role", "The role to set!", false, false);
+        this.setContexts(InteractionContextType.GUILD);
     }
 
     @Override

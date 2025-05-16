@@ -9,6 +9,7 @@ import discord.mian.custom.Util;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.InteractionContextType;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
@@ -27,6 +28,7 @@ public class SetAvatar extends SlashCommand {
                 new OptionData(OptionType.STRING, "name", "The name of the character", true, true),
                 new OptionData(OptionType.ATTACHMENT, "avatar", "An avatar for the character. Should be a PNG or a JPG", true)
         );
+        this.setContexts(InteractionContextType.GUILD);
     }
 
     @Override

@@ -9,20 +9,20 @@ import java.util.Arrays;
 import java.util.Collection;
 
 public class PermissionHandler<T extends GenericInteractionCreateEvent & IReplyCallback> {
-    private final ArrayList<User> allowedUsers = new ArrayList<>();
+    private final ArrayList<Long> allowedUsers = new ArrayList<>();
 
-    public PermissionHandler<T> addUsers(User... users){
+    public PermissionHandler<T> addUsers(Long... users){
         return addUsers(Arrays.stream(users).toList());
     }
 
-    public PermissionHandler<T> addUsers(Collection<User> users){
+    public PermissionHandler<T> addUsers(Collection<Long> users){
         allowedUsers.addAll(users);
         return this;
     }
 
     public boolean isAllowed(User user){
         // if empty then it is assumed that everyone is allowed
-        return allowedUsers.isEmpty() || allowedUsers.contains(user);
+        return allowedUsers.isEmpty() || allowedUsers.contains(user.getIdLong());
     }
 
     public boolean handle(T event) throws Exception {

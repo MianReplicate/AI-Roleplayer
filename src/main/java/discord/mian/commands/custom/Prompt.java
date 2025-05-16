@@ -8,6 +8,7 @@ import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.InteractionContextType;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
@@ -19,6 +20,7 @@ public class Prompt extends SlashCommand {
     public Prompt() {
         super("prompt", "Prompt a character to speak. Can be used to add new characters into the roleplay as well!");
         this.addOption(OptionType.STRING, "character", "The character to be prompted!", true, true);
+        this.setContexts(InteractionContextType.GUILD);
     }
 
     @Override

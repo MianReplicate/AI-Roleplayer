@@ -3,12 +3,14 @@ package discord.mian.commands.custom;
 import discord.mian.commands.SlashCommand;
 import discord.mian.interactions.Interactions;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.InteractionContextType;
 
 public class Menu extends SlashCommand {
 
 
     public Menu(){
         super("menu", "Open the AI menu");
+        this.setContexts(InteractionContextType.GUILD);
     }
 
     @Override

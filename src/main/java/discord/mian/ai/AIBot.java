@@ -1,5 +1,6 @@
 package discord.mian.ai;
 
+import discord.mian.custom.Constants;
 import discord.mian.data.Server;
 import discord.mian.commands.BotCommands;
 import discord.mian.custom.Util;
@@ -27,6 +28,7 @@ public class AIBot {
         this.servers = new HashMap<>();
         this.chats = new HashMap<>();
         this.jda = jda;
+        Constants.ALLOWED_USER_IDS.add(this.jda.retrieveApplicationInfo().submit().get().getOwner().getIdLong());
 
         BotCommands.addCommands().queue();
 

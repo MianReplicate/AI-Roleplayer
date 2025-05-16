@@ -5,6 +5,7 @@ import discord.mian.commands.SlashCommand;
 import discord.mian.custom.Util;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.InteractionContextType;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
@@ -23,6 +24,7 @@ public class ChangeModel extends SlashCommand {
         this.addOption(OptionType.STRING, "model", "The model link: Find free models on OpenRouter", true, true);
 
         recentModels = new ArrayList<>();
+        this.setContexts(InteractionContextType.GUILD);
     }
 
     @Override

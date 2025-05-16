@@ -103,7 +103,7 @@ public class Listener {
 
     @SubscribeEvent
     public void onMessageReceived(MessageReceivedEvent event) throws ExecutionException, InterruptedException {
-        if(Constants.ALLOWED_USER_IDS.contains(event.getAuthor().getId()) || Constants.ALLOWED_SERVERS.contains(event.getGuild().getId()) || Constants.PUBLIC){
+        if(Constants.ALLOWED_USER_IDS.contains(event.getAuthor().getIdLong()) || Constants.PUBLIC){
             Message msg = event.getMessage();
             DiscordRoleplay roleplay = AIBot.bot.getChat(event.getGuild());
 

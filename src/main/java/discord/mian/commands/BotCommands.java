@@ -17,7 +17,10 @@ public class BotCommands {
             new Menu(),
             new SetAvatar(),
             new Prompt(),
-            new SetBotRole()
+            new SetBotRole(),
+            new ChangePresence(),
+            new Talk(),
+            new ChangeAvatar()
     );
 
     public static CommandListUpdateAction addCommands(){
