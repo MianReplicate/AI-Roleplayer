@@ -58,7 +58,7 @@ public class SetAvatar extends SlashCommand {
             if(existingAvatar != null)
                 existingAvatar.delete();
 
-            File avatarFile = new File(existingCharacter.getCharacterFolder().getPath() + "\\avatar."+avatar.getFileExtension());
+            File avatarFile = new File(existingCharacter.getCharacterFolder().getPath() + "/avatar."+avatar.getFileExtension());
             avatarFile.createNewFile();
             avatar.getProxy().downloadToFile(avatarFile).get();
 

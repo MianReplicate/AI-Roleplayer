@@ -116,8 +116,8 @@ public class Util {
         }
 
         // ensures there's a default folder
-        File defaultFolder = new File("data\\defaults");
-        if(!new File("data\\defaults").exists()){
+        File defaultFolder = new File("data/defaults");
+        if(!new File("data/defaults").exists()){
             try (InputStream in = Util.class.getClassLoader().getResourceAsStream("defaults.zip")) {
                 assert in != null;
                 ZipInputStream zip = new ZipInputStream(in);

@@ -37,7 +37,7 @@ public class Server {
             serverFolder.mkdir();
 
             // new server, let's add some data :D
-            File defaults = new File(Util.getDataFolder().getPath() + "\\defaults");
+            File defaults = new File(Util.getDataFolder().getPath() + "/defaults");
             try{
                 // copies directories and files within the defaults
                 Util.copyDirectory(defaults.toPath(), serverFolder.toPath());
