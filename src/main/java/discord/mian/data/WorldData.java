@@ -18,7 +18,7 @@ public class WorldData implements Data, Chattable {
     }
 
     public String getName(){
-        return worldFile.getName();
+        return worldFile.getName().substring(0, worldFile.getName().lastIndexOf("."));
     }
 
     public String getPrompt() throws IOException {

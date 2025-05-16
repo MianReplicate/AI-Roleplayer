@@ -18,7 +18,7 @@ public class InstructionData implements Data, Chattable {
     }
 
     public String getName(){
-        return instructionFile.getName();
+        return instructionFile.getName().substring(0, instructionFile.getName().lastIndexOf("."));
     }
 
     public String getPrompt() throws IOException {

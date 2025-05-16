@@ -1,7 +1,7 @@
 package discord.mian.custom;
 
 public enum PromptType {
-    CHARACTER("Characters"), INSTRUCTION("Instructions"), WORLD("Worlds");
+    INSTRUCTION("Instructions"), WORLD("Worlds"), CHARACTER("Characters");
 
     public final String displayName;
 

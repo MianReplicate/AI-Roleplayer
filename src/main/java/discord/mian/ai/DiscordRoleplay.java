@@ -4,13 +4,11 @@ import com.knuddels.jtokkit.Encodings;
 import com.knuddels.jtokkit.api.Encoding;
 import com.knuddels.jtokkit.api.EncodingRegistry;
 import com.knuddels.jtokkit.api.EncodingType;
-import discord.mian.custom.ConfigEntry;
+import discord.mian.api.Data;
+import discord.mian.custom.*;
 import discord.mian.data.CharacterData;
 import discord.mian.data.InstructionData;
 import discord.mian.data.Server;
-import discord.mian.custom.Direction;
-import discord.mian.custom.Util;
-import discord.mian.custom.Constants;
 import discord.mian.data.WorldData;
 import discord.mian.interactions.InteractionCreator;
 import discord.mian.interactions.Interactions;
@@ -84,6 +82,10 @@ public class DiscordRoleplay {
         this.model = Constants.DEFAULT_MODEL;
         this.registry = Encodings.newDefaultEncodingRegistry();
         this.guild = guild;
+
+        instructions = new ArrayList<>();
+        worldLore = new ArrayList<>();
+        characters = new HashMap<>();
     }
 
     public String combinePrompts(List<ChatMessage> msgs){
@@ -609,11 +611,8 @@ public class DiscordRoleplay {
         swipes = null;
         currentSwipe = 0;
 
-        characters = new HashMap<>();
         characterList.forEach(this::addCharacter);
-        instructions = new ArrayList<>();
         instructionList.forEach(this::addInstructions);
-        worldLore = new ArrayList<>();
         worldDatas.forEach(this::addWorldLore);
 
         Stream<String> stream = characters.keySet().stream();
@@ -638,9 +637,9 @@ public class DiscordRoleplay {
             latestAssistantMessage = null;
             swipes = null;
             currentSwipe = 0;
-            characters = null;
-            instructions = null;
-            worldLore = null;
+            characters.clear();
+            instructions.clear();
+            worldLore.clear();
         }
     }
 
@@ -664,8 +663,24 @@ public class DiscordRoleplay {
         return model;
     }
 
+    public List<WorldData> getWorlds(){
+        return worldLore;
+    }
+
+    public List<InstructionData> getInstructions() {
+        return instructions;
+    }
+
     public HashMap<String, CharacterData> getCharacters() {
         return characters;
+    }
+
+    public List<? extends Data> getDatas(PromptType promptType){
+        return switch(promptType){
+            case CHARACTER -> getCharacters().values().stream().toList();
+            case WORLD -> getWorlds();
+            case INSTRUCTION -> getInstructions();
+        };
     }
 
     public CharacterData getCurrentCharacter(){

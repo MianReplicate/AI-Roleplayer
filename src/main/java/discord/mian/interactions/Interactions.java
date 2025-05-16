@@ -34,6 +34,7 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -238,13 +239,17 @@ public class Interactions {
     }
 
     public static List<SelectOption> getOptionsFromViewer(String description){
+        String[] toExclude = {":", "✅"};
+
         if(!description.equals("```\n```")){
             return List.of(description.split("\n"))
                     .stream().filter(string -> !string.contains("```"))
                     .map(string -> {
-                        int exclude = string.indexOf(":");
-                        if(exclude != -1)
-                            string = string.substring(0, exclude);
+                        for(String possibleExclude : toExclude){
+                            int exclude = string.indexOf(possibleExclude);
+                            if(exclude != -1)
+                                string = string.substring(0, exclude);
+                        }
                         return SelectOption.of(string, string);
                     }).toList();
         }
@@ -392,21 +397,18 @@ public class Interactions {
     }
 
 
-    public static EmbedBuilder createPromptViewerEmbed(Message message, String preDescription, PromptType promptType, Direction direction){
+    public static EmbedBuilder createPromptViewerEmbed(Message message,
+                                                       String preDescription,
+                                                       PromptType promptType,
+                                                       Direction direction,
+                                                       BiFunction<PromptType, String, String> displayItem
+    ){
         Server server = AIBot.bot.getServerData(message.getGuild());
         List<String> display = server.getDatas(promptType).keySet().stream().toList();
 
-        EmbedBuilder builder = new EmbedBuilder();
+        EmbedBuilder builder = Util.createBotEmbed();
 
         builder.setTitle("Available Prompts");
-        builder.setAuthor("Created By Your Lovely Girl: @MianReplicate", "https://en.pronouns.page/@MianReplicate");
-
-        builder.setColor(new Color(
-                (int) (Math.random() * 256),
-                (int) (Math.random() * 256),
-                (int) (Math.random() * 256),
-                (int) (Math.random() * 256))
-        );
 
         int show = 10;
         int maxSize = Math.max(1, (int) Math.ceil((double) display.size() / show));
@@ -437,9 +439,11 @@ public class Interactions {
         if(preDescription != null)
             description.insert(0, preDescription);
         display = display.subList(start, end);
+        if(displayItem == null)
+            displayItem = (type, string) -> string;
         for(int i = 0; i < display.size(); i++){
             String string = display.get(i);
-            description.append(string);
+            description.append(displayItem.apply(promptType, string));
 
             description.append("\n");
         }
@@ -468,7 +472,7 @@ public class Interactions {
     }
 
     public static void createPromptViewer(Message message, PromptType promptType, Direction direction){
-        createPromptViewer((direction1) -> createPromptViewerEmbed(message, null, promptType, direction1),
+        createPromptViewer((direction1) -> createPromptViewerEmbed(message, null, promptType, direction1, null),
                 message, promptType, true, true,
                 null, direction);
     }
@@ -499,8 +503,14 @@ public class Interactions {
             }
             if(onSelects != null){
                 for(StringSelectMenu.Builder builder : onSelects){
+                    StringSelectMenu.Builder copy = StringSelectMenu.create(builder.getId())
+                            .addOptions(builder.getOptions())
+                            .setMinValues(builder.getMinValues())
+                            .setMaxValues(builder.getMaxValues())
+                            .setPlaceholder(builder.getPlaceholder());
+
                     components.add(ActionRow.of(
-                            builder.addOptions(options)
+                            copy.addOptions(options)
                                     .build()));
                 }
             }
@@ -571,23 +581,29 @@ public class Interactions {
         builder.setFooter(Util.getRandomToolTip()); // random footer msgs
 //            builder.setDescription(AIBot.bot.getFunnyMessage());
 
-        StringBuilder display = new StringBuilder();
-        if(roleplay.getCharacters() != null){
-            java.util.List<String> keys = roleplay.getCharacters().keySet().stream().toList();
-            for(int i = 0; i < keys.size(); i++){
-                String name = keys.get(i);
+        HashMap<PromptType, String> displayMap = new HashMap<>();
+
+        for(PromptType promptType : PromptType.values()){
+            List<? extends Data> promptDatas = roleplay.getDatas(promptType);
+
+            StringBuilder display = new StringBuilder();
+            for(int i = 0; i < promptDatas.size(); i++){
+                String name = promptDatas.get(i).getName();
                 display.append(name);
-                if(i != keys.size() - 1){
+                if(i != promptDatas.size() - 1){
                     display.append(", ");
                 }
             }
-        } else {
-            display = new StringBuilder("No ongoing roleplay!");
+            if(display.isEmpty())
+                display.append("No ongoing roleplay!");
+            displayMap.put(promptType, display.toString());
         }
 
-        builder.addField("Character(s) Involved: ", display.toString(), true);
-        builder.addField("Chat History: ",  roleplay.getHistory().size() + " messages", true);
-        builder.addField("AI Model: ", roleplay.getModel(), true);
+        builder.addField("Instructions Involved: ", displayMap.get(PromptType.INSTRUCTION), true);
+        builder.addField("World Lore Involved: ", displayMap.get(PromptType.WORLD), true);
+        builder.addField("Character(s) Involved: ", displayMap.get(PromptType.CHARACTER), true);
+        builder.addField("Chat History: ",  roleplay.getHistory().size() + " messages", false);
+        builder.addField("AI Model: ", roleplay.getModel(), false);
 
         ArrayList<ItemComponent> roleplayComponents = new ArrayList<>();
         if(roleplay.isRunningRoleplay()){
@@ -612,11 +628,8 @@ public class Interactions {
                     event.reply("Cannot restart the roleplay while a message is being generated!").setEphemeral(true).queue();
                     return;
                 }
-                event.deferEdit().queue();
-                event.getHook().editOriginal(Util.botifyMessage("Restarted the chat! Characters are creating their initial prompts now.."))
-                        .setEmbeds(new MessageEmbed[0])
-                        .setComponents()
-                        .setFiles()
+                event.reply(Util.botifyMessage("Restarted the chat! Characters are creating their initial prompts now.."))
+                        .setEphemeral(true)
                         .queue(success -> {
                             try {
                                 roleplay.restartRoleplay(event.getMessage());
@@ -654,7 +667,6 @@ public class Interactions {
                 datas.put(PromptType.INSTRUCTION, new ArrayList<>());
                 datas.put(PromptType.WORLD, new ArrayList<>());
                 datas.put(PromptType.CHARACTER, new ArrayList<>());
-//                            PENDING_ROLEPlAYS.put(event.getMessageIdLong(), datas);
 
                 BiConsumer<StringSelectInteractionEvent, HashMap<String, ? extends Data>> viewPromptConsumer =
                         (onSelect, dataList) -> {
@@ -670,128 +682,78 @@ public class Interactions {
                             }
                 };
 
-                ArrayList<StringSelectMenu.Builder> instructionSelects = new ArrayList<>();
+                BiFunction<PromptType, String, String> enabledData = (promptType, string) -> datas.get(promptType).contains(string) ? string + "✅" : string;
 
-                instructionSelects.add(InteractionCreator.createStringMenu(onSelect -> {
-                    onSelect.deferReply(true).queue();
-                    onSelect.getSelectedOptions().forEach(selectOption -> {
-                        ArrayList<String> instructions = datas.get(PromptType.INSTRUCTION);
-                        if(!instructions.contains(selectOption.getValue()))
-                            instructions.add(selectOption.getValue());
-                    });
-                    onSelect.getHook().editOriginal("Added selected instructions!").queue();
-                }).setMaxValues(25).setPlaceholder("Add Prompts"));
+                Consumer<Integer> nextPromptType = new Consumer<>() {
+                    @Override
+                    public void accept(Integer nextInt) {
+                        PromptType promptType = PromptType.values()[nextInt];
+                        String display = promptType.displayName.toLowerCase();
 
-                instructionSelects.add(
-                        InteractionCreator.createStringMenu(onSelect ->
-                                viewPromptConsumer.accept(onSelect, server.getInstructionDatas()))
-                                .setRequiredRange(1, 1)
-                                .setPlaceholder("View Prompts")
-                );
+                        ArrayList<StringSelectMenu.Builder> selects = new ArrayList<>();
 
-                createPromptViewer((direction) -> createPromptViewerEmbed(
-                                event.getMessage(),
-                                "Select instruction prompts to use in the roleplay.",
-                                PromptType.INSTRUCTION,
-                                direction), event.getMessage(), PromptType.INSTRUCTION, false, true,
-                        instructionSelects, null, InteractionCreator.createButton(Emoji.fromFormatted("✅"), buttonEvent -> {
-                            if(datas.get(PromptType.INSTRUCTION).isEmpty()){
-                                buttonEvent.reply("Need at least one set of instructions!").setEphemeral(true).queue();
-                                return;
-                            }
+                        selects.add(InteractionCreator.createStringMenu(onSelect -> {
+                            onSelect.deferEdit().queue();
+                            onSelect.getSelectedOptions().forEach(selectOption -> {
+                                ArrayList<String> prompts = datas.get(promptType);
+                                String option = selectOption.getValue();
+                                if (!prompts.contains(option))
+                                    prompts.add(option);
+                                else
+                                    prompts.remove(option);
+                            });
+                            accept(nextInt);
+                        }).setMaxValues(25).setPlaceholder("Add/Remove Prompts"));
 
-                            buttonEvent.deferEdit().queue();
+                        selects.add(
+                                InteractionCreator.createStringMenu(onSelect ->
+                                                viewPromptConsumer.accept(onSelect, server.getDatas(promptType)))
+                                        .setRequiredRange(1, 1)
+                                        .setPlaceholder("View Prompts")
+                        );
 
-                            ArrayList<StringSelectMenu.Builder> worldSelects = new ArrayList<>();
-
-                            worldSelects.add(InteractionCreator.createStringMenu(onSelect -> {
-                                onSelect.deferReply(true).queue();
-                                onSelect.getSelectedOptions().forEach(selectOption -> {
-                                    ArrayList<String> worlds = datas.get(PromptType.WORLD);
-                                    if(!worlds.contains(selectOption.getValue()))
-                                        worlds.add(selectOption.getValue());
-                                });
-                                onSelect.getHook().editOriginal("Added selected worlds!").queue();
-                            }).setMaxValues(25).setPlaceholder("Add Prompts"));
-
-                            worldSelects.add(
-                                    InteractionCreator.createStringMenu(onSelect ->
-                                                    viewPromptConsumer.accept(onSelect, server.getWorldDatas()))
-                                            .setRequiredRange(1, 1)
-                                            .setPlaceholder("View Prompts")
-                            );
-
-                            createPromptViewer((direction) -> createPromptViewerEmbed(
-                                    event.getMessage(),
-                                    "Select world lores to use in the roleplay.",
-                                    PromptType.WORLD,
-                                    direction), event.getMessage(), PromptType.WORLD, false, true,
-                                    worldSelects, null, InteractionCreator.createButton(Emoji.fromFormatted("✅"), buttonEvent2 -> {
-                                        if (datas.get(PromptType.WORLD).isEmpty()) {
-                                            buttonEvent2.reply("Need at least one set of world lore!").setEphemeral(true).queue();
-                                            return;
-                                        }
-
-                                        buttonEvent2.deferEdit().queue();
-
-                                        ArrayList<StringSelectMenu.Builder> characterSelects = new ArrayList<>();
-
-                                        characterSelects.add(InteractionCreator.createStringMenu(onSelect -> {
-                                            onSelect.deferReply(true).queue();
-                                            onSelect.getSelectedOptions().forEach(selectOption -> {
-                                                ArrayList<String> characters = datas.get(PromptType.CHARACTER);
-                                                if(!characters.contains(selectOption.getValue()))
-                                                    characters.add(selectOption.getValue());
-                                            });
-                                            onSelect.getHook().editOriginal("Added selected characters!").queue();
-                                        }).setMaxValues(25).setPlaceholder("Add Prompts"));
-
-                                        characterSelects.add(
-                                                InteractionCreator.createStringMenu(onSelect ->
-                                                                viewPromptConsumer.accept(onSelect, server.getCharacterDatas()))
-                                                        .setRequiredRange(1, 1)
-                                                        .setPlaceholder("View Prompts")
-                                        );
-
-                                        createPromptViewer((direction) -> createPromptViewerEmbed(
-                                                        buttonEvent2.getMessage(),
-                                                        "Select character prompts to use in the roleplay.",
-                                                        PromptType.CHARACTER,
-                                                        direction), buttonEvent2.getMessage(), PromptType.CHARACTER, false, true,
-                                                characterSelects, null, InteractionCreator.createButton(Emoji.fromFormatted("✅"), buttonEvent3 -> {
-                                                    if(datas.get(PromptType.CHARACTER).isEmpty()){
-                                                        buttonEvent3.reply("Need at least one character!").setEphemeral(true).queue();
-                                                        return;
-                                                    }
-
-                                                    buttonEvent3.deferEdit().queue();
-                                                    buttonEvent3.getHook().editOriginal(Util.botifyMessage("Started the new chat! Characters are creating their initial prompts now.."))
-                                                            .setEmbeds(new MessageEmbed[0])
-                                                            .setComponents()
-                                                            .queue(success -> {
-                                                                try {
-                                                                    roleplay.startRoleplay(success,
-                                                                            datas.get(PromptType.INSTRUCTION).stream().map(string -> server.getInstructionDatas().get(string)).toList(),
-                                                                            datas.get(PromptType.WORLD).stream().map(string -> server.getWorldDatas().get(string)).toList(),
-                                                                            datas.get(PromptType.CHARACTER).stream().map(string -> server.getCharacterDatas().get(string)).toList()
-                                                                    );
-                                                                    roleplay.getCharacters().forEach((name, characterData) ->
-                                                                    {
-                                                                        try {
-                                                                            roleplay.promptCharacterToRoleplay(characterData, null, false, true);
-                                                                        } catch (ExecutionException | InterruptedException ignored) {
-
-                                                                        }
-                                                                    });
-
-                                                                } catch (ExecutionException | InterruptedException | IOException e) {
-                                                                    buttonEvent3.getHook().editOriginal("Failed to start chat!").queue();
-                                                                }
-                                                            });
-                                                }));
+                        createPromptViewer((direction) -> createPromptViewerEmbed(
+                                        event.getMessage(),
+                                        "Select "+display+" prompts to use in the roleplay.",
+                                        promptType,
+                                        direction, enabledData), event.getMessage(), promptType, false, true,
+                                selects, null, InteractionCreator.createButton(Emoji.fromFormatted("✅"), buttonEvent -> {
+                                    if (datas.get(promptType).isEmpty()) {
+                                        buttonEvent.reply("Need at least one set of "+display+"!").setEphemeral(true).queue();
+                                        return;
                                     }
-                            ));
-                        }));
+                                    if(nextInt + 1 >= PromptType.values().length){
+                                        buttonEvent.getMessage().delete().queue();
+                                        buttonEvent.reply((Util.botifyMessage("Started a new chat! Characters are creating their initial prompts now..")))
+                                                .queue(success -> {
+                                                    try {
+                                                        roleplay.startRoleplay(success.retrieveOriginal().submit().get(),
+                                                                datas.get(PromptType.INSTRUCTION).stream().map(string -> server.getInstructionDatas().get(string)).toList(),
+                                                                datas.get(PromptType.WORLD).stream().map(string -> server.getWorldDatas().get(string)).toList(),
+                                                                datas.get(PromptType.CHARACTER).stream().map(string -> server.getCharacterDatas().get(string)).toList()
+                                                        );
+                                                        roleplay.getCharacters().forEach((name, characterData) ->
+                                                        {
+                                                            try {
+                                                                roleplay.promptCharacterToRoleplay(characterData, null, false, true);
+                                                            } catch (ExecutionException | InterruptedException ignored) {
+
+                                                            }
+                                                        });
+
+                                                    } catch (ExecutionException | InterruptedException | IOException e) {
+                                                        buttonEvent.reply("Failed to start chat!").setEphemeral(true).queue();
+                                                    }
+                                                });
+                                    } else {
+                                        buttonEvent.deferEdit().queue();
+                                        accept(nextInt + 1);
+                                    }
+                                }));
+                    }
+                };
+
+                nextPromptType.accept(0);
             }).withStyle(ButtonStyle.SUCCESS).withEmoji(Emoji.fromFormatted("🪄")));
         }
 
