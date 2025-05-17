@@ -93,8 +93,8 @@ public class ResponseInfo {
                     }
                 }
             }
-        }catch(Exception ignored){
-
+        }catch(Exception e){
+            Constants.LOGGER.error("Failed to get price for response info", e);
         }
         return null;
     }

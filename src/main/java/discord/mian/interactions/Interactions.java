@@ -67,8 +67,8 @@ public class Interactions {
                 if(!roleplay.isRunningRoleplay() || (roleplay.isRunningRoleplay() && !roleplay.getDatas(promptType).contains(data))){
                     try {
                         data.nuke();
-                    } catch (IOException ignored) {
-
+                    } catch (IOException e) {
+                        Constants.LOGGER.error("Failed to nuke data", e);
                     }
                 }
 
@@ -237,8 +237,8 @@ public class Interactions {
                     }
                 }
 
-            }catch(IOException ignored){
-
+            }catch(IOException e){
+                Constants.LOGGER.error("Failed to edit/add prompts", e);
             }
 
             createPromptViewer(event.getHook(), promptType, null);
@@ -781,8 +781,8 @@ public class Interactions {
                                                     {
                                                         try {
                                                             roleplay.promptCharacterToRoleplay(characterData, null, false, true);
-                                                        } catch (ExecutionException | InterruptedException ignored) {
-
+                                                        } catch (ExecutionException | InterruptedException e) {
+                                                            Constants.LOGGER.error("Failed to prompt character", e);
                                                         }
                                                     });
 
@@ -833,13 +833,13 @@ public class Interactions {
                             {
                                 try {
                                     roleplay.promptCharacterToRoleplay(characterData, null, false, true);
-                                } catch (ExecutionException | InterruptedException ignored) {
-
+                                } catch (ExecutionException | InterruptedException e) {
+                                    Constants.LOGGER.error("Failed to restart chat", e);
                                 }
                             });
 
                         } catch (Exception e) {
-                            event.getHook().editOriginal("Failed to start chat!").queue();
+                            event.getHook().editOriginal("Failed to restart chat!").queue();
                         }
                     });
         }).withStyle(ButtonStyle.SECONDARY).withEmoji(Emoji.fromFormatted("⏪"))
@@ -856,7 +856,7 @@ public class Interactions {
 
         double remaining = 0;
 
-        if(key != null){
+        if(key != null && !key.isEmpty()){
             OkHttpClient client = new OkHttpClient.Builder().build();
 
             Request request = new Request.Builder()
@@ -873,6 +873,8 @@ public class Interactions {
                 double totalCredits = dataNode.get("total_credits").asDouble();
                 double totalUsage = dataNode.get("total_usage").asDouble();
                 remaining = totalCredits - totalUsage;
+            } catch(Exception e){
+                Constants.LOGGER.error("Failed to get usage amount for key", e);
             }
         }
 

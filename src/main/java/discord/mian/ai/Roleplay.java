@@ -201,8 +201,8 @@ public class Roleplay {
                             byte[] data = null;
                             try{
                                 data = Files.readAllBytes(currentCharacter.getAvatar().toPath());
-                            }catch(Exception ignored){
-
+                            }catch(Exception e){
+                                Constants.LOGGER.error("Failed to get avatar, using backup", e);
                             }
                             data = data != null ? data : Objects.requireNonNull(Util.getRandomImage());
                             Tika tika = new Tika();
@@ -502,8 +502,8 @@ public class Roleplay {
         String avatarLink = null;
         try{
             avatarLink = currentCharacter.getAvatarLink();
-        } catch (Exception ignored) {
-
+        } catch (Exception e) {
+            Constants.LOGGER.error("Failed to get character avatar link", e);
         }
 
         WebhookMessageCreateAction<Message> messageCreateData = webhook.sendMessage(
@@ -531,8 +531,8 @@ public class Roleplay {
                     if(data != null && data != currentCharacter && data.getTalkability() >= Math.random()) {
                         try{
                             promptCharacterToRoleplay(data, latestAssistantMessage, true, waitForFinish);
-                        } catch (Exception ignored){
-
+                        } catch (Exception e){
+                            Constants.LOGGER.error("Failed to prompt a response", e);
                         }
                     }
                 }
@@ -666,7 +666,8 @@ public class Roleplay {
             listOfMessages = new ArrayList<>(
                     channel.getIterableHistory().deadline(discordTime).submit().get()
             );
-        } catch (InterruptedException | ExecutionException ignored) {
+        } catch (InterruptedException | ExecutionException e) {
+            Constants.LOGGER.error("Failed to get start of message history", e);
         }
 
         for(int i = listOfMessages.size() - 1; i >= 0; i--) {

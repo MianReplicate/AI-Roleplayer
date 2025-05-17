@@ -42,9 +42,9 @@ public class Server {
             try{
                 // copies directories and files within the defaults
                 Util.copyDirectory(defaults.toPath(), serverFolder.toPath());
-            }catch(Exception ignored){
+            }catch(Exception e){
                 // whoops, we tried :(
-                Constants.LOGGER.info("Failed to copy default files!");
+                Constants.LOGGER.error("Failed to copy default files!", e);
             }
         }
 
@@ -134,8 +134,8 @@ public class Server {
         try{
             writer.writeValue(Util.createFileRelativeToData(getServerPath() + "/config.json"), entries);
             return true;
-        } catch(Exception ignored){
-
+        } catch(Exception e){
+            Constants.LOGGER.error("Failed to save to configuration", e);
         }
         return false;
     }
@@ -147,8 +147,8 @@ public class Server {
         try{
             generateConfig();
             return objectMapper.readValue(dataJson, new TypeReference<HashMap<String, ConfigEntry>>(){});
-        } catch (Exception exception){
-            Constants.LOGGER.info(String.valueOf(exception));
+        } catch (Exception e){
+            Constants.LOGGER.error("Failed to get configuration", e);
         }
         return null;
     }

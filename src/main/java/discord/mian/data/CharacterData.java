@@ -35,8 +35,8 @@ public class CharacterData implements Data, Chattable {
         try{
             writer.writeValue(new File(characterFolder.getPath() + "/data.json"), map);
             return true;
-        } catch(Exception ignored){
-
+        } catch(Exception e){
+            Constants.LOGGER.info("Failed to save character data", e);
         }
         return false;
     }
@@ -51,8 +51,8 @@ public class CharacterData implements Data, Chattable {
                 writer.writeValue(dataJson, new HashMap<String, Object>());
 
             return objectMapper.readValue(dataJson, Map.class);
-        } catch (Exception ignored){
-
+        } catch (Exception e){
+            Constants.LOGGER.error("Failed to get character data", e);
         }
         return null;
     }

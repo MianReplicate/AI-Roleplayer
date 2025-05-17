@@ -53,8 +53,8 @@ public class BotCommands {
                     try {
                         SlashCommand slashCommand = (SlashCommand) command;
                         slashCommand.autoComplete(event);
-                    } catch (Exception ignored) {
-
+                    } catch (Exception e) {
+                        Constants.LOGGER.error("Failed to run autocomplete", e);
                     }
                 });
     }
