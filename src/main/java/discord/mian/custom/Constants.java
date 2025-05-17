@@ -9,7 +9,7 @@ import java.util.List;
 public class Constants {
     public static final Logger LOGGER = LoggerFactory.getLogger("AI Roleplayer");
     public static final String BASE_URL = "https://openrouter.ai/api";
-    public static final String DEFAULT_MODEL = "meta-llama/llama-3.3-70b-instruct:free";
+    public static final String DEFAULT_MODEL = "meta-llama/llama-3.3-70b-instruct:free|Meta: Llama 3.3 70B Instruct (free)";
 
     public static final List<Long> ALLOWED_USER_IDS = new ArrayList<>();
 

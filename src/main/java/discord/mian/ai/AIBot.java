@@ -17,7 +17,7 @@ public class AIBot {
 
     private final JDA jda;
 
-    private Map<Guild, DiscordRoleplay> chats;
+    private Map<Guild, Roleplay> chats;
     private Map<Guild, Server> servers;
 
     public AIBot(JDA jda) throws Exception {
@@ -47,7 +47,7 @@ public class AIBot {
         return this.jda;
     }
 
-    public DiscordRoleplay getChat(Guild guild) {
+    public Roleplay getChat(Guild guild) {
         if(!this.chats.containsKey(guild))
             AIBot.bot.createChat(guild);
 
@@ -59,17 +59,10 @@ public class AIBot {
     }
 
     public void createChat(Guild guild) {
-        DiscordRoleplay chat = new DiscordRoleplay(guild);
+        Roleplay chat = new Roleplay(guild);
         Server serverData = getServerData(guild);
-//        chat.addInstructions(serverData.getInstructionDatas().get("non-nsfw"));
 
         this.chats.put(guild, chat);
-//        this.funnyMessage = chat.createCustomResponse("[System Command: Respond to the following message in 10 or less words]: \"Fuck you lol, what you gonna do\"");
     }
 
-//    public String getFunnyMessage(Guild guild){
-//        if(funnyMessage == null || funnyMessage.isEmpty())
-//            chats.get(guild).
-//        return funnyMessage;
-//    }
 }

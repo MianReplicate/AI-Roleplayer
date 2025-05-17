@@ -1,4 +1,4 @@
-package discord.mian.commands.api;
+package discord.mian.api;
 
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent;
 import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback;

@@ -1,6 +1,6 @@
 package discord.mian.commands;
 
-import discord.mian.commands.api.CommandHandler;
+import discord.mian.api.CommandHandler;
 import net.dv8tion.jda.api.events.interaction.command.MessageContextInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
 

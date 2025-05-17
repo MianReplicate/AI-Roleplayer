@@ -1,13 +1,13 @@
 package discord.mian.interactions;
 
 import discord.mian.custom.SizeHashMap;
+import net.dv8tion.jda.api.components.buttons.Button;
+import net.dv8tion.jda.api.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
-import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.interactions.modals.Modal;
 
 import java.util.HashMap;
@@ -19,9 +19,14 @@ public class InteractionCreator {
 
     private static final HashMap<String, Consumer<? super GenericInteractionCreateEvent>> PERM_INTERACTIONS = new HashMap<>();
     private static final HashMap<String, Consumer<? super GenericInteractionCreateEvent>> INTERACTIONS = new SizeHashMap<>(MAX_INTERACTIONS);
+    private static final HashMap<String, Consumer<ModalInteractionEvent>> MODALS = new SizeHashMap<>(300);
 
     public static Consumer<? super GenericInteractionCreateEvent> getComponentConsumer(String id){
         return PERM_INTERACTIONS.getOrDefault(id, INTERACTIONS.getOrDefault(id, null));
+    }
+
+    public static Consumer<ModalInteractionEvent> getModalConsumer(String id){
+        return MODALS.get(id);
     }
 
     public static Button createButton(Emoji emoji, Consumer<ButtonInteractionEvent> eventConsumer){
@@ -75,9 +80,7 @@ public class InteractionCreator {
         String id = System.currentTimeMillis() + "-" + UUID.randomUUID();
         Modal.Builder modal = Modal.create(id, label);
 
-        INTERACTIONS.put(id, (event) -> {
-            eventConsumer.accept((ModalInteractionEvent) event);
-        });
+        MODALS.put(id, eventConsumer);
         return modal;
     }
 }

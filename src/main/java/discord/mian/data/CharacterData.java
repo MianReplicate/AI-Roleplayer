@@ -161,7 +161,7 @@ public class CharacterData implements Data, Chattable {
         writer.close();
     }
 
-    public ChatMessage getChatMessage(CharacterData ignored){
+    public ChatMessage.SystemMessage getChatMessage(CharacterData ignored){
         String definition;
         try {
             definition = getPrompt();
@@ -170,10 +170,7 @@ public class CharacterData implements Data, Chattable {
         }
         definition = definition.replaceAll("\\{\\{char}}", getName());
 
-        return ChatMessage.SystemMessage.of(
-                definition,
-                "Character Definition"
-        );
+        return ChatMessage.SystemMessage.of(definition, getName());
     }
 
     // when worst comes to worst!

@@ -13,7 +13,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(value = ConfigEntry.StringConfig.class, name = "string"), // check if type is string
         @JsonSubTypes.Type(value = ConfigEntry.BoolConfig.class, name = "bool"), // check if type is bool
         @JsonSubTypes.Type(value = ConfigEntry.IntConfig.class, name = "int"),
-        @JsonSubTypes.Type(value = ConfigEntry.LongConfig.class, name = "long")
+        @JsonSubTypes.Type(value = ConfigEntry.LongConfig.class, name = "long"),
+        @JsonSubTypes.Type(value = ConfigEntry.DoubleConfig.class, name = "double")
 })
 public abstract class ConfigEntry {
     protected ConfigType type;
@@ -22,6 +23,26 @@ public abstract class ConfigEntry {
 
     public ConfigType getType() {
         return type;
+    }
+
+    public StringConfig asString(){
+        return (StringConfig) this;
+    }
+
+    public BoolConfig asBoolean(){
+        return (BoolConfig) this;
+    }
+
+    public LongConfig asLong(){
+        return (LongConfig) this;
+    }
+
+    public IntConfig asInteger(){
+        return (IntConfig) this;
+    }
+
+    public DoubleConfig asDouble(){
+        return (DoubleConfig) this;
     }
 
     public static class StringConfig extends ConfigEntry{
@@ -54,5 +75,11 @@ public abstract class ConfigEntry {
         public LongConfig(){
             type = ConfigType.LONG;
         }
+    }
+
+    public static class DoubleConfig extends ConfigEntry{
+        public double value;
+
+        public DoubleConfig(){type = ConfigType.DOUBLE;}
     }
 }

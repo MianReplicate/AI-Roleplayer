@@ -4,18 +4,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.mian.ai.AIBot;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.components.container.Container;
+import net.dv8tion.jda.api.components.container.ContainerChildComponent;
+import net.dv8tion.jda.api.components.separator.Separator;
+import net.dv8tion.jda.api.components.textdisplay.TextDisplay;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
-import net.dv8tion.jda.api.entities.User;
+import okhttp3.*;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.io.*;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -182,64 +181,36 @@ public class Util {
 
         Constants.LOGGER.info("Attempting to upload " + image.getName());
 
-        byte[] imageBytes = Files.readAllBytes(image.toPath());
-//        String base64Image = Base64.getEncoder().encodeToString(imageBytes).replaceAll("\n", "");
-//
-//        HttpClient httpClient = HttpClient.newHttpClient();
-//
-//        HttpRequest request = HttpRequest
-//                .newBuilder(URI.create("https://api.imgbb.com/1/upload"))
-//                .header("Content-Type", "multipart/form-data")
-//                .POST(
-//                        HttpRequest.BodyPublishers.ofString("key="+Constants.IMGBB_TOKEN+"&image="+imageBytes)
-//                )
-//                .build();
+        OkHttpClient httpClient = new OkHttpClient.Builder().build();
 
-        // this looks ugly i might replace it in the future but for now i could care less
-
-        String boundary = UUID.randomUUID().toString();
-
-        // Construct the multipart form-data body
-        String body = "--" + boundary + "\r\n" +
-                "Content-Disposition: form-data; name=\"key\"\r\n\r\n" +
-                key + "\r\n" +  // Your API key here
-                "--" + boundary + "\r\n" +
-                "Content-Disposition: form-data; name=\"image\"; filename=\"" + image.getName() + "\"\r\n" +
-                "Content-Type: image/jpeg\r\n\r\n";  // You can change the content-type depending on the file (e.g., image/png)
-
-        // Send the binary image data
-        byte[] headerBytes = body.getBytes();
-        byte[] footerBytes = ("\r\n--" + boundary + "--\r\n").getBytes();
-
-        // Prepare the complete body as header + image data + footer
-        byte[] completeBody = new byte[headerBytes.length + imageBytes.length + footerBytes.length];
-        System.arraycopy(headerBytes, 0, completeBody, 0, headerBytes.length);
-        System.arraycopy(imageBytes, 0, completeBody, headerBytes.length, imageBytes.length);
-        System.arraycopy(footerBytes, 0, completeBody, headerBytes.length + imageBytes.length, footerBytes.length);
-
-        // Prepare HttpClient and POST request with multipart form data
-        HttpClient httpClient = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("https://api.imgbb.com/1/upload"))
-                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
-                .POST(HttpRequest.BodyPublishers.ofByteArray(completeBody))
+        RequestBody requestBody = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("key", key)
+                .addFormDataPart("image", image.getName(), RequestBody.create(image,
+                        MediaType.parse("image/"+image.getName().substring(image.getName().indexOf(".")+1))))
                 .build();
 
+        Request request = new Request.Builder()
+                .url("https://api.imgbb.com/1/upload")
+                .post(requestBody)
+                .build();
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        Call call = httpClient.newCall(request);
+        Response response = call.execute();
 
         ObjectMapper mapper = new ObjectMapper();
 
-        if(response.statusCode() < 200 || response.statusCode() >= 400){
+        if(response.code() < 200 || response.code() >= 400){
             Constants.LOGGER.info("Failed to upload image!");
-            System.out.println("Raw response:\n" + response.body()); // Debug what you actually got
+            System.out.println("Raw response:\n" + response.body().string()); // Debug what you actually got
             return null;
         }
 
-        JsonNode json = mapper.readTree(response.body());
+        JsonNode json = mapper.readTree(response.body().string());
         String link = json.get("data").get("url").asText();
 
         Constants.LOGGER.info("Uploaded " + image.getName() + ": " + link);
+        response.body().close();
 
         return link;
     }
@@ -264,6 +235,20 @@ public class Util {
         return new EmbedBuilder()
                 .setAuthor("Created By Your Lovely Girl: @MianReplicate", "https://en.pronouns.page/@MianReplicate")
                 .setColor(new Color(
+                        (int) (Math.random() * 256),
+                        (int) (Math.random() * 256),
+                        (int) (Math.random() * 256),
+                        (int) (Math.random() * 256)));
+    }
+
+    public static Container createBotContainer(List<ContainerChildComponent> moreComponents){
+        ArrayList<ContainerChildComponent> components = new ArrayList<>();
+        components.add(TextDisplay.of("-# [Created By Your Lovely Girl: @MianReplicate](https://en.pronouns.page/@MianReplicate)"));
+        components.add(Separator.createDivider(Separator.Spacing.SMALL));
+        components.addAll(moreComponents);
+
+        return Container.of(components)
+                .withAccentColor(new Color(
                         (int) (Math.random() * 256),
                         (int) (Math.random() * 256),
                         (int) (Math.random() * 256),
