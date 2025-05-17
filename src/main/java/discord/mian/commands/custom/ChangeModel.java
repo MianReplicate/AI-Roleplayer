@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.mian.ai.AIBot;
 import discord.mian.ai.Model;
+import discord.mian.ai.Roleplay;
 import discord.mian.commands.SlashCommand;
 import discord.mian.custom.Util;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
@@ -66,8 +67,15 @@ public class ChangeModel extends SlashCommand {
 
         Map<String, String> finalValidModels = validModels;
 
-        Consumer<InteractionHook> consumer = (interactionHook) -> AIBot.bot.getChat(event.getGuild())
+        Roleplay roleplay = AIBot.bot.getChat(event.getGuild());
+        Consumer<InteractionHook> consumer = (interactionHook) -> roleplay
                 .setModel(new Model(id, finalValidModels.get(id)));
+
+        HashMap<String, Double> endpoints = ChangeProvider.getEndpoints(id);
+        if(roleplay.getProvider() != null && !roleplay.getProvider().isEmpty() && !endpoints.containsKey(roleplay.getProvider())){
+            roleplay.setProvider(null); // invalid provider!
+        }
+
         ReplyCallbackAction reply = event.reply("Changed model!").setEphemeral(true);
         reply.queue(consumer);
         return true;

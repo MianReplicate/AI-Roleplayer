@@ -5,6 +5,7 @@ plugins {
 
 val bot_version: String by properties
 val jda_version: String by properties
+val tika_version: String by properties
 val jackson_version: String by properties
 val jtokkit_version: String by properties
 val openai_version: String by properties
@@ -24,6 +25,7 @@ repositories{
 dependencies{
     implementation("io.github.freya022:JDA:4a9d724a21")
 //    implementation("net.dv8tion:JDA:$jda_version")
+    implementation("org.apache.tika:tika-core:$tika_version")
     implementation(platform("com.squareup.okhttp3:okhttp-bom:$okhttp_version"))
     implementation("com.fasterxml.jackson.core:jackson-core:$jackson_version");
     implementation("com.knuddels:jtokkit:$jtokkit_version")

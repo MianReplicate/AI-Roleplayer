@@ -8,15 +8,11 @@ import discord.mian.data.CharacterData;
 import discord.mian.data.Server;
 import discord.mian.api.Data;
 import discord.mian.custom.*;
-import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.components.MessageTopLevelComponentUnion;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
 import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.components.buttons.ButtonStyle;
 import net.dv8tion.jda.api.components.container.ContainerChildComponent;
 import net.dv8tion.jda.api.components.container.ContainerChildComponentUnion;
-import net.dv8tion.jda.api.components.mediagallery.MediaGallery;
-import net.dv8tion.jda.api.components.mediagallery.MediaGalleryItem;
 import net.dv8tion.jda.api.components.replacer.ComponentReplacer;
 import net.dv8tion.jda.api.components.section.Section;
 import net.dv8tion.jda.api.components.selections.SelectOption;
@@ -27,26 +23,21 @@ import net.dv8tion.jda.api.components.textinput.TextInput;
 import net.dv8tion.jda.api.components.textinput.TextInputStyle;
 import net.dv8tion.jda.api.components.thumbnail.Thumbnail;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
-import net.dv8tion.jda.api.interactions.components.ItemComponent;
-import net.dv8tion.jda.api.interactions.components.LayoutComponent;
 import net.dv8tion.jda.api.interactions.modals.Modal;
 import net.dv8tion.jda.api.interactions.modals.ModalTopLevelComponent;
 import net.dv8tion.jda.api.requests.restaction.MessageEditAction;
 import net.dv8tion.jda.api.utils.FileUpload;
-import net.dv8tion.jda.api.utils.messages.MessageEditData;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.List;
@@ -70,12 +61,15 @@ public class Interactions {
                 String promptName = option.getValue();
 
                 Server server = AIBot.bot.getServerData(event.getGuild());
+                Roleplay roleplay = AIBot.bot.getChat(event.getGuild());
                 Data data = server.getDatas(promptType).get(promptName);
 
-                try {
-                    data.nuke();
-                } catch (IOException ignored) {
+                if(!roleplay.isRunningRoleplay() || (roleplay.isRunningRoleplay() && !roleplay.getDatas(promptType).contains(data))){
+                    try {
+                        data.nuke();
+                    } catch (IOException ignored) {
 
+                    }
                 }
 
                 server.getDatas(promptType).remove(promptName);
@@ -130,8 +124,7 @@ public class Interactions {
                             String content = modalEvent.getValue("content").getAsString();
                             modalEvent.editMessage(content).queue();
                             // replaces the content at that swipe
-                            roleplay.getSwipes().add(roleplay.getCurrentSwipe(), content);
-                            roleplay.getSwipes().remove(roleplay.getCurrentSwipe() + 1);
+                            roleplay.getSwipes().get(roleplay.getCurrentSwipe()).editResponse(string -> content);
                         })
                 ).queue();
             } else {
@@ -331,6 +324,7 @@ public class Interactions {
         components.add(TextDisplay.of(description.toString()).withUniqueId(100));
 
         components.add(TextDisplay.of("-# Displaying Configuration: "+(index+1)+"/"+maxSize).withUniqueId(121));
+        components.add(Separator.createDivider(Separator.Spacing.SMALL));
         return components;
     }
 
@@ -446,6 +440,21 @@ public class Interactions {
                 }).withStyle(ButtonStyle.SECONDARY)
         ));
 
+        components.add(Separator.createDivider(Separator.Spacing.SMALL));
+
+        ArrayList<Button> itemComponents = new ArrayList<>();
+        itemComponents.add(InteractionCreator.createButton("View Dashboard", (event) -> {
+            event.deferEdit().queue();
+            try {
+                createDashboard(event.getMessage());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }).withEmoji(Emoji.fromFormatted("🔝")).withStyle(ButtonStyle.PRIMARY));
+
+        components.add(ActionRow.of(itemComponents));
+
+
         MessageEditAction editAction = message
                 .editMessageComponents(Util.createBotContainer(components))
                 .useComponentsV2()
@@ -526,6 +535,7 @@ public class Interactions {
         components.add(TextDisplay.of(description.toString()).withUniqueId(100));
 
         components.add(TextDisplay.of("-# Displaying "+promptType.displayName+": "+(index+1)+"/"+maxSize).withUniqueId(121));
+        components.add(Separator.createDivider(Separator.Spacing.SMALL));
         return components;
     }
 
@@ -816,7 +826,6 @@ public class Interactions {
                 return;
             }
             event.reply(Util.botifyMessage("Restarted the chat! Characters are creating their initial prompts now.."))
-                    .setEphemeral(true)
                     .queue(success -> {
                         try {
                             roleplay.restartRoleplay(event.getMessage());
@@ -880,7 +889,7 @@ public class Interactions {
 
         components.add(TextDisplay.of("**Chat Messages:** "+ roleplay.getHistory().size()));
 
-        components.add(Separator.createDivider(Separator.Spacing.LARGE));
+        components.add(Separator.createDivider(Separator.Spacing.SMALL));
 
         components.add(TextDisplay.of("### Roleplay Status: " + (roleplay.isRunningRoleplay() ? "Ongoing" : "Stopped")));
         components.add(ActionRow.of(roleplayComponents));
@@ -929,7 +938,7 @@ public class Interactions {
 
         components.add(ActionRow.of(
                 InteractionCreator.createButton("Server Configuration", (event) -> {
-                    event.deferReply(true).queue();
+                    event.deferEdit().queue();
 
                     if(!Util.hasMasterPermission(event.getMember())){
                         event.getHook().editOriginal("nuh uh little bro bro, you dont got permission").queue();

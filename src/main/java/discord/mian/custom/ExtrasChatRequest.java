@@ -65,7 +65,6 @@ public class ExtrasChatRequest extends ChatRequest {
                 providerMap.put("allow_fallbacks", fallback);
 
                 request.setField("provider", providerMap);
-                Constants.LOGGER.info(providerMap.get("order").toString());
             }
             return request;
         }

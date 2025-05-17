@@ -44,7 +44,7 @@ public class WorldData implements Data, Chattable {
         writer.close();
     }
 
-    public ChatMessage getChatMessage(CharacterData data){
+    public ChatMessage.SystemMessage getChatMessage(CharacterData data){
         String definition;
         try {
             definition = getPrompt();
@@ -53,10 +53,7 @@ public class WorldData implements Data, Chattable {
         }
         definition = definition.replaceAll("\\{\\{char}}", data.getName());
 
-        return ChatMessage.SystemMessage.of(
-                definition,
-                "World Lore"
-        );
+        return ChatMessage.SystemMessage.of(definition);
     }
 
     // when worst comes to worst!

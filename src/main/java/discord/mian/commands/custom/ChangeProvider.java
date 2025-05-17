@@ -21,7 +21,6 @@ import okhttp3.Response;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -58,13 +57,8 @@ public class ChangeProvider extends SlashCommand {
                 name = name.substring(0, name.indexOf("|") - 1);
 
                 double total = 0;
-                for (Iterator<String> it = endpoint.get("pricing").fieldNames(); it.hasNext();) {
-                    String field = it.next();
-                    if(field.equals("discount") || field.equals("image") || field.equals("web_searching") || field.equals("internal_reasoning"))
-                        continue;
-                    JsonNode toPay = endpoint.get("pricing").get(field);
-                    total += toPay.asDouble() * 1000000;
-                }
+                total += endpoint.get("pricing").get("prompt").asDouble() * 1000000;
+                total += endpoint.get("pricing").get("completion").asDouble() * 1000000;
 
                 endpoints.put(name, total);
             });

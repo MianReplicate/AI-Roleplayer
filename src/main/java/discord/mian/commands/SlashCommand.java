@@ -1,7 +1,7 @@
 package discord.mian.commands;
 
 import discord.mian.custom.PermissionHandler;
-import discord.mian.commands.api.CommandHandler;
+import discord.mian.api.CommandHandler;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 

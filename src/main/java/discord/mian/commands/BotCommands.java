@@ -1,7 +1,7 @@
 package discord.mian.commands;
 
 import discord.mian.ai.AIBot;
-import discord.mian.commands.api.CommandHandler;
+import discord.mian.api.CommandHandler;
 import discord.mian.commands.custom.*;
 import discord.mian.custom.Constants;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
