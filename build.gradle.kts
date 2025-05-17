@@ -3,23 +3,23 @@ plugins {
     id("com.gradleup.shadow") version "8.3.2"
 }
 
-application.mainClass = "discord.mian.Main"
-group = "discord.mian"
-version = "1.0.0"
-
-repositories{
-    mavenLocal()
-    mavenCentral()
-    maven("https://jitpack.io")
-}
-
-
+val bot_version: String by properties
 val jda_version: String by properties
 val jackson_version: String by properties
 val jtokkit_version: String by properties
 val openai_version: String by properties
 val logback_version: String by properties
 val okhttp_version: String by properties
+
+application.mainClass = "discord.mian.Main"
+group = "discord.mian"
+version = bot_version
+
+repositories{
+    mavenLocal()
+    mavenCentral()
+    maven("https://jitpack.io")
+}
 
 dependencies{
     implementation("io.github.freya022:JDA:4a9d724a21")
