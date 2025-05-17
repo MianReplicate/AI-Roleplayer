@@ -3,6 +3,7 @@ package discord.mian.data;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import discord.mian.ai.AIBot;
 import discord.mian.api.Data;
 import discord.mian.custom.ConfigEntry;
 import discord.mian.custom.Constants;
@@ -90,10 +91,34 @@ public class Server {
         botRole.value = 0L;
         configEntries.putIfAbsent("bot_role_id", botRole);
 
-        ConfigEntry.BoolConfig useChatCompletions = new ConfigEntry.BoolConfig();
-        useChatCompletions.description = "Whether to use chat completions for the AI or text completions";
-        useChatCompletions.value = true;
-        configEntries.putIfAbsent("use_chat_completions", useChatCompletions);
+        ConfigEntry.DoubleConfig temperature = new ConfigEntry.DoubleConfig();
+        temperature.description = "Temperature of model";
+        temperature.hidden = true;
+        temperature.value = 1;
+        configEntries.putIfAbsent("temperature", temperature);
+
+        ConfigEntry.IntConfig tokens = new ConfigEntry.IntConfig();
+        tokens.description = "Max tokens of model";
+        tokens.hidden = true;
+        tokens.value = 8192;
+        configEntries.putIfAbsent("tokens", tokens);
+
+        ConfigEntry.StringConfig provider = new ConfigEntry.StringConfig();
+        provider.description = "Provider of model";
+        provider.hidden = true;
+        provider.value = "";
+        configEntries.putIfAbsent("provider", provider);
+
+        ConfigEntry.StringConfig model = new ConfigEntry.StringConfig();
+        model.description = "The model being used";
+        model.hidden = true;
+        model.value = Constants.DEFAULT_MODEL;
+        configEntries.putIfAbsent("model", model);
+
+//        ConfigEntry.BoolConfig useChatCompletions = new ConfigEntry.BoolConfig();
+//        useChatCompletions.description = "Whether to use chat completions for the AI or text completions";
+//        useChatCompletions.value = true;
+//        configEntries.putIfAbsent("use_chat_completions", useChatCompletions);
 
 //        ConfigEntry.IntConfig autoMode = new ConfigEntry.IntConfig();
 //        autoMode.description = "How many seconds until the AI responds automatically, set to -1 to disable";
@@ -126,6 +151,10 @@ public class Server {
             Constants.LOGGER.info(String.valueOf(exception));
         }
         return null;
+    }
+
+    public String getKey(){
+        return ((ConfigEntry.StringConfig) getConfig().get("open_router_key")).value;
     }
 
     public HashMap<String, ? extends Data> getDatas(PromptType promptType){

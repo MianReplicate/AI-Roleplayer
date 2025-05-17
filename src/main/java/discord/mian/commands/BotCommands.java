@@ -13,14 +13,14 @@ import java.util.Optional;
 
 public class BotCommands {
     private static final List<CommandHandler> commands = List.of(
-            new ChangeModel(),
             new Menu(),
             new SetAvatar(),
-            new Prompt(),
+            new Poke(),
             new SetBotRole(),
             new ChangePresence(),
             new Talk(),
-            new ChangeAvatar()
+            new ChangeAvatar(),
+            new EditModelProperties()
     );
 
     public static CommandListUpdateAction addCommands(){

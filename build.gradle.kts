@@ -10,6 +10,7 @@ version = "1.0.0"
 repositories{
     mavenLocal()
     mavenCentral()
+    maven("https://jitpack.io")
 }
 
 
@@ -18,9 +19,12 @@ val jackson_version: String by properties
 val jtokkit_version: String by properties
 val openai_version: String by properties
 val logback_version: String by properties
+val okhttp_version: String by properties
 
 dependencies{
-    implementation("net.dv8tion:JDA:$jda_version")
+    implementation("io.github.freya022:JDA:4a9d724a21")
+//    implementation("net.dv8tion:JDA:$jda_version")
+    implementation(platform("com.squareup.okhttp3:okhttp-bom:$okhttp_version"))
     implementation("com.fasterxml.jackson.core:jackson-core:$jackson_version");
     implementation("com.knuddels:jtokkit:$jtokkit_version")
     implementation("io.github.sashirestela:simple-openai:$openai_version")

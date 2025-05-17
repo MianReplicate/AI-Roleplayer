@@ -1,7 +1,7 @@
 package discord.mian;
 
 import discord.mian.ai.AIBot;
-import discord.mian.ai.DiscordRoleplay;
+import discord.mian.ai.Roleplay;
 import discord.mian.custom.ConfigEntry;
 import discord.mian.data.CharacterData;
 import discord.mian.commands.BotCommands;
@@ -25,15 +25,18 @@ import java.util.function.Consumer;
 public class Listener {
     @SubscribeEvent
     public void onModalInteraction(ModalInteractionEvent event) {
-        Consumer<? super GenericInteractionCreateEvent> component =
+        Object component =
                 InteractionCreator.getComponentConsumer(event.getModalId());
+        if(component == null)
+            component = InteractionCreator.getModalConsumer(event.getModalId());
+
         if(component == null){
             event.reply("This interaction has expired! Please redo the same steps you used to get here").setEphemeral(true).queue();
             return;
         }
 
         try{
-            component.accept(event);
+            ((Consumer<Object>) component).accept(event);
         } catch (Exception e) {
             event.getHook().retrieveOriginal().queue(
                     message -> message.editMessage("An unexpected error occurred :<").queue(),
@@ -113,7 +116,7 @@ public class Listener {
             if(msg.isWebhookMessage())
                 return;
 
-            DiscordRoleplay roleplay = AIBot.bot.getChat(event.getGuild());
+            Roleplay roleplay = AIBot.bot.getChat(event.getGuild());
             if(roleplay.isMakingResponse())
                 return;
             if(!roleplay.isRunningRoleplay())

@@ -1,7 +1,7 @@
 package discord.mian.commands.custom;
 
 import discord.mian.ai.AIBot;
-import discord.mian.ai.DiscordRoleplay;
+import discord.mian.ai.Roleplay;
 import discord.mian.data.CharacterData;
 import discord.mian.commands.SlashCommand;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
@@ -16,9 +16,9 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Prompt extends SlashCommand {
-    public Prompt() {
-        super("prompt", "Prompt a character to speak. Can be used to add new characters into the roleplay as well!");
+public class Poke extends SlashCommand {
+    public Poke() {
+        super("poke", "Prompt a character to speak. Can be used to add new characters into the roleplay as well!");
         this.addOption(OptionType.STRING, "character", "The character to be prompted!", true, true);
         this.setContexts(InteractionContextType.GUILD);
     }
@@ -27,7 +27,7 @@ public class Prompt extends SlashCommand {
     public boolean handle(SlashCommandInteractionEvent event) throws Exception {
         if(super.handle(event)){
             event.deferReply().setEphemeral(true).queue();
-            DiscordRoleplay roleplay = AIBot.bot.getChat(event.getGuild());
+            Roleplay roleplay = AIBot.bot.getChat(event.getGuild());
             if(event.getChannel().getType() == ChannelType.TEXT){
                 if(!roleplay.isRunningRoleplay()){
                     event.getHook().editOriginal("Start a roleplay first!").queue();
