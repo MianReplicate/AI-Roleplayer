@@ -541,7 +541,7 @@ public class Roleplay {
                     overrideError = "Response is too long!";
                 }
 
-                this.finishedDiscordResponse(Util.botifyMessage("Failed to send a response due to an exception :< sowwy. Try using a different AI model.\n\nError: " + (overrideError != null ? overrideError : e.toString().substring(0, Math.min(e.toString().length(), 1750)))));
+                this.finishedDiscordResponse(Util.botifyMessage("Failed to send a response due to an exception :< sowwy. If this keeps happening, try using a different AI model or provider.\n\nError: " + (overrideError != null ? overrideError : e.toString().substring(0, Math.min(e.toString().length(), 1750)))));
                 errorMsgCleanup = aiMsg;
                 currentSwipe = 0;
                 throw(e);
