@@ -541,9 +541,9 @@ public class Roleplay {
                     overrideError = "Response is too long!";
                 }
 
-                this.finishedDiscordResponse(Util.botifyMessage("Failed to send a response due to an exception :< sowwy. If this keeps happening, try using a different AI model or provider.\n\nError: " + (overrideError != null ? overrideError : e.toString().substring(0, Math.min(e.toString().length(), 1750)))));
                 errorMsgCleanup = aiMsg;
                 currentSwipe = 0;
+                this.finishedDiscordResponse(Util.botifyMessage("Failed to send a response due to an exception :< sowwy. If this keeps happening, try using a different AI model or provider.\n\nError: " + (overrideError != null ? overrideError : e.toString().substring(0, Math.min(e.toString().length(), 1750)))));
                 throw(e);
             }
         };
@@ -598,8 +598,9 @@ public class Roleplay {
             if(currentSwipe <= -1)
                 currentSwipe = 0;
 
-            latestAssistantMessage.editMessage(finalResponse != null ? MessageEditData.fromContent(finalResponse) :
-                    MessageEditData.fromContent(swipes.get(currentSwipe).getResponse())).queue();
+            if(!swipes.isEmpty())
+                latestAssistantMessage.editMessage(finalResponse != null ? MessageEditData.fromContent(finalResponse) :
+                        MessageEditData.fromContent(swipes.get(currentSwipe).getResponse())).queue();
         }
     }
 
