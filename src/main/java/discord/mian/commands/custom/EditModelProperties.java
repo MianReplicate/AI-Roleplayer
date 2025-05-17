@@ -27,7 +27,8 @@ public class EditModelProperties extends SlashCommand {
     public EditModelProperties() {
         super("edit_model", "Choose model, temp, providers, etc!");
         SUBCOMMANDS.forEach((name, command) ->
-                this.addSubcommands(new SubcommandData(name, command.getDescription())));
+                this.addSubcommands(new SubcommandData(name, command.getDescription())
+                        .addOptions(command.getOptions())));
         this.setContexts(InteractionContextType.GUILD);
     }
 
