@@ -365,7 +365,7 @@ public class Roleplay {
                 .post(RequestBody.create(json, MediaType.get("application/json; charset=utf-8")))
                 .build();
 
-        try(Response response = client.newCall(request).execute()){
+        try(Response response = client.newCall(request).execute()) {
             String fullResponse = "";
 
             if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
@@ -375,18 +375,18 @@ public class Roleplay {
             while (!source.exhausted()) {
                 String line = source.readUtf8Line();
 
-                if(line.equals("data: [DONE]"))
+                if (line.equals("data: [DONE]"))
                     continue;
 
 
                 if (line.startsWith("data: ")) {
-                    if(line.contains("usage"))
+                    if (line.contains("usage"))
                         copyOfResponse = line.substring(6);
                 } else {
                     continue;
                 }
 
-                if(!line.contains("choices"))
+                if (!line.contains("choices"))
                     continue;
 
                 JsonNode responseJson = mapper.readTree(line.substring(5).trim());
@@ -407,10 +407,9 @@ public class Roleplay {
                     openRouterResponse.get("usage").get("completion_tokens").asInt(),
                     toSave
             );
-        }catch(CleverClientException e){
-            return null;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch(Exception e){
+            Constants.LOGGER.error("Failed to get response from provider", e);
+            throw new RuntimeException("Provider failed to give a response! Ensure the key is valid or use a different provider.");
         }
     }
 
