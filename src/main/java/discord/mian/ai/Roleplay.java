@@ -627,6 +627,7 @@ public class Roleplay {
             StringBuilder instructionsMessage = new StringBuilder();
             instructionsMessage.append("Follow the instructions below! You are participating in a roleplay with other users!\n");
             instructionsMessage.append("This is a chatbot roleplay. You are roleplaying with other users, your responses should only be a few sentences long, should incorporate humor and shouldn't be too serious. The only time this can be overridden is if later instructions conflict with these. \nKeep responses within a few sentences!\nDo not escape newlines or quotes in your response. Respond with actual characters, not \\\\n or \\\\\\\". Discord will display it properly.\n");
+            instructionsMessage.append("Each user message has a name field. Use this to determine who is speaking and maintain consistency");
             instructionsMessage.append("Do not include the character name in your response, this is already provided programmatically by the code.\n");
 
             for(InstructionData instructionData : instructions){
@@ -694,12 +695,12 @@ public class Roleplay {
                 if (message.isWebhookMessage()) {
                     messages.add(
                             ChatMessage.AssistantMessage.builder()
-                                    .content(formatted)
+                                    .content(username +": "+ formatted)
                                     .name(username)
                                     .build()
                     );
                 } else {
-                    messages.add(ChatMessage.UserMessage.of(formatted, username));
+                    messages.add(ChatMessage.UserMessage.of(username+": "+formatted, username));
                 }
             }
         }
