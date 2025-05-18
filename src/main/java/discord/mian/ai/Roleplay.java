@@ -856,6 +856,12 @@ public class Roleplay {
             runningRoleplay = false;
             channel = null;
             webhook = null;
+            if(latestAssistantMessage != null){
+                latestAssistantMessage.editMessageComponents(
+                        ActionRow.of(Button.danger("destroy_button", Emoji.fromFormatted("🗑")),
+                                Button.success("edit_button", Emoji.fromFormatted("🪄")))).queue(RestAction.getDefaultSuccess(),
+                        (t) -> {});
+            }
             latestAssistantMessage = null;
             swipes = null;
             currentSwipe = 0;
