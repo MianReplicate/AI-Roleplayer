@@ -891,10 +891,6 @@ public class Interactions {
         components.add(TextDisplay.of("**Max Tokens:** "+ roleplay.getMaxTokens()));
         components.add(Separator.createDivider(Separator.Spacing.SMALL));
 
-        components.add(TextDisplay.of("**Chat Messages:** "+ roleplay.getHistory().size()));
-
-        components.add(Separator.createDivider(Separator.Spacing.SMALL));
-
 //        if(roleplay.isRunningRoleplay()){
 //            components.add(Separator.createDivider(Separator.Spacing.SMALL));
 //            for(PromptType promptType : PromptType.values()){

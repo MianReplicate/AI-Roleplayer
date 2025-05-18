@@ -251,6 +251,16 @@ public class Roleplay {
             latestAssistantMessage.editMessage(finalResponse)
                     .setComponents(ActionRow.of(components)).queue();
         }
+        if(this.isRunningRoleplay() && historyMarker != null){
+            try{
+                Message message = historyMarker.retrieveParentMessage().submit().get();
+                Container container = message.getComponentTree().getComponents().getFirst().asContainer();
+                message.editMessageComponents(container.replace(ComponentReplacer.byId(100,
+                        TextDisplay.of("**Chat Messages:** "+ getHistory().size())))).useComponentsV2().submit().get();
+            }catch(Exception e){
+                Constants.LOGGER.error("Failed to update chat history number", e);
+            }
+        }
     }
 
     public CharacterData findRespondingCharacterFromContent(String content){
@@ -739,6 +749,7 @@ public class Roleplay {
         components.add(TextDisplay.of("# Roleplay Information"));
         components.add(TextDisplay.of("The roleplay starts in the thread created under this message, have fun!"));
         components.add(Separator.createDivider(Separator.Spacing.SMALL));
+
         components.add(TextDisplay.of("**Chat Messages:** "+ 0).withUniqueId(100)); // chat messages marker
         components.add(Separator.createDivider(Separator.Spacing.SMALL));
 
