@@ -192,9 +192,9 @@ public class Roleplay {
             components.add(InteractionCreator.createPermanentButton(Button.secondary("swipe_right", "-->"), Interactions.getSwipe(Direction.NEXT)));
 
             if(errorMsgCleanup == null){
-                components.add(InteractionCreator.createPermanentButton(Button.secondary("get_provider", Emoji.fromFormatted("❔")), event -> {
+                components.add(InteractionCreator.createPermanentButton(Button.secondary("get_response_info", Emoji.fromFormatted("❔")), event -> {
                     try{
-                        if(!swipes.isEmpty()){
+                        if(swipes != null && !swipes.isEmpty()){
                             ResponseInfo responseInfo = swipes.get(currentSwipe);
 
                             List<ContainerChildComponent> containerComponents = new ArrayList<>();
