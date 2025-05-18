@@ -872,9 +872,11 @@ public class Interactions {
                 ObjectMapper mapper = new ObjectMapper();
                 JsonNode node = mapper.readTree(response.body().string());
                 JsonNode dataNode = node.get("data");
-                double totalCredits = dataNode.get("total_credits").asDouble();
-                double totalUsage = dataNode.get("total_usage").asDouble();
-                remaining = totalCredits - totalUsage;
+                if(dataNode != null){
+                    double totalCredits = dataNode.get("total_credits").asDouble();
+                    double totalUsage = dataNode.get("total_usage").asDouble();
+                    remaining = totalCredits - totalUsage;
+                }
             } catch(Exception e){
                 Constants.LOGGER.error("Failed to get usage amount for key", e);
             }

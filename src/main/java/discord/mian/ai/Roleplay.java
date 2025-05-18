@@ -41,6 +41,7 @@ import net.dv8tion.jda.api.utils.TimeUtil;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import net.dv8tion.jda.api.utils.messages.MessageEditData;
 import okhttp3.*;
+import okio.Buffer;
 import okio.BufferedSource;
 import org.apache.tika.Tika;
 
@@ -194,14 +195,16 @@ public class Roleplay {
             if(errorMsgCleanup == null){
                 components.add(InteractionCreator.createPermanentButton(Button.secondary("get_response_info", Emoji.fromFormatted("❔")), event -> {
                     try{
-                        if(swipes != null && !swipes.isEmpty()){
-                            ResponseInfo responseInfo = swipes.get(currentSwipe);
+                        Roleplay chat = AIBot.bot.getChat(event.getGuild());
+                        List<ResponseInfo> responseSwipes = chat.getSwipes();
+                        if(responseSwipes != null && !responseSwipes.isEmpty()){
+                            ResponseInfo responseInfo = responseSwipes.get(chat.getCurrentSwipe());
 
                             List<ContainerChildComponent> containerComponents = new ArrayList<>();
 
                             byte[] data = null;
                             try{
-                                data = Files.readAllBytes(currentCharacter.getAvatar().toPath());
+                                data = Files.readAllBytes(chat.getCurrentCharacter().getAvatar().toPath());
                             }catch(Exception e){
                                 Constants.LOGGER.error("Failed to get avatar, using backup", e);
                             }
@@ -366,10 +369,14 @@ public class Roleplay {
                 .post(RequestBody.create(json, MediaType.get("application/json; charset=utf-8")))
                 .build();
 
+        int errorCode = 0;
         try(Response response = client.newCall(request).execute()) {
             String fullResponse = "";
 
-            if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+            if (!response.isSuccessful()){
+                errorCode = response.code();
+                throw new RuntimeException(mapper.readTree(response.body().string()).get("error").get("message").asText());
+            }
 
             BufferedSource source = response.body().source();
             String copyOfResponse = "";
@@ -394,12 +401,20 @@ public class Roleplay {
                 String content = responseJson.get("choices").get(0).get("delta").get("content").toString();
                 content = content.substring(1, content.length() - 1);
 
-                fullResponse += content;
-                consumer.accept(fullResponse);
+                if((fullResponse + content).length() < 2000){
+                    fullResponse += content;
+                    consumer.accept(fullResponse);
+                } else {
+                    break;
+                }
             }
 
             JsonNode openRouterResponse = mapper.readTree(copyOfResponse);
 
+            if(!response.isSuccessful()){
+                errorCode = response.code();
+                throw new RuntimeException(openRouterResponse.get("error").get("message").asText());
+            }
             return new ResponseInfo(
                     openRouterResponse.get("model").asText(),
                     openRouterResponse.get("provider").asText(),
@@ -410,7 +425,7 @@ public class Roleplay {
             );
         } catch(Exception e){
             Constants.LOGGER.error("Failed to get response from provider", e);
-            throw new RuntimeException("Provider failed to give a response! Ensure the key is valid or use a different provider.");
+            throw new RuntimeException("OpenRouter returned error code "+errorCode+" | "+e.getMessage());
         }
     }
 
@@ -437,11 +452,9 @@ public class Roleplay {
                 msgToEdit.editMessage(MessageEditData.fromContent(Util.botifyMessage("Message is currently generating..") + "\n" + newContent)).queue(onComplete);
             }
         });
-        if(responseInfo == null)
-            throw new RuntimeException("Failed to create the LLM! Ensure that the API key is valid!");
         String newContent = responseInfo.editResponse(reformat);
         if(newContent.isEmpty())
-            throw new RuntimeException("Empty message! :(");
+            throw new RuntimeException("The provider returned no content, try again? :(");
         return responseInfo;
     }
 
@@ -514,7 +527,7 @@ public class Roleplay {
             }
 
             currentSwipe = 0;
-            this.finishedDiscordResponse(Util.botifyMessage("Failed to send a response due to an exception :< sowwy. If this keeps happening, try using a different AI model or provider.\n\nError: " + (overrideError != null ? overrideError : throwable.toString().substring(0, Math.min(throwable.toString().length(), 1750)))));
+            this.finishedDiscordResponse(Util.botifyMessage("Failed to send a response due to an exception :< sowwy. If this keeps happening, try using a different AI model or provider.\n\nError: " + (overrideError != null ? overrideError : throwable.getMessage().substring(0, Math.min(throwable.getMessage().length(), 1750)))));
         };
 
         try{
@@ -544,8 +557,6 @@ public class Roleplay {
                     errorMsgCleanup = null;
                     this.finishedDiscordResponse(responseInfo.getResponse());
 
-                    // if able to reply to other bots..
-                    // add chaining
                     if(triggerAutoResponse){
                         CharacterData data = findRespondingCharacterFromContent(responseInfo.getResponse());
                         if(data != null && data != currentCharacter && data.getTalkability() >= Math.random()) {
@@ -601,7 +612,7 @@ public class Roleplay {
                         swipes.add(responseInfo);
                         errorMsgCleanup = null;
                     }catch(Exception e){
-                        String msg = e.toString().contains("Content may not be longer") ? "Content is too long!" : e.toString();
+                        String msg = e.toString().contains("Content may not be longer") ? "Response is too long!" : e.getMessage();
                         finalResponse = Util.botifyMessage("Failed to make a new response!\n\nError: " + msg);
                     }
                     this.finishedDiscordResponse(finalResponse);
