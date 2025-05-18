@@ -29,11 +29,9 @@ import net.dv8tion.jda.api.components.separator.Separator;
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay;
 import net.dv8tion.jda.api.components.thumbnail.Thumbnail;
 import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.api.entities.channel.Channel;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
-import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent;
 import net.dv8tion.jda.api.requests.RestAction;
@@ -46,7 +44,6 @@ import okhttp3.*;
 import okio.BufferedSource;
 import org.apache.tika.Tika;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -72,8 +69,10 @@ public class Roleplay {
     private final Guild guild;
     private final Server server;
 
-    private ThreadChannel historyMarker;
+    private TextChannel channel;
     private Webhook webhook;
+
+    private Message messageStart;
 
     private Message latestAssistantMessage;
     private Message errorMsgCleanup;
@@ -449,13 +448,12 @@ public class Roleplay {
     public void promptCharacterToRoleplay(CharacterData character, Message replyTo, boolean triggerAutoResponse, boolean waitForFinish) throws ExecutionException, InterruptedException {
         if(isRunningRoleplay()){
             if(!characters.containsKey(character.getName())){
-                Message message = historyMarker.retrieveParentMessage().submit().get();
-                Container container = message.getComponentTree().getComponents().getFirst().asContainer();
-                TextDisplay charactersDisplay = container.getComponents().stream().filter(component -> component.getUniqueId() == 150)
+                Container container = messageStart.getComponentTree().getComponents().getFirst().asContainer();
+                TextDisplay charactersDisplay = container.getComponents().stream().filter(component -> component.getUniqueId() == 152)
                                 .findFirst().get().asTextDisplay();
-                message.editMessageComponents(container.replace(ComponentReplacer.byId(150, charactersDisplay.withContent(
+                messageStart = messageStart.editMessageComponents(container.replace(ComponentReplacer.byId(152, charactersDisplay.withContent(
                         charactersDisplay.getContent() + ", " + character.getName()
-                )))).submit().get();
+                )))).useComponentsV2().submit().get();
                 // adds the character to the container
 
                 addData(PromptType.CHARACTER, character);
@@ -473,19 +471,19 @@ public class Roleplay {
 
     public void sendRoleplayMessage(boolean triggerAutoResponse, boolean waitForFinish) throws ExecutionException, InterruptedException {
         if(!runningRoleplay){
-            historyMarker.sendMessage(MessageCreateData.fromContent(
+            channel.sendMessage(MessageCreateData.fromContent(
                     Util.botifyMessage("Cannot make a response since there is no ongoing chat!")
             )).queue();
             return;
         }
         if (isMakingResponse()) {
-            historyMarker.sendMessage(MessageCreateData.fromContent(
+            channel.sendMessage(MessageCreateData.fromContent(
                     Util.botifyMessage("Cannot make a response since I am already generating one!")
             )).queue();
             return;
         }
         if(currentCharacter == null){
-            historyMarker.sendMessage(MessageCreateData.fromContent(
+            channel.sendMessage(MessageCreateData.fromContent(
                     Util.botifyMessage("Cannot make a response since there are no characters in this chat!")
             )).queue();
             return;
@@ -523,7 +521,6 @@ public class Roleplay {
 
             WebhookMessageCreateAction<Message> messageCreateData = webhook.sendMessage(
                             Util.botifyMessage("Currently creating a response! Check back in a second.."))
-                    .setThread(historyMarker)
                     .setUsername(currentCharacter.getName());
 
             if(avatarLink != null){
@@ -637,7 +634,7 @@ public class Roleplay {
 
     // beginning prompts not included if no character is provided
     public List<ChatMessage> getHistory(CharacterData character){
-        if(historyMarker == null)
+        if(channel == null)
             return new ArrayList<>();
 
         ArrayList<ChatMessage> messages = new ArrayList<>();
@@ -678,23 +675,25 @@ public class Roleplay {
             messages.add(ChatMessage.SystemMessage.of("<CHAT HISTORY>"));
         }
         int required = messages.size();
+        OffsetDateTime dateTime = messageStart.getTimeCreated();
 
-//        Message start = null;
         ArrayList<Message> listOfMessages = new ArrayList<>();
         try {
-//            start = historyMarker.retrieveStartMessage().submit().get();
-            listOfMessages = new ArrayList<>(historyMarker.getIterableHistory().submit().get());
+            long discordTime = TimeUtil.getDiscordTimestamp(Instant.ofEpochSecond(dateTime.toInstant().getEpochSecond()).toEpochMilli());
+            listOfMessages = new ArrayList<>(channel.getIterableHistory().deadline(discordTime).submit().get());
         } catch (InterruptedException | ExecutionException e) {
             Constants.LOGGER.error("Failed to get start of message history", e);
         }
 
         for(int i = listOfMessages.size() - 1; i >= 0; i--) {
             Message message = listOfMessages.get(i);
-//            if(message.getIdLong() == start.getIdLong())
-//                continue;
+            if(message.getIdLong() == messageStart.getIdLong())
+                continue;
             if(message.getAuthor() == AIBot.bot.getJDA().getSelfUser())
                 continue;
             if(message.getContentRaw().contains("Currently creating a response"))
+                continue;
+            if(message.getTimeCreated().isBefore(dateTime))
                 continue;
             if(latestAssistantMessage != null &&
                     (latestAssistantMessage.getIdLong() == message.getIdLong() ||
@@ -772,9 +771,7 @@ public class Roleplay {
                 button -> {
             button.deferReply(true).queue();
             try{
-                startRoleplay(button.getMessage().getChannelType().isThread() ?
-                        button.getChannel().asThreadChannel() :
-                        button.getMessage().getStartedThread());
+                startRoleplay(button.getMessage());
             }catch(Exception e){
                 button.getHook().editOriginal("Failed to restart roleplay!").queue();
                 Constants.LOGGER.error("Failed to start roleplay", e);
@@ -787,17 +784,15 @@ public class Roleplay {
          Message message = event.getHook().editOriginalComponents(Util.createBotContainer(components))
                  .useComponentsV2()
                  .complete();
-         startRoleplay(message.createThreadChannel("Roleplay").complete());
+         startRoleplay(message);
     }
 
-    public void startRoleplay(ThreadChannel historyMarker){
+    public void startRoleplay(Message roleplayInfo){
         try{
             if(isRunningRoleplay())
                 stopRoleplay();
 
-            Message roleplayInfo = historyMarker.retrieveParentMessage().complete();
-
-            TextChannel channel = historyMarker.getParentChannel().asTextChannel();
+            TextChannel channel = roleplayInfo.getChannel().asTextChannel();
             Webhook webhook;
             webhook = channel.retrieveWebhooks().complete().stream().filter(find -> find.getName().equals(AIBot.bot.getJDA().getSelfUser().getName()))
                     .findFirst().orElse(null);
@@ -843,7 +838,8 @@ public class Roleplay {
             Stream<String> stream = characters.keySet().stream();
             stream.findAny().ifPresent(this::setCurrentCharacter);
 
-            this.historyMarker = historyMarker;
+            this.channel = channel;
+            this.messageStart = roleplayInfo;
         } catch(Exception e){
             runningRoleplay = false;
             this.characters.clear();
@@ -858,7 +854,7 @@ public class Roleplay {
     public void stopRoleplay(){
         if(this.isRunningRoleplay()){
             runningRoleplay = false;
-            historyMarker = null;
+            channel = null;
             webhook = null;
             latestAssistantMessage = null;
             swipes = null;
@@ -949,8 +945,12 @@ public class Roleplay {
         return currentCharacter;
     }
 
-    public ThreadChannel getChannel(){
-        return historyMarker;
+    public TextChannel getChannel(){
+        return channel;
+    }
+
+    public Message getMessageStart(){
+        return messageStart;
     }
 
     public Message getLatestAssistantMessage(){

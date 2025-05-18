@@ -36,7 +36,7 @@ public class Poke extends SlashCommand {
                 return true;
             }
 
-            ThreadChannel channel = roleplay.getChannel();
+            TextChannel channel = roleplay.getChannel();
 
             if(event.getChannel().getIdLong() == channel.getIdLong()){
                 CharacterData character = AIBot.bot.getServerData(event.getGuild())

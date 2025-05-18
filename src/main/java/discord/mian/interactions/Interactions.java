@@ -917,7 +917,7 @@ public class Interactions {
 
         components.add(TextDisplay.of("### Roleplay Status: " + (roleplay.isRunningRoleplay() ? "Ongoing" : "Stopped")));
         if(roleplay.isRunningRoleplay()){
-            components.add(TextDisplay.of("[More Information]("+roleplay.getChannel().getJumpUrl()+")"));
+            components.add(TextDisplay.of("[More Information]("+roleplay.getMessageStart().getJumpUrl()+")"));
         }
         components.add(ActionRow.of(roleplayComponents));
 
