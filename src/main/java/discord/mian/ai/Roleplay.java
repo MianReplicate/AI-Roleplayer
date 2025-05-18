@@ -469,14 +469,14 @@ public class Roleplay {
 
     }
 
-    public void sendRoleplayMessage(boolean triggerAutoResponse, boolean waitForFinish) throws ExecutionException, InterruptedException {
+    public void sendRoleplayMessage(boolean triggerAutoResponse, boolean waitForFinish) {
         if(!runningRoleplay){
             channel.sendMessage(MessageCreateData.fromContent(
                     Util.botifyMessage("Cannot make a response since there is no ongoing chat!")
             )).queue();
             return;
         }
-        if (isMakingResponse()) {
+        if(isMakingResponse()) {
             channel.sendMessage(MessageCreateData.fromContent(
                     Util.botifyMessage("Cannot make a response since I am already generating one!")
             )).queue();
@@ -488,14 +488,12 @@ public class Roleplay {
             )).queue();
             return;
         }
-
         if(this.errorMsgCleanup != null){
             this.errorMsgCleanup.delete().queue(RestAction.getDefaultSuccess(), toThrow -> {});
             if(this.latestAssistantMessage == errorMsgCleanup)
                 latestAssistantMessage = null;
             this.errorMsgCleanup = null;
         }
-
         if(this.latestAssistantMessage != null){
             if(latestAssistantMessage.getContentRaw().isEmpty())
                 latestAssistantMessage.delete().queue();
@@ -508,6 +506,16 @@ public class Roleplay {
             swipes = null;
             currentSwipe = 0;
         }
+
+        Consumer<Throwable> onError = throwable -> {
+            String overrideError = null;
+            if(throwable instanceof IllegalArgumentException e2 && e2.getMessage().contains("Content may not be longer")){
+                overrideError = "Response is too long!";
+            }
+
+            currentSwipe = 0;
+            this.finishedDiscordResponse(Util.botifyMessage("Failed to send a response due to an exception :< sowwy. If this keeps happening, try using a different AI model or provider.\n\nError: " + (overrideError != null ? overrideError : throwable.toString().substring(0, Math.min(throwable.toString().length(), 1750)))));
+        };
 
         try{
             this.creatingResponseFromDiscordMessage();
@@ -557,17 +565,10 @@ public class Roleplay {
             if(waitForFinish){
                 consumer.accept(messageCreateData.complete());
             } else {
-                messageCreateData.queue(consumer);
+                messageCreateData.queue(consumer, onError);
             }
         }catch(Exception e){
-            String overrideError = null;
-            if(e instanceof IllegalArgumentException ignored){
-                overrideError = "Response is too long!";
-            }
-
-            currentSwipe = 0;
-            this.finishedDiscordResponse(Util.botifyMessage("Failed to send a response due to an exception :< sowwy. If this keeps happening, try using a different AI model or provider.\n\nError: " + (overrideError != null ? overrideError : e.toString().substring(0, Math.min(e.toString().length(), 1750)))));
-            throw(e);
+            onError.accept(e);
         }
     }
 
