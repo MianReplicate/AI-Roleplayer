@@ -5,9 +5,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.mian.ai.AIBot;
 import discord.mian.ai.Roleplay;
 import discord.mian.data.CharacterData;
+import discord.mian.data.InstructionData;
 import discord.mian.data.Server;
 import discord.mian.api.Data;
 import discord.mian.custom.*;
+import discord.mian.data.WorldData;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
 import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.components.buttons.ButtonStyle;
@@ -287,8 +289,8 @@ public class Interactions {
         int maxSize = Math.max(1, (int) Math.ceil((double) display.size() / show));
 
         int index = 0;
-        if(message.getComponents().size() > 0){
-            Optional<ContainerChildComponentUnion> footerUnion = message.getComponents().get(0).asContainer().getComponents().stream()
+        if(!message.getComponents().isEmpty()){
+            Optional<ContainerChildComponentUnion> footerUnion = message.getComponents().getFirst().asContainer().getComponents().stream()
                     .filter(component -> component.getUniqueId() == 121)
                     .findFirst();
             if(footerUnion.isPresent()){
@@ -340,8 +342,8 @@ public class Interactions {
 
         }
 
-        if(message.getComponents().size() > 0){
-            List<ContainerChildComponentUnion> components = new ArrayList<>(message.getComponents().get(0).asContainer().getComponents());
+        if(!message.getComponents().isEmpty()){
+            List<ContainerChildComponentUnion> components = new ArrayList<>(message.getComponents().getFirst().asContainer().getComponents());
             if(!components.isEmpty()){
                 Message finalMessage = message;
                 components.stream().filter(component -> component.getUniqueId() == 121)
@@ -494,10 +496,10 @@ public class Interactions {
                 message = hook.retrieveOriginal().submit().get();
             }
         }catch(Exception e){
-
+            Constants.LOGGER.error("Failed to get message for prompt viewer", e);
         }
-        if(message.getComponents().size() > 0){
-            Optional<ContainerChildComponentUnion> footerUnion = message.getComponents().get(0).asContainer().getComponents().stream()
+        if(!message.getComponents().isEmpty()){
+            Optional<ContainerChildComponentUnion> footerUnion = message.getComponents().getFirst().asContainer().getComponents().stream()
                     .filter(component -> component.getUniqueId() == 121)
                     .findFirst();
             if(footerUnion.isPresent()){
@@ -548,11 +550,11 @@ public class Interactions {
                 message = hook.retrieveOriginal().submit().get();
             }
         }catch(Exception e){
-
+            Constants.LOGGER.error("Failed to get message for prompt viewer", e);
         }
 
         //        Message message = hook.retrieveOriginal().submit().get();
-        List<ContainerChildComponentUnion> components = new ArrayList<>(message.getComponents().get(0).asContainer().getComponents());
+        List<ContainerChildComponentUnion> components = new ArrayList<>(message.getComponents().getFirst().asContainer().getComponents());
         if(!components.isEmpty()){
             Message finalMessage = message;
             components.stream().filter(component -> component.getUniqueId() == 121)
@@ -587,7 +589,7 @@ public class Interactions {
             try{
                 message = hook.retrieveOriginal().submit().get();
             }catch(Exception e){
-
+                Constants.LOGGER.error("Failed to get message for prompt viewer", e);
             }
         }
         List<ContainerChildComponent> components = buildContainer.apply(direction);
@@ -616,7 +618,7 @@ public class Interactions {
             }
             if(onSelects != null){
                 for(StringSelectMenu.Builder builder : onSelects){
-                    StringSelectMenu.Builder copy = StringSelectMenu.create(builder.getId())
+                    StringSelectMenu.Builder copy = StringSelectMenu.create(builder.getCustomId())
                             .addOptions(builder.getOptions())
                             .setMinValues(builder.getMinValues())
                             .setMaxValues(builder.getMaxValues())
@@ -696,7 +698,7 @@ public class Interactions {
         ArrayList<Button> roleplayComponents = new ArrayList<>();
 
         roleplayComponents.add(InteractionCreator.createButton("Start Roleplay", (event) -> {
-            if(server.getInstructionDatas().entrySet().isEmpty() || server.getCharacterDatas().entrySet().isEmpty() || server.getWorldDatas().entrySet().isEmpty()){
+            if(server.getInstructionDatas().isEmpty() || server.getCharacterDatas().isEmpty() || server.getWorldDatas().isEmpty()){
                 event.reply("Must at least have one instruction, character and world created in the bot in order to start a roleplay!").setEphemeral(true).queue();
                 return;
             }
@@ -769,27 +771,25 @@ public class Interactions {
                                 }
                                 if(nextInt + 1 >= PromptType.values().length){
                                     buttonEvent.getMessage().delete().queue();
-                                    buttonEvent.reply((Util.botifyMessage("Started a new chat! Characters are creating their initial prompts now..")))
-                                            .queue(success -> {
-                                                try {
-                                                    roleplay.startRoleplay(success.retrieveOriginal().submit().get(),
-                                                            datas.get(PromptType.INSTRUCTION).stream().map(string -> server.getInstructionDatas().get(string)).toList(),
-                                                            datas.get(PromptType.WORLD).stream().map(string -> server.getWorldDatas().get(string)).toList(),
-                                                            datas.get(PromptType.CHARACTER).stream().map(string -> server.getCharacterDatas().get(string)).toList()
-                                                    );
-                                                    roleplay.getCharacters().forEach((name, characterData) ->
-                                                    {
-                                                        try {
-                                                            roleplay.promptCharacterToRoleplay(characterData, null, false, true);
-                                                        } catch (ExecutionException | InterruptedException e) {
-                                                            Constants.LOGGER.error("Failed to prompt character", e);
-                                                        }
-                                                    });
 
-                                                } catch (ExecutionException | InterruptedException | IOException e) {
-                                                    buttonEvent.reply("Failed to start chat!").setEphemeral(true).queue();
-                                                }
-                                            });
+                                    try {
+                                        roleplay.startRoleplay(buttonEvent,
+                                                datas.get(PromptType.INSTRUCTION).stream().map(string -> server.getInstructionDatas().get(string)).toList(),
+                                                datas.get(PromptType.WORLD).stream().map(string -> server.getWorldDatas().get(string)).toList(),
+                                                datas.get(PromptType.CHARACTER).stream().map(string -> server.getCharacterDatas().get(string)).toList()
+                                        );
+                                        roleplay.getDatas(PromptType.CHARACTER).forEach((chrData) ->
+                                        {
+                                            try {
+                                                roleplay.promptCharacterToRoleplay((CharacterData) chrData, null, false, true);
+                                            } catch (ExecutionException | InterruptedException e) {
+                                                Constants.LOGGER.error("Failed to prompt character", e);
+                                            }
+                                        });
+
+                                    } catch (ExecutionException | InterruptedException | IOException e) {
+                                        buttonEvent.reply("Failed to start chat!").setEphemeral(true).queue();
+                                    }
                                 } else {
                                     buttonEvent.deferEdit().queue();
                                     accept(nextInt + 1);
@@ -800,7 +800,7 @@ public class Interactions {
 
             nextPromptType.accept(0);
         }).withEmoji(Emoji.fromFormatted("🪄"))
-                .withStyle(ButtonStyle.PRIMARY).withDisabled(roleplay.isRunningRoleplay()));
+                .withStyle(ButtonStyle.PRIMARY).withDisabled(roleplay.isRunningRoleplay() || message.getChannelType().isThread()));
 
         roleplayComponents.add(InteractionCreator.createButton("Stop Roleplay", (event) ->
                 {
@@ -825,25 +825,27 @@ public class Interactions {
                 event.reply("Cannot restart the roleplay while a message is being generated!").setEphemeral(true).queue();
                 return;
             }
-            event.reply(Util.botifyMessage("Restarted the chat! Characters are creating their initial prompts now.."))
-                    .queue(success -> {
-                        try {
-                            roleplay.restartRoleplay(event.getMessage());
-                            roleplay.getCharacters().forEach((name, characterData) ->
-                            {
-                                try {
-                                    roleplay.promptCharacterToRoleplay(characterData, null, false, true);
-                                } catch (ExecutionException | InterruptedException e) {
-                                    Constants.LOGGER.error("Failed to restart chat", e);
-                                }
-                            });
 
-                        } catch (Exception e) {
-                            event.getHook().editOriginal("Failed to restart chat!").queue();
-                        }
-                    });
+                    try {
+                        roleplay.startRoleplay(event,
+                                roleplay.getDatas(PromptType.INSTRUCTION).stream().map(dat -> (InstructionData) dat).toList(),
+                                roleplay.getDatas(PromptType.WORLD).stream().map(dat -> (WorldData) dat).toList(),
+                                roleplay.getDatas(PromptType.CHARACTER).stream().map(dat -> (CharacterData) dat).toList());
+                        roleplay.getDatas(PromptType.CHARACTER).forEach((characterData) ->
+                        {
+                            try {
+                                roleplay.promptCharacterToRoleplay((CharacterData) characterData, null, false, true);
+                            } catch (ExecutionException | InterruptedException e) {
+                                Constants.LOGGER.error("Failed to restart chat", e);
+                            }
+                        });
+
+                    } catch (Exception e) {
+                        event.getHook().editOriginal("Failed to restart chat!").queue();
+                    }
+
         }).withStyle(ButtonStyle.SECONDARY).withEmoji(Emoji.fromFormatted("⏪"))
-                .withDisabled(!roleplay.isRunningRoleplay()));
+                .withDisabled(!roleplay.isRunningRoleplay() || message.getChannelType().isThread()));
 
         List<ContainerChildComponent> components = new ArrayList<>();
         components.add(Section.of(
@@ -893,28 +895,31 @@ public class Interactions {
 
         components.add(Separator.createDivider(Separator.Spacing.SMALL));
 
+//        if(roleplay.isRunningRoleplay()){
+//            components.add(Separator.createDivider(Separator.Spacing.SMALL));
+//            for(PromptType promptType : PromptType.values()){
+//                List<? extends Data> promptDatas = roleplay.getDatas(promptType);
+//
+//                StringBuilder display = new StringBuilder();
+//                display.append("-# ");
+//                components.add(TextDisplay.of("**"+promptType.displayName+" Involved"+"**"));
+//
+//                for(int i = 0; i < promptDatas.size(); i++){
+//                    String name = promptDatas.get(i).getName();
+//                    display.append(name);
+//                    if(i != promptDatas.size() - 1){
+//                        display.append(", ");
+//                    }
+//                }
+//                components.add(TextDisplay.of(display.toString()));
+//            }
+//        }
+
         components.add(TextDisplay.of("### Roleplay Status: " + (roleplay.isRunningRoleplay() ? "Ongoing" : "Stopped")));
-        components.add(ActionRow.of(roleplayComponents));
-
         if(roleplay.isRunningRoleplay()){
-            components.add(Separator.createDivider(Separator.Spacing.SMALL));
-            for(PromptType promptType : PromptType.values()){
-                List<? extends Data> promptDatas = roleplay.getDatas(promptType);
-
-                StringBuilder display = new StringBuilder();
-                display.append("-# ");
-                components.add(TextDisplay.of("**"+promptType.displayName+" Involved"+"**"));
-
-                for(int i = 0; i < promptDatas.size(); i++){
-                    String name = promptDatas.get(i).getName();
-                    display.append(name);
-                    if(i != promptDatas.size() - 1){
-                        display.append(", ");
-                    }
-                }
-                components.add(TextDisplay.of(display.toString()));
-            }
+            components.add(TextDisplay.of("[More Information]("+roleplay.getChannel().getJumpUrl()+")"));
         }
+        components.add(ActionRow.of(roleplayComponents));
 
         components.add(Separator.createDivider(Separator.Spacing.LARGE));
 

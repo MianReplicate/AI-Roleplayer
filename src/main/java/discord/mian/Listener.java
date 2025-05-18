@@ -3,6 +3,7 @@ package discord.mian;
 import discord.mian.ai.AIBot;
 import discord.mian.ai.Roleplay;
 import discord.mian.custom.ConfigEntry;
+import discord.mian.custom.PromptType;
 import discord.mian.data.CharacterData;
 import discord.mian.commands.BotCommands;
 import discord.mian.custom.Constants;
@@ -136,12 +137,14 @@ public class Listener {
                             .get("only_chat_on_mention")).value){
 
                         if(random.nextBoolean()){
-                            final double total = roleplay.getCharacters().values().stream()
+                            final double total = roleplay.getDatas(PromptType.CHARACTER).stream()
                                     .filter(data1 -> !data1.getName().equals(event.getAuthor().getName()))
-                                    .mapToDouble(CharacterData::getTalkability).sum();
+                                    .mapToDouble((data1) ->((CharacterData) data1).getTalkability()).sum();
 
                             double percentage = Math.random();
-                            List<CharacterData> meetsCriteria = roleplay.getCharacters().values().stream().filter(
+                            List<CharacterData> meetsCriteria = roleplay.getDatas(PromptType.CHARACTER).stream()
+                                    .map(data1 -> (CharacterData) data1)
+                                    .filter(
                                     characterData -> (characterData.getTalkability() / total) >= percentage &&
                                             !characterData.getName().equals(event.getAuthor().getName())
                             ).toList();

@@ -2,10 +2,12 @@ package discord.mian.commands.custom;
 
 import discord.mian.ai.AIBot;
 import discord.mian.ai.Roleplay;
+import discord.mian.custom.Constants;
 import discord.mian.data.CharacterData;
 import discord.mian.commands.SlashCommand;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.InteractionContextType;
@@ -28,29 +30,28 @@ public class Poke extends SlashCommand {
         if(super.handle(event)){
             event.deferReply().setEphemeral(true).queue();
             Roleplay roleplay = AIBot.bot.getChat(event.getGuild());
-            if(event.getChannel().getType() == ChannelType.TEXT){
-                if(!roleplay.isRunningRoleplay()){
-                    event.getHook().editOriginal("Start a roleplay first!").queue();
+
+            if(!roleplay.isRunningRoleplay()){
+                event.getHook().editOriginal("Start a roleplay first!").queue();
+                return true;
+            }
+
+            ThreadChannel channel = roleplay.getChannel();
+
+            if(event.getChannel().getIdLong() == channel.getIdLong()){
+                CharacterData character = AIBot.bot.getServerData(event.getGuild())
+                        .getCharacterDatas().get(event.getOption("character", OptionMapping::getAsString));
+                if(character == null){
+                    event.getHook().editOriginal("Invalid character!").queue();
                     return true;
                 }
 
-                TextChannel channel = roleplay.getChannel();
-                if(event.getChannel().getIdLong() == channel.getIdLong()){
-                    CharacterData character = AIBot.bot.getServerData(event.getGuild())
-                            .getCharacterDatas().get(event.getOption("character", OptionMapping::getAsString));
-                    if(character == null){
-                        event.getHook().editOriginal("Invalid character!").queue();
-                        return true;
-                    }
-
-                    roleplay.promptCharacterToRoleplay(character, null, true, false);
-                    event.getHook().editOriginal("Prompted character!").queue();
-                    return true;
-                } else {
-                    event.getHook().editOriginal("Can't roleplay here as roleplay was started in another [channel!]("+channel.getJumpUrl()+")").queue();
-                    return true;
-                }
-
+                roleplay.promptCharacterToRoleplay(character, null, true, false);
+                event.getHook().editOriginal("Prompted character!").queue();
+                return true;
+            } else {
+                event.getHook().editOriginal("Can't roleplay here as roleplay was started in another [channel!]("+channel.getJumpUrl()+")").queue();
+                return true;
             }
         }
         return false;
