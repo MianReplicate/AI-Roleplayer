@@ -33,7 +33,7 @@ public class AIBot {
         BotCommands.addCommands().queue();
 
         for(Guild guild : jda.getGuildCache()){
-            servers.put(guild, new Server(guild));
+            onServerJoin(guild);
         }
 
         for(File serverFolder : Objects.requireNonNull(Util.createFileRelativeToData("servers").listFiles())){
@@ -65,4 +65,7 @@ public class AIBot {
         this.chats.put(guild, chat);
     }
 
+    public void onServerJoin(Guild guild){
+        servers.put(guild, new Server(guild));
+    }
 }

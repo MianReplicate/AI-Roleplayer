@@ -7,8 +7,10 @@ import discord.mian.custom.PromptType;
 import discord.mian.data.CharacterData;
 import discord.mian.commands.BotCommands;
 import discord.mian.custom.Constants;
+import discord.mian.data.Server;
 import discord.mian.interactions.InteractionCreator;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
@@ -24,6 +26,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 public class Listener {
+    @SubscribeEvent
+    public void onGuildJoin(GuildJoinEvent event){
+        AIBot.bot.onServerJoin(event.getGuild());
+    }
+
     @SubscribeEvent
     public void onModalInteraction(ModalInteractionEvent event) {
         Object component =
