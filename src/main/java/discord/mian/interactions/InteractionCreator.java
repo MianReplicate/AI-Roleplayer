@@ -1,5 +1,7 @@
 package discord.mian.interactions;
 
+import discord.mian.ai.AIBot;
+import discord.mian.custom.Constants;
 import discord.mian.custom.SizeHashMap;
 import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.components.selections.StringSelectMenu;
@@ -20,6 +22,22 @@ public class InteractionCreator {
     private static final HashMap<String, Consumer<? super GenericInteractionCreateEvent>> PERM_INTERACTIONS = new HashMap<>();
     private static final HashMap<String, Consumer<? super GenericInteractionCreateEvent>> INTERACTIONS = new SizeHashMap<>(MAX_INTERACTIONS);
     private static final HashMap<String, Consumer<ModalInteractionEvent>> MODALS = new SizeHashMap<>(300);
+
+    static {
+        // needed in the event of a server restart
+        InteractionCreator.createPermanentButton(Button.primary("start_here", "Start Here"),
+                button -> {
+                    button.deferReply(true).queue();
+                    try{
+                        AIBot.bot.getChat(button.getGuild()).startRoleplay(button.getMessage());
+                    }catch(Exception e){
+                        button.getHook().editOriginal("Failed to restart roleplay!").queue();
+                        Constants.LOGGER.error("Failed to start roleplay", e);
+                        return;
+                    }
+                    button.getHook().editOriginal("Successfully started roleplay!").queue();
+                });
+    };
 
     public static Consumer<? super GenericInteractionCreateEvent> getComponentConsumer(String id){
         return PERM_INTERACTIONS.getOrDefault(id, INTERACTIONS.getOrDefault(id, null));

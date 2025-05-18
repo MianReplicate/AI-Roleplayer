@@ -558,6 +558,7 @@ public class Roleplay {
                     }
                 } catch (Exception e) {
                     errorMsgCleanup = aiMsg;
+                    onError.accept(e);
                     throw(e);
                 }
             };
