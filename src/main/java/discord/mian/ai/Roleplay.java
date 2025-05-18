@@ -225,8 +225,8 @@ public class Roleplay {
 
                             String reply = "**Model:** " + responseInfo.getModel() +
                                     "\n**Provider:** " + responseInfo.getProvider() +
-                                    "\n**Prompt Tokens:** " + responseInfo.getPromptTokens() +
-                                    "\n**Completion Tokens:** " + responseInfo.getCompletionTokens() +
+                                    "\n**Prompt Tokens:** " + (responseInfo.getPromptTokens().isPresent() ? responseInfo.getPromptTokens().get() : "Unknown") +
+                                    "\n**Completion Tokens:** " + (responseInfo.getCompletionTokens().isPresent() ? responseInfo.getCompletionTokens().get() : "Unknown")+
                                     "\n**Total Tokens:** " + responseInfo.getTotalTokens()+
                                     "\n**Price:** " + (responseInfo.getPrice() != null ? "$" + String.format("%.4f", responseInfo.getPrice()) : "Unknown");
 
@@ -353,10 +353,10 @@ public class Roleplay {
         ObjectMapper mapper = new ObjectMapper();
         ObjectWriter writer = mapper.writerWithDefaultPrettyPrinter();
         String json;
-        String toSave;
+        String fullPrompt;
         try{
             json = mapper.writeValueAsString(chatRequest);
-            toSave = writer.writeValueAsString(chatRequest);
+            fullPrompt = writer.writeValueAsString(chatRequest);
         }catch(Exception e){
             throw(new RuntimeException(e));
         }
@@ -405,7 +405,14 @@ public class Roleplay {
                     fullResponse += content;
                     consumer.accept(fullResponse);
                 } else {
-                    break;
+                    return new ResponseInfo(
+                            model.getDisplay(),
+                            null,
+                            fullResponse,
+                            null,
+                            null,
+                            fullPrompt
+                    );
                 }
             }
 
@@ -421,7 +428,7 @@ public class Roleplay {
                     fullResponse,
                     openRouterResponse.get("usage").get("prompt_tokens").asInt(),
                     openRouterResponse.get("usage").get("completion_tokens").asInt(),
-                    toSave
+                    fullPrompt
             );
         } catch(Exception e){
             Constants.LOGGER.error("Failed to get response from provider", e);
