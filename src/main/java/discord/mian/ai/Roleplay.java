@@ -451,11 +451,11 @@ public class Roleplay {
             if(!characters.containsKey(character.getName())){
                 Message message = historyMarker.retrieveParentMessage().submit().get();
                 Container container = message.getComponentTree().getComponents().getFirst().asContainer();
-                TextDisplay charactersDisplay = container.getComponents().stream().filter(component -> component.getUniqueId() == 150)
+                TextDisplay charactersDisplay = container.getComponents().stream().filter(component -> component.getUniqueId() == 152)
                                 .findFirst().get().asTextDisplay();
-                message.editMessageComponents(container.replace(ComponentReplacer.byId(150, charactersDisplay.withContent(
+                message.editMessageComponents(container.replace(ComponentReplacer.byId(152, charactersDisplay.withContent(
                         charactersDisplay.getContent() + ", " + character.getName()
-                )))).submit().get();
+                )))).useComponentsV2().submit().get();
                 // adds the character to the container
 
                 addData(PromptType.CHARACTER, character);
