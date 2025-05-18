@@ -29,11 +29,9 @@ import net.dv8tion.jda.api.components.separator.Separator;
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay;
 import net.dv8tion.jda.api.components.thumbnail.Thumbnail;
 import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.api.entities.channel.Channel;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
-import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent;
 import net.dv8tion.jda.api.requests.RestAction;
@@ -43,10 +41,10 @@ import net.dv8tion.jda.api.utils.TimeUtil;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import net.dv8tion.jda.api.utils.messages.MessageEditData;
 import okhttp3.*;
+import okio.Buffer;
 import okio.BufferedSource;
 import org.apache.tika.Tika;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -193,16 +191,18 @@ public class Roleplay {
             components.add(InteractionCreator.createPermanentButton(Button.secondary("swipe_right", "-->"), Interactions.getSwipe(Direction.NEXT)));
 
             if(errorMsgCleanup == null){
-                components.add(InteractionCreator.createPermanentButton(Button.secondary("get_provider", Emoji.fromFormatted("❔")), event -> {
+                components.add(InteractionCreator.createPermanentButton(Button.secondary("get_response_info", Emoji.fromFormatted("❔")), event -> {
                     try{
-                        if(!swipes.isEmpty()){
-                            ResponseInfo responseInfo = swipes.get(currentSwipe);
+                        Roleplay chat = AIBot.bot.getChat(event.getGuild());
+                        List<ResponseInfo> responseSwipes = chat.getSwipes();
+                        if(responseSwipes != null && !responseSwipes.isEmpty()){
+                            ResponseInfo responseInfo = responseSwipes.get(chat.getCurrentSwipe());
 
                             List<ContainerChildComponent> containerComponents = new ArrayList<>();
 
                             byte[] data = null;
                             try{
-                                data = Files.readAllBytes(currentCharacter.getAvatar().toPath());
+                                data = Files.readAllBytes(chat.getCurrentCharacter().getAvatar().toPath());
                             }catch(Exception e){
                                 Constants.LOGGER.error("Failed to get avatar, using backup", e);
                             }
@@ -223,8 +223,8 @@ public class Roleplay {
 
                             String reply = "**Model:** " + responseInfo.getModel() +
                                     "\n**Provider:** " + responseInfo.getProvider() +
-                                    "\n**Prompt Tokens:** " + responseInfo.getPromptTokens() +
-                                    "\n**Completion Tokens:** " + responseInfo.getCompletionTokens() +
+                                    "\n**Prompt Tokens:** " + (responseInfo.getPromptTokens().isPresent() ? responseInfo.getPromptTokens().get() : "Unknown") +
+                                    "\n**Completion Tokens:** " + (responseInfo.getCompletionTokens().isPresent() ? responseInfo.getCompletionTokens().get() : "Unknown")+
                                     "\n**Total Tokens:** " + responseInfo.getTotalTokens()+
                                     "\n**Price:** " + (responseInfo.getPrice() != null ? "$" + String.format("%.4f", responseInfo.getPrice()) : "Unknown");
 
@@ -361,10 +361,10 @@ public class Roleplay {
         ObjectMapper mapper = new ObjectMapper();
         ObjectWriter writer = mapper.writerWithDefaultPrettyPrinter();
         String json;
-        String toSave;
+        String fullPrompt;
         try{
             json = mapper.writeValueAsString(chatRequest);
-            toSave = writer.writeValueAsString(chatRequest);
+            fullPrompt = writer.writeValueAsString(chatRequest);
         }catch(Exception e){
             throw(new RuntimeException(e));
         }
@@ -377,10 +377,14 @@ public class Roleplay {
                 .post(RequestBody.create(json, MediaType.get("application/json; charset=utf-8")))
                 .build();
 
+        int errorCode = 0;
         try(Response response = client.newCall(request).execute()) {
             String fullResponse = "";
 
-            if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+            if (!response.isSuccessful()){
+                errorCode = response.code();
+                throw new RuntimeException(mapper.readTree(response.body().string()).get("error").get("message").asText());
+            }
 
             BufferedSource source = response.body().source();
             String copyOfResponse = "";
@@ -405,23 +409,38 @@ public class Roleplay {
                 String content = responseJson.get("choices").get(0).get("delta").get("content").toString();
                 content = content.substring(1, content.length() - 1);
 
-                fullResponse += content;
-                consumer.accept(fullResponse);
+                if((fullResponse + content).length() < 2000){
+                    fullResponse += content;
+                    consumer.accept(fullResponse);
+                } else {
+                    return new ResponseInfo(
+                            model.getDisplay(),
+                            null,
+                            fullResponse,
+                            null,
+                            null,
+                            fullPrompt
+                    );
+                }
             }
 
             JsonNode openRouterResponse = mapper.readTree(copyOfResponse);
 
+            if(!response.isSuccessful()){
+                errorCode = response.code();
+                throw new RuntimeException(openRouterResponse.get("error").get("message").asText());
+            }
             return new ResponseInfo(
                     openRouterResponse.get("model").asText(),
                     openRouterResponse.get("provider").asText(),
                     fullResponse,
                     openRouterResponse.get("usage").get("prompt_tokens").asInt(),
                     openRouterResponse.get("usage").get("completion_tokens").asInt(),
-                    toSave
+                    fullPrompt
             );
         } catch(Exception e){
             Constants.LOGGER.error("Failed to get response from provider", e);
-            throw new RuntimeException("Provider failed to give a response! Ensure the key is valid or use a different provider.");
+            throw new RuntimeException("OpenRouter returned error code "+errorCode+" | "+e.getMessage());
         }
     }
 
@@ -448,11 +467,9 @@ public class Roleplay {
                 msgToEdit.editMessage(MessageEditData.fromContent(Util.botifyMessage("Message is currently generating..") + "\n" + newContent)).queue(onComplete);
             }
         });
-        if(responseInfo == null)
-            throw new RuntimeException("Failed to create the LLM! Ensure that the API key is valid!");
         String newContent = responseInfo.editResponse(reformat);
         if(newContent.isEmpty())
-            throw new RuntimeException("Empty message! :(");
+            throw new RuntimeException("The provider returned no content, try again? :(");
         return responseInfo;
     }
 
@@ -481,7 +498,7 @@ public class Roleplay {
 
     }
 
-    public void sendRoleplayMessage(boolean triggerAutoResponse, boolean waitForFinish) throws ExecutionException, InterruptedException {
+    public void sendRoleplayMessage(boolean triggerAutoResponse, boolean waitForFinish) {
         if(!runningRoleplay){
             historyMarker.sendMessage(MessageCreateData.fromContent(
                     Util.botifyMessage("Cannot make a response since there is no ongoing chat!")
@@ -500,14 +517,12 @@ public class Roleplay {
             )).queue();
             return;
         }
-
         if(this.errorMsgCleanup != null){
             this.errorMsgCleanup.delete().queue(RestAction.getDefaultSuccess(), toThrow -> {});
             if(this.latestAssistantMessage == errorMsgCleanup)
                 latestAssistantMessage = null;
             this.errorMsgCleanup = null;
         }
-
         if(this.latestAssistantMessage != null){
             if(latestAssistantMessage.getContentRaw().isEmpty())
                 latestAssistantMessage.delete().queue();
@@ -520,6 +535,16 @@ public class Roleplay {
             swipes = null;
             currentSwipe = 0;
         }
+
+        Consumer<Throwable> onError = throwable -> {
+            String overrideError = null;
+            if(throwable instanceof IllegalArgumentException e2 && e2.getMessage().contains("Content may not be longer")){
+                overrideError = "Response is too long!";
+            }
+
+            currentSwipe = 0;
+            this.finishedDiscordResponse(Util.botifyMessage("Failed to send a response due to an exception :< sowwy. If this keeps happening, try using a different AI model or provider.\n\nError: " + (overrideError != null ? overrideError : throwable.getMessage().substring(0, Math.min(throwable.getMessage().length(), 1750)))));
+        };
 
         try{
             this.creatingResponseFromDiscordMessage();
@@ -549,8 +574,6 @@ public class Roleplay {
                     errorMsgCleanup = null;
                     this.finishedDiscordResponse(responseInfo.getResponse());
 
-                    // if able to reply to other bots..
-                    // add chaining
                     if(triggerAutoResponse){
                         CharacterData data = findRespondingCharacterFromContent(responseInfo.getResponse());
                         if(data != null && data != currentCharacter && data.getTalkability() >= Math.random()) {
@@ -563,6 +586,7 @@ public class Roleplay {
                     }
                 } catch (Exception e) {
                     errorMsgCleanup = aiMsg;
+                    onError.accept(e);
                     throw(e);
                 }
             };
@@ -570,17 +594,10 @@ public class Roleplay {
             if(waitForFinish){
                 consumer.accept(messageCreateData.complete());
             } else {
-                messageCreateData.queue(consumer);
+                messageCreateData.queue(consumer, onError);
             }
         }catch(Exception e){
-            String overrideError = null;
-            if(e instanceof IllegalArgumentException ignored){
-                overrideError = "Response is too long!";
-            }
-
-            currentSwipe = 0;
-            this.finishedDiscordResponse(Util.botifyMessage("Failed to send a response due to an exception :< sowwy. If this keeps happening, try using a different AI model or provider.\n\nError: " + (overrideError != null ? overrideError : e.toString().substring(0, Math.min(e.toString().length(), 1750)))));
-            throw(e);
+            onError.accept(e);
         }
     }
 
@@ -612,7 +629,7 @@ public class Roleplay {
                         swipes.add(responseInfo);
                         errorMsgCleanup = null;
                     }catch(Exception e){
-                        String msg = e.toString().contains("Content may not be longer") ? "Content is too long!" : e.toString();
+                        String msg = e.toString().contains("Content may not be longer") ? "Response is too long!" : e.getMessage();
                         finalResponse = Util.botifyMessage("Failed to make a new response!\n\nError: " + msg);
                     }
                     this.finishedDiscordResponse(finalResponse);
@@ -749,7 +766,6 @@ public class Roleplay {
         components.add(TextDisplay.of("# Roleplay Information"));
         components.add(TextDisplay.of("The roleplay starts in the thread created under this message, have fun!"));
         components.add(Separator.createDivider(Separator.Spacing.SMALL));
-
         components.add(TextDisplay.of("**Chat Messages:** "+ 0).withUniqueId(100)); // chat messages marker
         components.add(Separator.createDivider(Separator.Spacing.SMALL));
 
@@ -871,6 +887,12 @@ public class Roleplay {
             runningRoleplay = false;
             historyMarker = null;
             webhook = null;
+            if(latestAssistantMessage != null){
+                latestAssistantMessage.editMessageComponents(
+                        ActionRow.of(Button.danger("destroy_button", Emoji.fromFormatted("🗑")),
+                                Button.success("edit_button", Emoji.fromFormatted("🪄")))).queue(RestAction.getDefaultSuccess(),
+                        (t) -> {});
+            }
             latestAssistantMessage = null;
             swipes = null;
             currentSwipe = 0;

@@ -10,35 +10,36 @@ import okhttp3.Response;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Optional;
 import java.util.function.Function;
 
 public class ResponseInfo {
-    private String provider;
-    private String model;
+    private final String provider;
+    private final String model;
     private String response;
-    private String sent;
-    private int promptTokens;
-    private int completionTokens;
+    private final String sent;
+    private final Optional<Integer> promptTokens;
+    private final Optional<Integer> completionTokens;
 
-    public ResponseInfo(String model, String provider, String response, int promptTokens, int completionTokens, String sent){
+    public ResponseInfo(String model, String provider, String response, Integer promptTokens, Integer completionTokens, String sent){
         this.provider = provider;
         this.model = model;
         this.response = response;
-        this.promptTokens = promptTokens;
-        this.completionTokens = completionTokens;
+        this.promptTokens = Optional.ofNullable(promptTokens);
+        this.completionTokens = Optional.ofNullable(completionTokens);
         this.sent = sent;
     }
 
-    public int getCompletionTokens() {
+    public Optional<Integer> getCompletionTokens() {
         return completionTokens;
     }
 
-    public int getPromptTokens() {
+    public Optional<Integer> getPromptTokens() {
         return promptTokens;
     }
 
     public int getTotalTokens(){
-        return completionTokens + promptTokens;
+        return completionTokens.orElse(0) + promptTokens.orElse(0);
     }
 
     public String getModel() {
