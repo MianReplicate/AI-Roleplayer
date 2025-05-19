@@ -1,5 +1,6 @@
 package discord.mian.custom;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.mian.ai.AIBot;
@@ -9,7 +10,12 @@ import net.dv8tion.jda.api.components.container.ContainerChildComponent;
 import net.dv8tion.jda.api.components.separator.Separator;
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.Webhook;
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
+import net.dv8tion.jda.internal.entities.ReceivedMessage;
+import net.dv8tion.jda.internal.requests.restaction.AuditableRestActionImpl;
 import okhttp3.*;
 
 import javax.imageio.ImageIO;
@@ -22,6 +28,7 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.util.*;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;

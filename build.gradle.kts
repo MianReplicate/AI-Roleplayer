@@ -23,7 +23,7 @@ repositories{
 }
 
 dependencies{
-    implementation("io.github.freya022:JDA:4a9d724a21")
+    implementation("io.github.freya022:JDA:4c869c0fd8")
 //    implementation("net.dv8tion:JDA:$jda_version")
     implementation("org.apache.tika:tika-core:$tika_version")
     implementation(platform("com.squareup.okhttp3:okhttp-bom:$okhttp_version"))

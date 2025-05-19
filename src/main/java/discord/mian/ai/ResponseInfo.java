@@ -2,6 +2,8 @@ package discord.mian.ai;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import discord.mian.api.PromptInfo;
+import discord.mian.api.ProviderInfo;
 import discord.mian.custom.Constants;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
@@ -13,7 +15,7 @@ import java.util.Iterator;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class ResponseInfo {
+public class ResponseInfo implements PromptInfo, ProviderInfo {
     private final String provider;
     private final String model;
     private String response;
@@ -88,8 +90,8 @@ public class ResponseInfo {
 
                     if(name.equals(provider)){
                         double total = 0;
-                        total += endpoint.get("pricing").get("prompt").asDouble() * getPromptTokens();
-                        total += endpoint.get("pricing").get("completion").asDouble() * getCompletionTokens();
+                        total += endpoint.get("pricing").get("prompt").asDouble() * getCompletionTokens().orElse(0);
+                        total += endpoint.get("pricing").get("completion").asDouble() * getCompletionTokens().orElse(0);
                         return total;
                     }
                 }

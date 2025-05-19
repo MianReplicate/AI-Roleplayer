@@ -29,7 +29,7 @@ public class InteractionCreator {
                 button -> {
                     button.deferReply(true).queue();
                     try{
-                        AIBot.bot.getChat(button.getGuild()).startRoleplay(button.getMessage());
+                        AIBot.bot.getChat(button.getGuild()).startRoleplay(button.getMessage(), null);
                     }catch(Exception e){
                         button.getHook().editOriginal("Failed to restart roleplay!").queue();
                         Constants.LOGGER.error("Failed to start roleplay", e);

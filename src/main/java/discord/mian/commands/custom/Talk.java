@@ -12,7 +12,9 @@ import net.dv8tion.jda.api.interactions.InteractionContextType;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
+import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction;
 import net.dv8tion.jda.api.utils.FileUpload;
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
@@ -20,6 +22,7 @@ import net.dv8tion.jda.internal.requests.restaction.MessageCreateActionImpl;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 public class Talk extends SlashCommand {
     public Talk(){
@@ -69,30 +72,27 @@ public class Talk extends SlashCommand {
 
             MessageCreateData msgData = builder.build();
 
-            MessageCreateAction messageCreateAction;
+            Consumer<Message> onMessage = (message) -> {
+                MessageCreateAction messageCreateAction = message != null ? message.reply(msgData)
+                        : new MessageCreateActionImpl(msgChannel).applyData(msgData);
+
+                ReplyCallbackAction replyAction = event.reply("The message is on its way!").setEphemeral(true);
+
+                if(delay != null){
+                    msgChannel.sendTyping().and(replyAction).queue(success ->
+                            messageCreateAction.queueAfter(delay, TimeUnit.SECONDS));
+                } else {
+                    messageCreateAction.and(replyAction).queue();
+                }
+            };
 
             if(msgId != null){
-                Message message = msgChannel.retrieveMessageById(msgId).complete();
-                messageCreateAction = message.reply(msgData);
+                msgChannel.retrieveMessageById(msgId).queue(onMessage);
             } else {
-                messageCreateAction = new MessageCreateActionImpl(msgChannel).applyData(msgData);
-            }
-
-            event.reply("The message is on its way!").setEphemeral(true).complete();
-
-            if(delay != null){
-                msgChannel.sendTyping().submit()
-                        .whenComplete((success, throwable) -> messageCreateAction.queueAfter(delay, TimeUnit.SECONDS));
-            } else {
-                messageCreateAction.queue();
+                onMessage.accept(null);
             }
             return true;
         }
         return false;
-    }
-
-    @Override
-    public void autoComplete(CommandAutoCompleteInteractionEvent event) {
-
     }
 }

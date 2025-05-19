@@ -17,6 +17,7 @@ import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInterac
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
+import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.SubscribeEvent;
 
@@ -26,6 +27,15 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 public class Listener {
+    @SubscribeEvent
+    public void onMessageDelete(MessageDeleteEvent event){
+        long id = event.getMessageIdLong();
+        Roleplay roleplay = AIBot.bot.getChat(event.getGuild());
+        if(roleplay.isRunningRoleplay() && roleplay.getParentID() == id){
+            roleplay.stopRoleplay(); // stops roleplay in the event that parent msg was deleted
+        }
+    }
+
     @SubscribeEvent
     public void onGuildJoin(GuildJoinEvent event){
         AIBot.bot.onServerJoin(event.getGuild());
@@ -135,11 +145,11 @@ public class Listener {
 
                 CharacterData fromContent = roleplay.findRespondingCharacterFromContent(msg.getContentRaw());
                 if(fromContent != null && !fromContent.getName().equals(event.getAuthor().getName()))
-                    roleplay.promptCharacterToRoleplay(fromContent, msg, true, false);
+                    roleplay.promptCharacterToRoleplay(fromContent, msg, true);
                 else{
                     CharacterData data = roleplay.findRespondingCharacterFromMessage(msg);
                     if(data != null && !data.getName().equals(event.getAuthor().getName())){
-                        roleplay.promptCharacterToRoleplay(data, msg, true, false);
+                        roleplay.promptCharacterToRoleplay(data, msg, true);
                     } else if(!((ConfigEntry.BoolConfig) AIBot.bot.getServerData(event.getGuild()).getConfig()
                             .get("only_chat_on_mention")).value){
 
@@ -158,7 +168,7 @@ public class Listener {
 
                             if(!meetsCriteria.isEmpty())
                                 roleplay.promptCharacterToRoleplay(meetsCriteria.get((int)(Math.random() * meetsCriteria.size())),
-                                        msg, true, false);
+                                        msg, true);
                         }
                     }
                 }

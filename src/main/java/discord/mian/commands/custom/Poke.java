@@ -36,7 +36,7 @@ public class Poke extends SlashCommand {
                 return true;
             }
 
-            TextChannel channel = roleplay.getChannel();
+            ThreadChannel channel = roleplay.getChannel();
 
             if(event.getChannel().getIdLong() == channel.getIdLong()){
                 CharacterData character = AIBot.bot.getServerData(event.getGuild())
@@ -46,8 +46,8 @@ public class Poke extends SlashCommand {
                     return true;
                 }
 
-                roleplay.promptCharacterToRoleplay(character, null, true, false);
-                event.getHook().editOriginal("Prompted character!").queue();
+                event.getHook().editOriginal("Attempted to poke character for next response!").queue();
+                roleplay.promptCharacterToRoleplay(character, null, true);
                 return true;
             } else {
                 event.getHook().editOriginal("Can't roleplay here as roleplay was started in another [channel!]("+channel.getJumpUrl()+")").queue();
