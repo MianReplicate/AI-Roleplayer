@@ -1,10 +1,9 @@
 package discord.mian.interactions;
 
-import discord.mian.ai.AIBot;
-import discord.mian.custom.Constants;
 import discord.mian.custom.SizeHashMap;
 import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.components.selections.StringSelectMenu;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
@@ -24,20 +23,27 @@ public class InteractionCreator {
     private static final HashMap<String, Consumer<ModalInteractionEvent>> MODALS = new SizeHashMap<>(300);
 
     static {
-        // needed in the event of a server restart
-        InteractionCreator.createPermanentButton(Button.primary("start_here", "Start Here"),
-                button -> {
-                    button.deferReply(true).queue();
-                    try{
-                        AIBot.bot.getChat(button.getGuild()).startRoleplay(button.getMessage(), null);
-                    }catch(Exception e){
-                        button.getHook().editOriginal("Failed to restart roleplay!").queue();
-                        Constants.LOGGER.error("Failed to start roleplay", e);
-                        return;
-                    }
-                    button.getHook().editOriginal("Successfully started roleplay!").queue();
-                });
+        Interactions.getContinue();
     };
+
+    public static Consumer<Message> queueTimeoutComponents(Long length){
+        return message -> {
+//            message.editMessageComponents(
+//                    message.getComponentTree().replace(ComponentReplacer.of(
+//                            Button.class,
+//                            button -> !PERM_INTERACTIONS.containsKey(button.getCustomId()),
+//                            button -> button.withDisabled(true)
+//                    )).replace(ComponentReplacer.of(
+//                            StringSelectMenuImpl.class,
+//                            menu -> !PERM_INTERACTIONS.containsKey(menu.getCustomId()),
+//                            menu -> menu.withDisabled(true)
+//                    ))
+//            ).useComponentsV2()
+//                    .delay(length != null ? length : 5, TimeUnit.SECONDS)
+//                    .queue(success -> Constants.LOGGER.info("GRRR"),
+//                    grr -> Constants.LOGGER.info("bark?"));
+        };
+    }
 
     public static Consumer<? super GenericInteractionCreateEvent> getComponentConsumer(String id){
         return PERM_INTERACTIONS.getOrDefault(id, INTERACTIONS.getOrDefault(id, null));
@@ -57,7 +63,7 @@ public class InteractionCreator {
 
     public static Button createButton(Button button, Consumer<ButtonInteractionEvent> eventConsumer){
         String id = System.currentTimeMillis() + "-" + UUID.randomUUID();
-        button = button.withId(id);
+        button = button.withCustomId(id);
 
         INTERACTIONS.put(id, (event) -> {
             eventConsumer.accept((ButtonInteractionEvent) event);
@@ -68,10 +74,10 @@ public class InteractionCreator {
 
     // permanent
     public static Button createPermanentButton(Button button, Consumer<ButtonInteractionEvent> eventConsumer){
-        PERM_INTERACTIONS.putIfAbsent(button.getId() + "_button", (event) -> {
+        PERM_INTERACTIONS.putIfAbsent(button.getCustomId() + "_button", (event) -> {
             eventConsumer.accept((ButtonInteractionEvent) event);
         });
-        button = button.withId(button.getId() + "_button");
+        button = button.withCustomId(button.getCustomId() + "_button");
         return button;
     }
 

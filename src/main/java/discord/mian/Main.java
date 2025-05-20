@@ -12,6 +12,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+//TODO:
+// swap to mongodb maybe (long-term)
+// use timeouts for non-perm buttons
+
 public class Main {
     public static void main(String[] args) throws Exception {
         String discord_bot_token = args[0];

@@ -3,18 +3,23 @@ package discord.mian.interactions;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.mian.ai.AIBot;
+import discord.mian.ai.ResponseInfo;
 import discord.mian.ai.Roleplay;
+import discord.mian.api.PromptInfo;
+import discord.mian.api.ProviderInfo;
 import discord.mian.data.CharacterData;
 import discord.mian.data.InstructionData;
 import discord.mian.data.Server;
 import discord.mian.api.Data;
 import discord.mian.custom.*;
 import discord.mian.data.WorldData;
+import net.dv8tion.jda.api.components.Component;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
 import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.components.buttons.ButtonStyle;
 import net.dv8tion.jda.api.components.container.ContainerChildComponent;
 import net.dv8tion.jda.api.components.container.ContainerChildComponentUnion;
+import net.dv8tion.jda.api.components.filedisplay.FileDisplay;
 import net.dv8tion.jda.api.components.replacer.ComponentReplacer;
 import net.dv8tion.jda.api.components.section.Section;
 import net.dv8tion.jda.api.components.selections.SelectOption;
@@ -39,8 +44,10 @@ import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.apache.tika.Tika;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -432,7 +439,7 @@ public class Interactions {
                     .editMessageComponents(Util.createBotContainer(components))
                     .useComponentsV2()
                     .setFiles(List.of());
-            editAction.queue();
+            editAction.queue(InteractionCreator.queueTimeoutComponents(null));
         };
 
         if(hook.hasCallbackResponse()){
@@ -642,7 +649,7 @@ public class Interactions {
                 .editMessageComponents(Util.createBotContainer(components))
                 .useComponentsV2()
                 .setFiles(List.of());
-        editAction.queue(null, e -> Constants.LOGGER.error("Failed to get message for prompt viewer", e));
+        editAction.queue(InteractionCreator.queueTimeoutComponents(null), e -> Constants.LOGGER.error("Failed to get message for prompt viewer", e));
     }
 
     public static void createDashboard(Message message) throws IOException {
@@ -671,100 +678,111 @@ public class Interactions {
                 return;
             }
 
-            event.deferEdit().queue();
+            event.replyModal(InteractionCreator.createModal("Name Roleplay", modal -> {
+                modal.deferEdit().queue();
 
-            HashMap<PromptType, ArrayList<String>> datas = new HashMap<>();
-            datas.put(PromptType.INSTRUCTION, new ArrayList<>());
-            datas.put(PromptType.WORLD, new ArrayList<>());
-            datas.put(PromptType.CHARACTER, new ArrayList<>());
+                String name = modal.getValue("name").getAsString();
 
-            BiConsumer<StringSelectInteractionEvent, HashMap<String, ? extends Data>> viewPromptConsumer =
-                    (onSelect, dataList) -> {
-                        onSelect.deferReply(true).queue();
-                        try {
-                            Data prompt = dataList.get(onSelect.getSelectedOptions().getFirst().getValue());
-                            onSelect.getHook()
-                                    .sendFiles(FileUpload.fromData(prompt.getPromptFile()))
-                                    .setEphemeral(true)
-                                    .queue();
-                        } catch (Exception e) {
-                            onSelect.getHook().editOriginal("Failed to retrieve the prompt!").queue();
-                        }
-                    };
+                HashMap<PromptType, ArrayList<String>> datas = new HashMap<>();
+                datas.put(PromptType.INSTRUCTION, new ArrayList<>());
+                datas.put(PromptType.WORLD, new ArrayList<>());
+                datas.put(PromptType.CHARACTER, new ArrayList<>());
 
-            BiFunction<PromptType, String, String> enabledData = (promptType, string) -> datas.get(promptType).contains(string) ? string + "✅" : string;
+                BiConsumer<StringSelectInteractionEvent, HashMap<String, ? extends Data>> viewPromptConsumer =
+                        (onSelect, dataList) -> {
+                            onSelect.deferReply(true).queue();
+                            try {
+                                Data prompt = dataList.get(onSelect.getSelectedOptions().getFirst().getValue());
+                                onSelect.getHook()
+                                        .sendFiles(FileUpload.fromData(prompt.getPromptFile()))
+                                        .setEphemeral(true)
+                                        .queue();
+                            } catch (Exception e) {
+                                onSelect.getHook().editOriginal("Failed to retrieve the prompt!").queue();
+                            }
+                        };
 
-            Consumer<Integer> nextPromptType = new Consumer<>() {
-                @Override
-                public void accept(Integer nextInt) {
-                    PromptType promptType = PromptType.values()[nextInt];
-                    String display = promptType.displayName.toLowerCase();
+                BiFunction<PromptType, String, String> enabledData = (promptType, string) -> datas.get(promptType).contains(string) ? string + "✅" : string;
 
-                    ArrayList<StringSelectMenu.Builder> selects = new ArrayList<>();
+                Consumer<Integer> nextPromptType = new Consumer<>() {
+                    @Override
+                    public void accept(Integer nextInt) {
+                        PromptType promptType = PromptType.values()[nextInt];
+                        String display = promptType.displayName.toLowerCase();
 
-                    selects.add(InteractionCreator.createStringMenu(onSelect -> {
-                        onSelect.deferEdit().queue();
-                        onSelect.getSelectedOptions().forEach(selectOption -> {
-                            ArrayList<String> prompts = datas.get(promptType);
-                            String option = selectOption.getValue();
-                            if (!prompts.contains(option))
-                                prompts.add(option);
-                            else
-                                prompts.remove(option);
-                        });
-                        accept(nextInt);
-                    }).setMaxValues(25).setPlaceholder("Add/Remove Prompts"));
+                        ArrayList<StringSelectMenu.Builder> selects = new ArrayList<>();
 
-                    selects.add(
-                            InteractionCreator.createStringMenu(onSelect ->
-                                            viewPromptConsumer.accept(onSelect, server.getDatas(promptType)))
-                                    .setRequiredRange(1, 1)
-                                    .setPlaceholder("View Prompts")
-                    );
+                        selects.add(InteractionCreator.createStringMenu(onSelect -> {
+                            onSelect.deferEdit().queue();
+                            onSelect.getSelectedOptions().forEach(selectOption -> {
+                                ArrayList<String> prompts = datas.get(promptType);
+                                String option = selectOption.getValue();
+                                if (!prompts.contains(option))
+                                    prompts.add(option);
+                                else
+                                    prompts.remove(option);
+                            });
+                            accept(nextInt);
+                        }).setMaxValues(25).setPlaceholder("Add/Remove Prompts"));
 
-                    Consumer<Message> onMessage = givenMsg -> {
-                        createPromptViewer((direction) -> createPromptViewerContainer(
-                                        givenMsg,
-                                        "Select "+display+" prompts to use in the roleplay.",
-                                        promptType,
-                                        direction, enabledData), givenMsg, promptType, false, true,
-                                selects, null, InteractionCreator.createButton(Emoji.fromFormatted("✅"), buttonEvent -> {
-                                    if (datas.get(promptType).isEmpty()) {
-                                        buttonEvent.reply("Need at least one set of "+display+"!").setEphemeral(true).queue();
-                                        return;
-                                    }
-                                    if(nextInt + 1 >= PromptType.values().length){
-                                        buttonEvent.getMessage().delete().queue();
+                        selects.add(
+                                InteractionCreator.createStringMenu(onSelect ->
+                                                viewPromptConsumer.accept(onSelect, server.getDatas(promptType)))
+                                        .setRequiredRange(1, 1)
+                                        .setPlaceholder("View Prompts")
+                        );
 
-                                        try {
-                                            roleplay.startRoleplay(buttonEvent,
-                                                    datas.get(PromptType.INSTRUCTION).stream().map(string -> server.getInstructionDatas().get(string)).toList(),
-                                                    datas.get(PromptType.WORLD).stream().map(string -> server.getWorldDatas().get(string)).toList(),
-                                                    datas.get(PromptType.CHARACTER).stream().map(string -> server.getCharacterDatas().get(string)).toList(),
-                                                    hook ->
-                                                            roleplay.getDatas(PromptType.CHARACTER).forEach((chrData) ->
-                                                                    roleplay.promptCharacterToRoleplay((CharacterData) chrData, null, false))
-                                            );
-                                        } catch (ExecutionException | InterruptedException | IOException e) {
-                                            buttonEvent.reply("Failed to start chat!").setEphemeral(true).queue();
+                        Consumer<Message> onMessage = givenMsg -> {
+                            createPromptViewer((direction) -> createPromptViewerContainer(
+                                            givenMsg,
+                                            "Select "+display+" prompts to use in the roleplay.",
+                                            promptType,
+                                            direction, enabledData), givenMsg, promptType, false, true,
+                                    selects, null, InteractionCreator.createButton(Emoji.fromFormatted("✅"), buttonEvent -> {
+                                        if (datas.get(promptType).isEmpty()) {
+                                            buttonEvent.reply("Need at least one set of "+display+"!").setEphemeral(true).queue();
+                                            return;
                                         }
-                                    } else {
-                                        buttonEvent.deferEdit().queue();
-                                        accept(nextInt + 1);
-                                    }
-                                }));
-                    };
+                                        if(nextInt + 1 >= PromptType.values().length){
+                                            buttonEvent.getMessage().delete().queue();
 
-                    InteractionHook hook = event.getHook();
-                    if(hook.hasCallbackResponse()){
-                        onMessage.accept(hook.getCallbackResponse().getMessage());
-                    } else {
-                        hook.retrieveOriginal().queue(onMessage, onFail -> Constants.LOGGER.error("Failed to continue creating roleplay", onFail));
+                                            try {
+                                                roleplay.startRoleplay(
+                                                        buttonEvent,
+                                                        name,
+                                                        datas.get(PromptType.INSTRUCTION).stream().map(string -> server.getInstructionDatas().get(string)).toList(),
+                                                        datas.get(PromptType.WORLD).stream().map(string -> server.getWorldDatas().get(string)).toList(),
+                                                        datas.get(PromptType.CHARACTER).stream().map(string -> server.getCharacterDatas().get(string)).toList(),
+                                                        hook ->
+                                                                roleplay.getDatas(PromptType.CHARACTER).forEach((chrData) ->
+                                                                        roleplay.promptCharacterToRoleplay((CharacterData) chrData, null, false))
+                                                );
+                                            } catch (ExecutionException | InterruptedException | IOException e) {
+                                                buttonEvent.reply("Failed to start chat!").setEphemeral(true).queue();
+                                            }
+                                        } else {
+                                            buttonEvent.deferEdit().queue();
+                                            accept(nextInt + 1);
+                                        }
+                                    }));
+                        };
+
+                        InteractionHook hook = event.getHook();
+                        if(hook.hasCallbackResponse()){
+                            onMessage.accept(hook.getCallbackResponse().getMessage());
+                        } else {
+                            hook.retrieveOriginal().queue(onMessage, onFail -> Constants.LOGGER.error("Failed to continue creating roleplay", onFail));
+                        }
                     }
-                }
-            };
+                };
 
-            nextPromptType.accept(0);
+                nextPromptType.accept(0);
+            }).addComponents(ActionRow.of(
+                    TextInput.create("name", "Name", TextInputStyle.SHORT)
+                            .setRequired(true)
+                            .setPlaceholder("A very sussy roleplay")
+                            .build()
+            )).build()).queue();
         }).withEmoji(Emoji.fromFormatted("🪄"))
                 .withStyle(ButtonStyle.PRIMARY).withDisabled(message.getChannelType().isThread()));
 
@@ -791,19 +809,28 @@ public class Interactions {
                 event.reply("Cannot restart the roleplay while a message is being generated!").setEphemeral(true).queue();
                 return;
             }
+                    event.replyModal(InteractionCreator.createModal("Name Roleplay", modal -> {
+                        String name = modal.getValue("name").getAsString();
 
-                    try {
-                        roleplay.startRoleplay(event,
-                                roleplay.getDatas(PromptType.INSTRUCTION).stream().map(dat -> (InstructionData) dat).toList(),
-                                roleplay.getDatas(PromptType.WORLD).stream().map(dat -> (WorldData) dat).toList(),
-                                roleplay.getDatas(PromptType.CHARACTER).stream().map(dat -> (CharacterData) dat).toList(),
-                                hook ->
-                                    roleplay.getDatas(PromptType.CHARACTER).forEach((characterData) ->
-                                            roleplay.promptCharacterToRoleplay((CharacterData) characterData, null, false)));
-                    } catch (Exception e) {
-                        event.getHook().editOriginal("Failed to restart chat!").queue();
-                    }
-
+                        try {
+                            roleplay.startRoleplay(
+                                    modal,
+                                    name,
+                                    roleplay.getDatas(PromptType.INSTRUCTION).stream().map(dat -> (InstructionData) dat).toList(),
+                                    roleplay.getDatas(PromptType.WORLD).stream().map(dat -> (WorldData) dat).toList(),
+                                    roleplay.getDatas(PromptType.CHARACTER).stream().map(dat -> (CharacterData) dat).toList(),
+                                    hook ->
+                                            roleplay.getDatas(PromptType.CHARACTER).forEach((characterData) ->
+                                                    roleplay.promptCharacterToRoleplay((CharacterData) characterData, null, false)));
+                        } catch (Exception e) {
+                            event.getHook().editOriginal("Failed to restart chat!").queue();
+                        }
+                    }).addComponents(ActionRow.of(
+                            TextInput.create("name", "Name", TextInputStyle.SHORT)
+                                    .setRequired(true)
+                                    .setPlaceholder("A very sussy roleplay")
+                                    .build()
+                    )).build()).queue();
         }).withStyle(ButtonStyle.SECONDARY).withEmoji(Emoji.fromFormatted("⏪"))
                 .withDisabled(!roleplay.isRunningRoleplay() || message.getChannelType().isThread()));
 
@@ -917,6 +944,95 @@ public class Interactions {
         MessageEditAction editAction = message
                 .editMessageComponents(Util.createBotContainer(components))
                 .useComponentsV2();
-        editAction.queue();
+        editAction.queue(InteractionCreator.queueTimeoutComponents(null));
+    }
+
+    public static Button createCancellableResponse(){
+        return InteractionCreator.createPermanentButton(Button.danger("cancel_response",
+                Emoji.fromFormatted("🛑")), event -> {
+            event.deferEdit().queue();
+            AIBot.bot.getChat(event.getGuild()).cancelGeneration();
+        });
+    }
+
+    public static Consumer<ButtonInteractionEvent> getResponseInfo() {
+        return event -> {
+            try{
+                Roleplay chat = AIBot.bot.getChat(event.getGuild());
+                PromptInfo responseInfo = chat.getFailedResponseInfo();
+                if(responseInfo == null){
+                    List<ResponseInfo> responseSwipes = chat.getSwipes();
+                    if(responseSwipes == null || responseSwipes.isEmpty()){
+                        throw new RuntimeException("No swipes!");
+                    } else {
+                        responseInfo = responseSwipes.get(chat.getCurrentSwipe());
+                    }
+                }
+
+                List<ContainerChildComponent> containerComponents = new ArrayList<>();
+
+                byte[] data = null;
+                try{
+                    data = Files.readAllBytes(chat.getCurrentCharacter().getAvatar().toPath());
+                }catch(Exception e){
+                    Constants.LOGGER.error("Failed to get avatar, using backup", e);
+                }
+                data = data != null ? data : Objects.requireNonNull(Util.getRandomImage());
+                Tika tika = new Tika();
+                String type = tika.detect(data);
+                type = type.substring(type.indexOf("/")+1);
+
+                containerComponents.add(Section.of(
+                        Thumbnail.fromFile(FileUpload.fromData(data, "avatar."+type)),
+                        TextDisplay.of("# Response Information"),
+                        TextDisplay.of("Metadata about the generated response")
+                ));
+                containerComponents.add(Separator.createDivider(Separator.Spacing.SMALL));
+                containerComponents.add(TextDisplay.of("-# The json file sent to the LLM for a response"));
+                containerComponents.add(FileDisplay.fromFile(FileUpload.fromData(responseInfo.getPrompt().getBytes(), "prompt.json")));
+                containerComponents.add(Separator.createDivider(Separator.Spacing.SMALL));
+
+                if(responseInfo instanceof ProviderInfo providerInfo){
+                    String reply = "**Model:** " + providerInfo.getModel() +
+                            "\n**Provider:** " + providerInfo.getProvider() +
+                            "\n**Prompt Tokens:** " + (providerInfo.getPromptTokens().isPresent() ? providerInfo.getPromptTokens().get() : "Unknown") +
+                            "\n**Completion Tokens:** " + (providerInfo.getCompletionTokens().isPresent() ? providerInfo.getCompletionTokens().get() : "Unknown")+
+                            "\n**Total Tokens:** " + providerInfo.getTotalTokens()+
+                            "\n**Price:** " + (providerInfo.getPrice() != null ? "$" + String.format("%.4f", providerInfo.getPrice()) : "Unknown");
+
+                    containerComponents.add(TextDisplay.of(reply));
+                } else {
+                    // is failed response
+                    containerComponents.add(TextDisplay.of("-# The response returned by OpenRouter"));
+                    containerComponents.add(FileDisplay.fromFile(FileUpload.fromData(responseInfo.getResponse().getBytes(), "response.json")));
+                }
+
+                event.replyComponents(Util.createBotContainer(containerComponents))
+                        .setEphemeral(true)
+                        .useComponentsV2()
+                        .queue();
+            }catch(Exception e){
+                event.reply("Failed to retrieve response information!").setEphemeral(true).queue();
+                Constants.LOGGER.info(e.toString());
+            }
+        };
+    }
+
+    public static Button getContinue(){
+        return InteractionCreator.createPermanentButton(Button.primary("start_here", "Continue"),
+                        button -> {
+                            button.deferEdit().queue();
+                            try{
+                                AIBot.bot.getChat(button.getGuild()).startRoleplay(
+                                        button.getMessage(), button.getHook(), null
+                                );
+                            }catch(Exception e){
+                                button.getHook().editOriginal("Failed to continue roleplay!").queue();
+                                Constants.LOGGER.error("Failed to continue roleplay", e);
+//                                return;
+                            }
+//                            button.getHook().editOriginal("Continuing this thread's roleplay!").queue();
+                        })
+                .withEmoji(Emoji.fromFormatted("🔁"));
     }
 }

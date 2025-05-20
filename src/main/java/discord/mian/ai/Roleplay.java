@@ -31,11 +31,14 @@ import net.dv8tion.jda.api.components.separator.Separator;
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay;
 import net.dv8tion.jda.api.components.thumbnail.Thumbnail;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.Icon;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent;
+import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback;
 import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.requests.restaction.MessageEditAction;
 import net.dv8tion.jda.api.requests.restaction.WebhookAction;
@@ -47,6 +50,7 @@ import okhttp3.*;
 import okio.BufferedSource;
 import org.apache.tika.Tika;
 
+import javax.swing.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -63,6 +67,7 @@ import java.util.stream.Stream;
 public class Roleplay {
     // limit roleplay to one channel lmfao
 
+    private Call callForResponse;
     private boolean makingResponse;
     private int maxTokens;
     private double temperature;
@@ -184,7 +189,7 @@ public class Roleplay {
         this.makingResponse = true;
         if(latestAssistantMessage != null){
             latestAssistantMessage.editMessage(latestAssistantMessage.getContentRaw())
-                    .setComponents(List.of()).queue();
+                    .setComponents(ActionRow.of(Interactions.createCancellableResponse())).queue();
         }
     }
 
@@ -195,66 +200,10 @@ public class Roleplay {
             components.add(InteractionCreator.createPermanentButton(Button.secondary("swipe_left", "<--"), Interactions.getSwipe(Direction.BACK)));
             components.add(InteractionCreator.createPermanentButton(Button.secondary("swipe_right", "-->"), Interactions.getSwipe(Direction.NEXT)));
 
-            components.add(InteractionCreator.createPermanentButton(Button.secondary("get_response_info", Emoji.fromFormatted("❔")), event -> {
-                try{
-                    Roleplay chat = AIBot.bot.getChat(event.getGuild());
-                    PromptInfo responseInfo = chat.getFailedResponseInfo();
-                    if(responseInfo == null){
-                        List<ResponseInfo> responseSwipes = chat.getSwipes();
-                        if(responseSwipes == null || responseSwipes.isEmpty()){
-                            throw new RuntimeException("No swipes!");
-                        } else {
-                            responseInfo = responseSwipes.get(chat.getCurrentSwipe());
-                        }
-                    }
-
-                    List<ContainerChildComponent> containerComponents = new ArrayList<>();
-
-                    byte[] data = null;
-                    try{
-                        data = Files.readAllBytes(chat.getCurrentCharacter().getAvatar().toPath());
-                    }catch(Exception e){
-                        Constants.LOGGER.error("Failed to get avatar, using backup", e);
-                    }
-                    data = data != null ? data : Objects.requireNonNull(Util.getRandomImage());
-                    Tika tika = new Tika();
-                    String type = tika.detect(data);
-                    type = type.substring(type.indexOf("/")+1);
-
-                    containerComponents.add(Section.of(
-                            Thumbnail.fromFile(FileUpload.fromData(data, "avatar."+type)),
-                            TextDisplay.of("# Response Information"),
-                            TextDisplay.of("Metadata about the generated response")
-                    ));
-                    containerComponents.add(Separator.createDivider(Separator.Spacing.SMALL));
-                    containerComponents.add(TextDisplay.of("-# The json file sent to the LLM for a response"));
-                    containerComponents.add(FileDisplay.fromFile(FileUpload.fromData(responseInfo.getPrompt().getBytes(), "prompt.json")));
-                    containerComponents.add(Separator.createDivider(Separator.Spacing.SMALL));
-
-                    if(responseInfo instanceof ProviderInfo providerInfo){
-                        String reply = "**Model:** " + providerInfo.getModel() +
-                                "\n**Provider:** " + providerInfo.getProvider() +
-                                "\n**Prompt Tokens:** " + (providerInfo.getPromptTokens().isPresent() ? providerInfo.getPromptTokens().get() : "Unknown") +
-                                "\n**Completion Tokens:** " + (providerInfo.getCompletionTokens().isPresent() ? providerInfo.getCompletionTokens().get() : "Unknown")+
-                                "\n**Total Tokens:** " + providerInfo.getTotalTokens()+
-                                "\n**Price:** " + (providerInfo.getPrice() != null ? "$" + String.format("%.4f", providerInfo.getPrice()) : "Unknown");
-
-                        containerComponents.add(TextDisplay.of(reply));
-                    } else {
-                        // is failed response
-                        containerComponents.add(TextDisplay.of("-# The response returned by OpenRouter"));
-                        containerComponents.add(FileDisplay.fromFile(FileUpload.fromData(responseInfo.getResponse().getBytes(), "response.json")));
-                    }
-
-                    event.replyComponents(Util.createBotContainer(containerComponents))
-                            .setEphemeral(true)
-                            .useComponentsV2()
-                            .queue();
-                }catch(Exception e){
-                    event.reply("Failed to retrieve response information!").setEphemeral(true).queue();
-                    Constants.LOGGER.info(e.toString());
-                }
-            }));
+            if(this.failedResponseInfo != null || (this.swipes != null && !this.swipes.isEmpty())){
+                components.add(InteractionCreator.createPermanentButton(Button.secondary("get_response_info", Emoji.fromFormatted("❔")),
+                        Interactions.getResponseInfo()));
+            }
 
             if(errorMsgCleanup == null){
                 components.add(InteractionCreator.createPermanentButton(Button.danger("destroy", Emoji.fromFormatted("🗑")),
@@ -359,10 +308,11 @@ public class Roleplay {
                         .build();
 
                 Integer errorCode = null;
-                try(Response response = client.newCall(request).execute()) {
+                this.callForResponse = client.newCall(request);
+                try(Response response = callForResponse.execute()) {
                     String fullResponse = "";
 
-                    if (!response.isSuccessful()){
+                    if (!response.isSuccessful()) {
                         errorCode = response.code();
                         failedResult = writer.writeValueAsString(mapper.readValue(response.body().string(), Object.class));
                         throw new RuntimeException(mapper.readTree(failedResult).get("error").get("message").asText());
@@ -391,7 +341,7 @@ public class Roleplay {
                         String content = responseJson.get("choices").get(0).get("delta").get("content").toString();
                         content = content.substring(1, content.length() - 1);
 
-                        if((fullResponse + content).length() < 2000){
+                        if ((fullResponse + content).length() < 2000) {
                             fullResponse += content;
                             consumer.accept(fullResponse);
                         } else {
@@ -408,10 +358,11 @@ public class Roleplay {
 
                     JsonNode openRouterResponse = mapper.readTree(copyOfResponse);
                     failedResult = writer.writeValueAsString(openRouterResponse);
-                    if(!response.isSuccessful()){
+                    if (!response.isSuccessful()) {
                         errorCode = response.code();
                         throw new RuntimeException(openRouterResponse.get("error").get("message").asText());
                     }
+                    this.callForResponse = null;
                     return new ResponseInfo(
                             openRouterResponse.get("model").asText(),
                             openRouterResponse.get("provider").asText(),
@@ -419,6 +370,12 @@ public class Roleplay {
                             openRouterResponse.get("usage").get("prompt_tokens").asInt(),
                             openRouterResponse.get("usage").get("completion_tokens").asInt(),
                             fullPrompt
+                    );
+                } catch(IOException io){
+                    throw new FailedResponseInfo(
+                            fullPrompt,
+                            failedResult,
+                            "Generation was cancelled or an unknown problem occurred"
                     );
                 } catch(Exception e){
                     Constants.LOGGER.error("Failed to get response from provider", e);
@@ -429,6 +386,7 @@ public class Roleplay {
                     );
                 }
             }catch(Exception e){
+                this.callForResponse = null;
                 if(e instanceof FailedResponseInfo info)
                     throw(info);
                 throw(new RuntimeException(e));
@@ -458,7 +416,9 @@ public class Roleplay {
                 String newContent = reformat.apply(response);
                 String total = Util.botifyMessage("Message is currently generating..") + "\n" + newContent;
                 if(total.length() < 2000)
-                    msgToEdit.editMessage(total).queue(onComplete);
+                    msgToEdit.editMessage(total).setComponents(ActionRow.of(
+                            Interactions.createCancellableResponse()
+                    )).queue(onComplete);
             }
         });
         return responseInfo.map(info -> {
@@ -506,9 +466,6 @@ public class Roleplay {
         }
         if (isMakingResponse()) {
             queuedResponses.add(Map.entry(getCurrentCharacter(), triggerAutoResponse));
-//            historyMarker.sendMessage(MessageCreateData.fromContent(
-//                    Util.botifyMessage("Queued message!")
-//            )).queue();
             return;
         }
 
@@ -564,6 +521,7 @@ public class Roleplay {
             WebhookMessageCreateAction<Message> messageCreateData = webhook.sendMessage(
                             Util.botifyMessage("Currently creating a response! Check back in a second.."))
                     .setThread(historyMarker)
+                    .setComponents(ActionRow.of(Interactions.createCancellableResponse()))
                     .setUsername(currentCharacter.getName());
 
             if(avatarLink != null){
@@ -627,8 +585,9 @@ public class Roleplay {
                 currentSwipe--;
             } else {
                 if(currentSwipe + 1 >= swipes.size()){
-                    if (isMakingResponse()) {
-                        event.getHook().editOriginal("Cannot make a response since I am already generating one!")
+                    if (isMakingResponse()
+                    || !queuedResponses.isEmpty()) {
+                        event.getHook().editOriginal("Cannot make a response since I am already queued to create others!")
                                 .queue();
                         return;
                     }
@@ -767,7 +726,8 @@ public class Roleplay {
         });
     }
 
-    public void startRoleplay(GenericComponentInteractionCreateEvent event,
+    public void startRoleplay(IReplyCallback event,
+                              String rpName,
                               List<InstructionData> instructionList,
                               List<WorldData> worldDatas,
                               List<CharacterData> characterList,
@@ -781,8 +741,9 @@ public class Roleplay {
         event.deferReply().queue(hook -> {
             List<ContainerChildComponent> components = new ArrayList<>();
 
-            components.add(TextDisplay.of("# Roleplay Information"));
-            components.add(TextDisplay.of("The roleplay starts in the thread created under this message, have fun!"));
+            components.add(TextDisplay.of("# " + rpName).withUniqueId(1));
+            components.add(TextDisplay.of("This roleplay starts in the thread created under this message. Have fun!"));
+            components.add(TextDisplay.of("-# As a reminder, note that every generated message by AI is fictional and should not be taken as actual or professional advice."));
             components.add(Separator.createDivider(Separator.Spacing.SMALL));
             components.add(TextDisplay.of("**Chat Messages:** "+ 0).withUniqueId(Constants.HISTORY_COUNT)); // chat messages marker
             components.add(Separator.createDivider(Separator.Spacing.SMALL));
@@ -813,28 +774,18 @@ public class Roleplay {
             }
 
             components.add(Separator.createDivider(Separator.Spacing.SMALL));
-            components.add(ActionRow.of(InteractionCreator.createPermanentButton(Button.primary("start_here", "Start Here"),
-                            button -> {
-                                button.deferReply(true).queue();
-                                try{
-                                    startRoleplay(button.getMessage(), onSuccess);
-                                }catch(Exception e){
-                                    button.getHook().editOriginal("Failed to restart roleplay!").queue();
-                                    Constants.LOGGER.error("Failed to start roleplay", e);
-                                    return;
-                                }
-                                button.getHook().editOriginal("Successfully started roleplay!").queue();
-                            })
-                    .withEmoji(Emoji.fromFormatted("🔁"))));
+            components.add(ActionRow.of(Interactions.getContinue()));
 
             event.getHook().editOriginalComponents(Util.createBotContainer(components))
                     .useComponentsV2()
-                    .queue(message -> message.createThreadChannel("Roleplay")
-                                    .queue(thread -> startRoleplay(message, onSuccess)));
+                    .queue(message -> message.createThreadChannel(rpName)
+                                    .queue(thread -> startRoleplay(message, null, onSuccess)));
         });
     }
 
-    public void startRoleplay(Message roleplayInfo, Consumer<Webhook> onSuccess){
+    public void startRoleplay(Message roleplayInfo, InteractionHook optionalHook, Consumer<Webhook> onSuccess){
+        if(parentID == roleplayInfo.getIdLong())
+            return; // is already running rp
         if(isRunningRoleplay())
             stopRoleplay();
 
@@ -886,6 +837,22 @@ public class Roleplay {
                 if(onSuccess != null)
                     onSuccess.accept(hook);
             }, onFail);
+
+            ComponentReplacer replacer = ComponentReplacer.byId(1, oldComponent -> {
+                if(oldComponent instanceof TextDisplay display && !display.getContent().contains(" ✅")) {
+                    return display.withContent(display.getContent() + " ✅");
+                }
+                return oldComponent;
+            });
+
+            if(optionalHook != null)
+                optionalHook.retrieveOriginal().queue(msg -> optionalHook.editOriginalComponents(
+                        msg.getComponentTree().replace(replacer)
+                ).useComponentsV2().queue(RestAction.getDefaultSuccess(), t -> {}), t -> {});
+            else
+                roleplayInfo.editMessageComponents(
+                        roleplayInfo.getComponentTree().replace(replacer)
+                ).useComponentsV2().queue(RestAction.getDefaultSuccess(), t -> {});
         };
 
         roleplayInfo.getChannel().asTextChannel().retrieveWebhooks().queue(webhooks -> webhooks.stream().filter(find -> find.getName().equals(AIBot.bot.getJDA().getSelfUser().getName()))
@@ -906,6 +873,7 @@ public class Roleplay {
     }
 
     public void stopRoleplay(){
+        cancelGeneration();
         runningRoleplay = false;
         if(latestAssistantMessage != null){
             latestAssistantMessage.editMessageComponents(
@@ -914,6 +882,26 @@ public class Roleplay {
                     .queue(RestAction.getDefaultSuccess(),
                             (t) ->
                                     Constants.LOGGER.warn("AI Response was unable to be stripped of its optional components", t));
+        }
+        if(parentID != 0){
+            guild.getTextChannelCache().stream().forEach(textChannel -> {
+                textChannel.retrieveMessageById(parentID).queue(oldMessage -> {
+                    oldMessage.editMessageComponents(oldMessage.getComponentTree().replace(
+                            ComponentReplacer.byId(1, oldComponent -> {
+                                if(oldComponent instanceof TextDisplay display){
+                                    int index = display.getContent().indexOf(" ✅");
+                                    if(index != 1){
+                                        return TextDisplay.of(display.getContent().substring(0, index))
+                                                .withUniqueId(1);
+                                    } else {
+                                        return oldComponent;
+                                    }
+                                }
+                                return oldComponent;
+                            })
+                    )).useComponentsV2().queue(RestAction.getDefaultSuccess(), ignored -> {});
+                }, ignored -> {});
+            });
         }
         parentID = 0L;
         historyMarker = null;
@@ -925,6 +913,13 @@ public class Roleplay {
         instructions.clear();
         worldLore.clear();
         queuedResponses.clear();
+    }
+
+    public void cancelGeneration(){
+        if(this.callForResponse != null){
+            this.callForResponse.cancel();
+        }
+        this.callForResponse = null;
     }
 
     public long getParentID(){
