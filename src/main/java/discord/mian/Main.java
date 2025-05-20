@@ -7,6 +7,7 @@ import discord.mian.custom.Util;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.hooks.AnnotatedEventManager;
 import net.dv8tion.jda.api.requests.GatewayIntent;
+
 import java.io.File;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -19,6 +20,17 @@ import java.util.concurrent.TimeUnit;
 public class Main {
     public static void main(String[] args) throws Exception {
         String discord_bot_token = args[0];
+//        String db_username = args[1];
+//        String db_password = args[2];
+//
+//        String connectionString = "mongodb+srv://"+db_username+":"+db_password+"@mianmongo.pqf7jgb.mongodb.net/?retryWrites=true&w=majority&appName=MianMongo";
+//        ServerApi serverApi = ServerApi.builder()
+//                .version(ServerApiVersion.V1)
+//                .build();
+//        MongoClientSettings settings = MongoClientSettings.builder()
+//                .applyConnectionString(new ConnectionString(connectionString))
+//                .serverApi(serverApi)
+//                .build();
 
         Constants.LOGGER.info("IT'S TIME TO ROLEPLAY KIDDOS");
 
