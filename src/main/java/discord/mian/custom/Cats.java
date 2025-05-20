@@ -11,13 +11,13 @@ public class Cats {
     private static byte[] file;
     private static boolean IsGif = false;
 
-    public static void create(){
+    public static void create() {
         Constants.LOGGER.info("Getting new cat file!");
 
         Random random = new Random();
         boolean isGif = random.nextBoolean();
         String url = "https://cataas.com/cat";
-        if(isGif)
+        if (isGif)
             url = "https://cataas.com/cat/gif";
 
         HttpClient httpClient = HttpClient.newHttpClient();
@@ -37,7 +37,7 @@ public class Cats {
         }
     }
 
-    public static byte[] getCat(){
+    public static byte[] getCat() {
         return file;
     }
 

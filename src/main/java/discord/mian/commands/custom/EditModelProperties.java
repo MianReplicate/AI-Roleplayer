@@ -17,7 +17,7 @@ public class EditModelProperties extends SlashCommand {
 
     private static final HashMap<String, SlashCommand> SUBCOMMANDS = new HashMap<>();
 
-    static{
+    static {
         SUBCOMMANDS.put(MODEL.getName(), MODEL);
         SUBCOMMANDS.put(PROVIDER.getName(), PROVIDER);
         SUBCOMMANDS.put(TEMP.getName(), TEMP);
@@ -34,8 +34,8 @@ public class EditModelProperties extends SlashCommand {
 
     @Override
     public boolean handle(SlashCommandInteractionEvent event) throws Exception {
-        if(super.handle(event)){
-            if(!Util.hasMasterPermission(event.getMember())){
+        if (super.handle(event)) {
+            if (!Util.hasMasterPermission(event.getMember())) {
                 event.reply("nuh uh little bro bro, you dont got permission").setEphemeral(true).queue();
                 return true;
             }

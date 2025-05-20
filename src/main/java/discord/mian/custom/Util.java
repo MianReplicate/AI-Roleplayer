@@ -1,6 +1,5 @@
 package discord.mian.custom;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.mian.ai.AIBot;
@@ -10,31 +9,29 @@ import net.dv8tion.jda.api.components.container.ContainerChildComponent;
 import net.dv8tion.jda.api.components.separator.Separator;
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
-import net.dv8tion.jda.api.entities.Webhook;
-import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
-import net.dv8tion.jda.internal.entities.ReceivedMessage;
-import net.dv8tion.jda.internal.requests.restaction.AuditableRestActionImpl;
 import okhttp3.*;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.Month;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 public class Util {
     public static final HashMap<Predicate<LocalDate>, List<String>> TOOL_TIPS = new HashMap<>();
+
     static {
         TOOL_TIPS.put(date -> true, List.of(
                 "This is super queer :o",
@@ -99,31 +96,31 @@ public class Util {
 
     public static final List<String> IMAGE_EXTENSIONS = List.of(".jpg", ".jpeg", ".png", ".gif", ".webp");
 
-    public static String getRandomToolTip(){
+    public static String getRandomToolTip() {
         LocalDate date = LocalDate.now();
         List<String> validStrings = new ArrayList<>();
 
         TOOL_TIPS.forEach((predicate, strings) -> {
-            if(predicate.test(date))
+            if (predicate.test(date))
                 validStrings.addAll(strings);
         });
 
-        return validStrings.get((int)(Math.random() * validStrings.size()));
+        return validStrings.get((int) (Math.random() * validStrings.size()));
     }
 
-    public static String botifyMessage(String string){
+    public static String botifyMessage(String string) {
         return "```" + string + "```";
     }
 
-    public static File getDataFolder(){
+    public static File getDataFolder() {
         File data = new File("data");
-        if(!data.exists()) {
+        if (!data.exists()) {
             data.mkdir();
         }
 
         // ensures there's a default folder
         File defaultFolder = new File("data/defaults");
-        if(!new File("data/defaults").exists()){
+        if (!new File("data/defaults").exists()) {
             try (InputStream in = Util.class.getClassLoader().getResourceAsStream("defaults.zip")) {
                 assert in != null;
                 ZipInputStream zip = new ZipInputStream(in);
@@ -151,29 +148,29 @@ public class Util {
         return data;
     }
 
-    public static File createFileRelativeToData(String name){
-        return new File(getDataFolder().getName() + "/"+name);
+    public static File createFileRelativeToData(String name) {
+        return new File(getDataFolder().getName() + "/" + name);
     }
 
     public static byte[] getRandomImage() throws IOException {
         File images = createFileRelativeToData("images");
-        if(!images.exists())
+        if (!images.exists())
             images.mkdir();
 
         File[] files = images.listFiles();
-        if(files.length == 0)
+        if (files.length == 0)
             return null;
 
         File[] randomImages = files[(int) (Math.random() * files.length)].listFiles();
         File randomImage = randomImages[(int) (Math.random() * randomImages.length)];
-        if(!randomImage.exists())
+        if (!randomImage.exists())
             return null;
 
         return Files.readAllBytes(randomImage.toPath());
     }
 
     public static boolean isValidImage(File image) throws IOException {
-        if(!image.exists())
+        if (!image.exists())
             return false;
 
         String name = image.getName();
@@ -183,7 +180,7 @@ public class Util {
     }
 
     public static String uploadImage(String key, File image) throws IOException, InterruptedException {
-        if(!isValidImage(image))
+        if (!isValidImage(image))
             throw new RuntimeException("Invalid image!");
 
         Constants.LOGGER.info("Attempting to upload " + image.getName());
@@ -194,7 +191,7 @@ public class Util {
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("key", key)
                 .addFormDataPart("image", image.getName(), RequestBody.create(image,
-                        MediaType.parse("image/"+image.getName().substring(image.getName().indexOf(".")+1))))
+                        MediaType.parse("image/" + image.getName().substring(image.getName().indexOf(".") + 1))))
                 .build();
 
         Request request = new Request.Builder()
@@ -207,7 +204,7 @@ public class Util {
 
         ObjectMapper mapper = new ObjectMapper();
 
-        if(response.code() < 200 || response.code() >= 400){
+        if (response.code() < 200 || response.code() >= 400) {
             Constants.LOGGER.info("Failed to upload image!");
             System.out.println("Raw response:\n" + response.body().string()); // Debug what you actually got
             return null;
@@ -238,7 +235,7 @@ public class Util {
         });
     }
 
-    public static EmbedBuilder createBotEmbed(){
+    public static EmbedBuilder createBotEmbed() {
         return new EmbedBuilder()
                 .setAuthor("Created By Your Lovely Girl: @MianReplicate", "https://en.pronouns.page/@MianReplicate")
                 .setColor(new Color(
@@ -248,7 +245,7 @@ public class Util {
                         (int) (Math.random() * 256)));
     }
 
-    public static Container createBotContainer(List<ContainerChildComponent> moreComponents){
+    public static Container createBotContainer(List<ContainerChildComponent> moreComponents) {
         ArrayList<ContainerChildComponent> components = new ArrayList<>();
         components.add(TextDisplay.of("-# [Created By Your Lovely Girl: @MianReplicate](https://en.pronouns.page/@MianReplicate)"));
         components.add(Separator.createDivider(Separator.Spacing.SMALL));
@@ -262,7 +259,7 @@ public class Util {
                         (int) (Math.random() * 256)));
     }
 
-    public static boolean hasMasterPermission(Member member){
+    public static boolean hasMasterPermission(Member member) {
         Role role = AIBot.bot.getServerData(member.getGuild()).getMasterRole();
         List<Long> roles = member.getRoles().stream().map(Role::getIdLong).toList();
 

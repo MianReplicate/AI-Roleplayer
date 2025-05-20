@@ -14,20 +14,22 @@ public abstract class AbstractCommand {
     private final String name;
     private final String description;
 
-    public AbstractCommand(String name, String description){
+    public AbstractCommand(String name, String description) {
         this(name, description, null);
     }
 
-    public AbstractCommand(String name, String description, OptionData... optionDatas){
+    public AbstractCommand(String name, String description, OptionData... optionDatas) {
         this.name = name;
         this.description = description;
-        if(optionDatas != null)
+        if (optionDatas != null)
             this.optionDatas.addAll(List.of(optionDatas));
-        Constants.LOGGER.info("Registered Command: "+this.getName());
+        Constants.LOGGER.info("Registered Command: " + this.getName());
     }
 
     public abstract void execute(SlashCommandInteractionEvent event);
-    public void onAutoComplete(CommandAutoCompleteInteractionEvent event){}
+
+    public void onAutoComplete(CommandAutoCompleteInteractionEvent event) {
+    }
 
     public Collection<OptionData> getOptionDatas() {
         return optionDatas;

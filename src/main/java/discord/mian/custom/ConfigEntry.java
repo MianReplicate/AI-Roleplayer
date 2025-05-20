@@ -25,61 +25,63 @@ public abstract class ConfigEntry {
         return type;
     }
 
-    public StringConfig asString(){
+    public StringConfig asString() {
         return (StringConfig) this;
     }
 
-    public BoolConfig asBoolean(){
+    public BoolConfig asBoolean() {
         return (BoolConfig) this;
     }
 
-    public LongConfig asLong(){
+    public LongConfig asLong() {
         return (LongConfig) this;
     }
 
-    public IntConfig asInteger(){
+    public IntConfig asInteger() {
         return (IntConfig) this;
     }
 
-    public DoubleConfig asDouble(){
+    public DoubleConfig asDouble() {
         return (DoubleConfig) this;
     }
 
-    public static class StringConfig extends ConfigEntry{
+    public static class StringConfig extends ConfigEntry {
         public String value;
 
-        public StringConfig(){
+        public StringConfig() {
             type = ConfigType.STRING;
         }
     }
 
-    public static class BoolConfig extends ConfigEntry{
+    public static class BoolConfig extends ConfigEntry {
         public boolean value;
 
-        public BoolConfig(){
+        public BoolConfig() {
             type = ConfigType.BOOL;
         }
     }
 
-    public static class IntConfig extends ConfigEntry{
+    public static class IntConfig extends ConfigEntry {
         public int value;
 
-        public IntConfig(){
+        public IntConfig() {
             type = ConfigType.INT;
         }
     }
 
-    public static class LongConfig extends ConfigEntry{
+    public static class LongConfig extends ConfigEntry {
         public long value;
 
-        public LongConfig(){
+        public LongConfig() {
             type = ConfigType.LONG;
         }
     }
 
-    public static class DoubleConfig extends ConfigEntry{
+    public static class DoubleConfig extends ConfigEntry {
         public double value;
 
-        public DoubleConfig(){type = ConfigType.DOUBLE;}
+        public DoubleConfig() {
+            type = ConfigType.DOUBLE;
+        }
     }
 }

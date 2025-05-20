@@ -17,26 +17,26 @@ public class WorldData implements Data, Chattable {
         this.worldFile = worldFile;
     }
 
-    public String getName(){
+    public String getName() {
         return worldFile.getName().substring(0, worldFile.getName().lastIndexOf("."));
     }
 
     public String getPrompt() throws IOException {
-        if(!worldFile.exists())
+        if (!worldFile.exists())
             return null;
 
         return Files.readString(worldFile.toPath(), StandardCharsets.UTF_8);
     }
 
     public File getPromptFile() {
-        if(!worldFile.exists())
+        if (!worldFile.exists())
             return null;
 
         return worldFile;
     }
 
     public void addOrReplacePrompt(String text) throws IOException {
-        if(!worldFile.exists())
+        if (!worldFile.exists())
             worldFile.createNewFile();
 
         FileWriter writer = new FileWriter(worldFile.getPath());
@@ -44,7 +44,7 @@ public class WorldData implements Data, Chattable {
         writer.close();
     }
 
-    public ChatMessage.SystemMessage getChatMessage(CharacterData data){
+    public ChatMessage.SystemMessage getChatMessage(CharacterData data) {
         String definition;
         try {
             definition = getPrompt();
@@ -57,8 +57,8 @@ public class WorldData implements Data, Chattable {
     }
 
     // when worst comes to worst!
-    public void nuke(){
-        if(worldFile.exists())
+    public void nuke() {
+        if (worldFile.exists())
             worldFile.delete();
     }
 }

@@ -11,7 +11,7 @@ public abstract class CommandHandlerImpl<T extends GenericInteractionCreateEvent
         super(name, description);
     }
 
-    protected CommandHandlerImpl(Command.Type type, String name){
+    protected CommandHandlerImpl(Command.Type type, String name) {
         super(type, name);
     }
 

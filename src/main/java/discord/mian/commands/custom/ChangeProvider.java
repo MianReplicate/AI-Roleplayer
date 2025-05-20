@@ -3,8 +3,8 @@ package discord.mian.commands.custom;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.mian.ai.AIBot;
-import discord.mian.ai.Roleplay;
 import discord.mian.ai.Model;
+import discord.mian.ai.Roleplay;
 import discord.mian.commands.SlashCommand;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -26,7 +26,7 @@ import java.util.function.Consumer;
 
 public class ChangeProvider extends SlashCommand {
 
-    public ChangeProvider(){
+    public ChangeProvider() {
         super("provider",
                 "Change the provider being used");
         this.addOption(OptionType.STRING, "name", "Prices are measured as one response per million tokens. Aim for around $1.50 for cheap responses", false, true);
@@ -42,7 +42,7 @@ public class ChangeProvider extends SlashCommand {
         OkHttpClient client = new OkHttpClient.Builder().build();
 
         Request request = new Request.Builder()
-                .url("https://openrouter.ai/api/v1/models/"+author+"/"+slug+"/endpoints")
+                .url("https://openrouter.ai/api/v1/models/" + author + "/" + slug + "/endpoints")
                 .get()
                 .build();
 
@@ -72,27 +72,27 @@ public class ChangeProvider extends SlashCommand {
         Roleplay roleplay = AIBot.bot.getChat(event.getGuild());
 
         Model model = roleplay.getModel();
-        if(model == null){
+        if (model == null) {
             event.reply("You need to select a model first before picking a provider!").setEphemeral(true).queue();
             return true;
         }
 
         HashMap<String, Double> endpoints = getEndpoints(model.id);
 
-        if(provider != null && !provider.isEmpty()){
-            if(!endpoints.containsKey(provider)){
+        if (provider != null && !provider.isEmpty()) {
+            if (!endpoints.containsKey(provider)) {
                 event.reply("Not a valid provider for this model!").setEphemeral(true).queue();
                 return true;
             }
         }
 
-        Double price = ((double)roleplay.getMaxTokens() / (endpoints.getOrDefault(provider, 0D) * 1000000));
-        if(price.isInfinite() || price.isNaN())
+        Double price = ((double) roleplay.getMaxTokens() / (endpoints.getOrDefault(provider, 0D) * 1000000));
+        if (price.isInfinite() || price.isNaN())
             price = 0D;
 
         Consumer<InteractionHook> consumer = (interactionHook) -> roleplay.setProvider(provider);
         ReplyCallbackAction reply = event.reply("Swapped provider! The max cost for this provider based on max tokens is $"
-                + String.format("%.4f", price))
+                        + String.format("%.4f", price))
                 .setEphemeral(true);
         reply.queue(consumer);
         return true;
@@ -102,7 +102,7 @@ public class ChangeProvider extends SlashCommand {
     public void autoComplete(CommandAutoCompleteInteractionEvent event) throws IOException {
         Roleplay roleplay = AIBot.bot.getChat(event.getGuild());
         Model model = roleplay.getModel();
-        if(model == null)
+        if (model == null)
             return;
 
         HashMap<String, Double> endpoints = getEndpoints(model.id);
@@ -117,7 +117,7 @@ public class ChangeProvider extends SlashCommand {
                 .map(endpoint -> {
                     double price = endpoints.get(endpoint);
 
-                    return new Command.Choice(endpoint + " ($"+ String.format("%.2f", price)+")", endpoint);
+                    return new Command.Choice(endpoint + " ($" + String.format("%.2f", price) + ")", endpoint);
                 }).toList()).queue();
     }
 }

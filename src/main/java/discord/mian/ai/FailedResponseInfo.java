@@ -6,7 +6,7 @@ public class FailedResponseInfo extends RuntimeException implements PromptInfo {
     private final String sent;
     private final String response;
 
-    public FailedResponseInfo(String sent, String response, String message){
+    public FailedResponseInfo(String sent, String response, String message) {
         super(message);
         this.sent = sent;
         this.response = response;
@@ -16,7 +16,7 @@ public class FailedResponseInfo extends RuntimeException implements PromptInfo {
         return sent;
     }
 
-    public String getResponse(){
+    public String getResponse() {
         return response;
     }
 }

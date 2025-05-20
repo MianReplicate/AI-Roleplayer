@@ -8,8 +8,6 @@ import com.knuddels.jtokkit.api.Encoding;
 import com.knuddels.jtokkit.api.EncodingRegistry;
 import com.knuddels.jtokkit.api.EncodingType;
 import discord.mian.api.Data;
-import discord.mian.api.PromptInfo;
-import discord.mian.api.ProviderInfo;
 import discord.mian.custom.*;
 import discord.mian.data.CharacterData;
 import discord.mian.data.InstructionData;
@@ -24,42 +22,33 @@ import net.dv8tion.jda.api.components.actionrow.ActionRowChildComponent;
 import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.components.container.Container;
 import net.dv8tion.jda.api.components.container.ContainerChildComponent;
-import net.dv8tion.jda.api.components.filedisplay.FileDisplay;
 import net.dv8tion.jda.api.components.replacer.ComponentReplacer;
-import net.dv8tion.jda.api.components.section.Section;
 import net.dv8tion.jda.api.components.separator.Separator;
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay;
-import net.dv8tion.jda.api.components.thumbnail.Thumbnail;
-import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Icon;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.Webhook;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
-import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback;
 import net.dv8tion.jda.api.requests.RestAction;
-import net.dv8tion.jda.api.requests.restaction.MessageEditAction;
 import net.dv8tion.jda.api.requests.restaction.WebhookAction;
 import net.dv8tion.jda.api.requests.restaction.WebhookMessageCreateAction;
-import net.dv8tion.jda.api.utils.FileUpload;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import net.dv8tion.jda.api.utils.messages.MessageEditData;
 import okhttp3.*;
 import okio.BufferedSource;
-import org.apache.tika.Tika;
 
-import javax.swing.*;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -86,18 +75,18 @@ public class Roleplay {
     private ArrayList<ResponseInfo> swipes;
     private FailedResponseInfo failedResponseInfo;
 
-    private List<Map.Entry<CharacterData, Boolean>> queuedResponses = new ArrayList<>();
+    private final List<Map.Entry<CharacterData, Boolean>> queuedResponses = new ArrayList<>();
 
     private final EncodingRegistry registry;
 
     // make possible to swipe messages
-    private HashMap<String, InstructionData> instructions;
-    private HashMap<String, WorldData> worldLore;
-    private HashMap<String, CharacterData> characters;
+    private final HashMap<String, InstructionData> instructions;
+    private final HashMap<String, WorldData> worldLore;
+    private final HashMap<String, CharacterData> characters;
     private CharacterData currentCharacter;
     private boolean runningRoleplay = false;
 
-    public Roleplay(Guild guild){
+    public Roleplay(Guild guild) {
 //        this.llm = SimpleOpenAI.builder()
 //                .baseUrl(Constants.BASE_URL)
 //                .apiKey(Constants.LLM_KEY)
@@ -124,53 +113,53 @@ public class Roleplay {
         characters = new HashMap<>();
     }
 
-    public String combinePrompts(List<ChatMessage> msgs){
+    public String combinePrompts(List<ChatMessage> msgs) {
         String prevType = "";
         StringBuilder combinedText = new StringBuilder();
-        for(ChatMessage msg : msgs){
-            if(msg instanceof ChatMessage.UserMessage message){
+        for (ChatMessage msg : msgs) {
+            if (msg instanceof ChatMessage.UserMessage message) {
 //                if(!prevType.equals("user"))
 //                    combinedText.append("USER:");
                 combinedText.append("\n").append(message.getContent());
-                prevType="user";
-            } else if(msg instanceof ChatMessage.AssistantMessage message){
+                prevType = "user";
+            } else if (msg instanceof ChatMessage.AssistantMessage message) {
 //                if(!prevType.equals("assistant"))
 //                    combinedText.append("ASSISTANT:");
                 combinedText.append("\n").append(message.getContent());
-                prevType="assistant";
-            } else if(msg instanceof ChatMessage.SystemMessage message){
-                if(!prevType.equals("system"))
+                prevType = "assistant";
+            } else if (msg instanceof ChatMessage.SystemMessage message) {
+                if (!prevType.equals("system"))
                     combinedText.append("SYSTEM:");
                 combinedText.append("\n").append(message.getContent());
-                prevType="system";
+                prevType = "system";
             }
-        };
+        }
         return combinedText.toString();
     }
 
-    public List<ChatMessage> trimListToMeetTokens(List<ChatMessage> msgs, int startAt){
+    public List<ChatMessage> trimListToMeetTokens(List<ChatMessage> msgs, int startAt) {
         String id = this.model.id;
         Encoding enc = registry.getEncodingForModel(id.substring(id.lastIndexOf("/")))
                 .orElse(registry.getEncoding(EncodingType.CL100K_BASE));
 
         String combinedText = combinePrompts(msgs);
 
-        int tokens = enc.countTokens(combinedText.toString());
-        if(tokens >= maxTokens){
+        int tokens = enc.countTokens(combinedText);
+        if (tokens >= maxTokens) {
             int difference = tokens - maxTokens;
 
             int toRemove = 0;
             int current = 0;
-            for(int i = startAt; i < msgs.size() && current < difference; i++){
+            for (int i = startAt; i < msgs.size() && current < difference; i++) {
                 ChatMessage msg = msgs.get(i);
                 String content = null;
                 // inaccurate, we should return maybe the entire json?
-                if(msg instanceof ChatMessage.UserMessage message){
+                if (msg instanceof ChatMessage.UserMessage message) {
                     content = message.getContent().toString();
-                } else if(msg instanceof ChatMessage.AssistantMessage message){
+                } else if (msg instanceof ChatMessage.AssistantMessage message) {
                     content = message.getContent().toString();
-                } else if(msg instanceof ChatMessage.SystemMessage message){
-                    content = message.getContent().toString();
+                } else if (msg instanceof ChatMessage.SystemMessage message) {
+                    content = message.getContent();
                 }
                 current += enc.countTokens(content);
                 toRemove++;
@@ -183,29 +172,29 @@ public class Roleplay {
         return msgs;
     }
 
-    public void creatingResponseFromDiscordMessage(){
-        if(makingResponse)
+    public void creatingResponseFromDiscordMessage() {
+        if (makingResponse)
             throw new RuntimeException("Already generating a response!");
         this.makingResponse = true;
-        if(latestAssistantMessage != null){
+        if (latestAssistantMessage != null) {
             latestAssistantMessage.editMessage(latestAssistantMessage.getContentRaw())
                     .setComponents(ActionRow.of(Interactions.createCancellableResponse())).queue();
         }
     }
 
-    public void finishedDiscordResponse(String finalResponse){
+    public void finishedDiscordResponse(String finalResponse) {
         this.makingResponse = false;
-        if(latestAssistantMessage != null && finalResponse != null){
+        if (latestAssistantMessage != null && finalResponse != null) {
             ArrayList<ActionRowChildComponent> components = new ArrayList<>();
             components.add(InteractionCreator.createPermanentButton(Button.secondary("swipe_left", "<--"), Interactions.getSwipe(Direction.BACK)));
             components.add(InteractionCreator.createPermanentButton(Button.secondary("swipe_right", "-->"), Interactions.getSwipe(Direction.NEXT)));
 
-            if(this.failedResponseInfo != null || (this.swipes != null && !this.swipes.isEmpty())){
+            if (this.failedResponseInfo != null || (this.swipes != null && !this.swipes.isEmpty())) {
                 components.add(InteractionCreator.createPermanentButton(Button.secondary("get_response_info", Emoji.fromFormatted("❔")),
                         Interactions.getResponseInfo()));
             }
 
-            if(errorMsgCleanup == null){
+            if (errorMsgCleanup == null) {
                 components.add(InteractionCreator.createPermanentButton(Button.danger("destroy", Emoji.fromFormatted("🗑")),
                         Interactions.getDestroyMessage()));
                 components.add(InteractionCreator.createPermanentButton(Button.success("edit", Emoji.fromFormatted("🪄")),
@@ -215,18 +204,18 @@ public class Roleplay {
             latestAssistantMessage.editMessage(finalResponse)
                     .setComponents(ActionRow.of(components)).queue();
         }
-        if(this.isRunningRoleplay() && historyMarker != null){
+        if (this.isRunningRoleplay() && historyMarker != null) {
             historyMarker.retrieveParentMessage().queue(
                     message -> {
                         RestAction<List<ChatMessage>> getMessages = getHistory();
                         Container container = message.getComponentTree().getComponents().getFirst().asContainer();
 
                         Consumer<List<ChatMessage>> onRetrievedMessages = list ->
-                            message.editMessageComponents(container.replace(ComponentReplacer.byId(Constants.HISTORY_COUNT,
-                                    TextDisplay.of("**Chat Messages:** "+ (list.size() + 1))
-                                            .withUniqueId(Constants.HISTORY_COUNT)))).useComponentsV2().queue();
+                                message.editMessageComponents(container.replace(ComponentReplacer.byId(Constants.HISTORY_COUNT,
+                                        TextDisplay.of("**Chat Messages:** " + (list.size() + 1))
+                                                .withUniqueId(Constants.HISTORY_COUNT)))).useComponentsV2().queue();
 
-                        if(getMessages != null){
+                        if (getMessages != null) {
                             getMessages.queue(onRetrievedMessages,
                                     e -> Constants.LOGGER.error("Failed to update chat history number", e));
                         } else {
@@ -238,7 +227,7 @@ public class Roleplay {
         }
     }
 
-    public CharacterData findRespondingCharacterFromContent(String content){
+    public CharacterData findRespondingCharacterFromContent(String content) {
         content = content.toLowerCase();
         final String finalContent = content;
 
@@ -246,18 +235,18 @@ public class Roleplay {
                         finalContent.contains(entry.getValue().getFirstName().toLowerCase())).map(entry -> entry.getValue())
                 .findFirst();
 
-        if(foundCharacter.isPresent() && getCharacters().containsKey(foundCharacter.get().getName())){
+        if (foundCharacter.isPresent() && getCharacters().containsKey(foundCharacter.get().getName())) {
             return foundCharacter.get();
         }
         return null;
     }
 
-    public CharacterData findRespondingCharacterFromMessage(Message msg){
-         if(msg.getReferencedMessage() != null && msg.getReferencedMessage().isWebhookMessage()){
+    public CharacterData findRespondingCharacterFromMessage(Message msg) {
+        if (msg.getReferencedMessage() != null && msg.getReferencedMessage().isWebhookMessage()) {
             CharacterData character =
                     server.getCharacterDatas().get(msg.getReferencedMessage().getAuthor().getName());
 
-            if(character == null || !getCharacters().containsKey(character.getName())){
+            if (character == null || !getCharacters().containsKey(character.getName())) {
                 return null;
             }
             return character;
@@ -265,10 +254,10 @@ public class Roleplay {
         return null;
     }
 
-    public RestAction<ChatRequest> createChatRequest(CharacterData character){
+    public RestAction<ChatRequest> createChatRequest(CharacterData character) {
         ExtrasChatRequest.ExtrasChatRequestBuilder requestBuilder = ExtrasChatRequest.extrasBuilder()
                 .setProviderFallback(false);
-        if(provider != null && !provider.isEmpty())
+        if (provider != null && !provider.isEmpty())
             requestBuilder.setProviders(provider);
 
         requestBuilder.builder
@@ -286,7 +275,7 @@ public class Roleplay {
                         .messages(history).build());
     }
 
-    private RestAction<ResponseInfo> generateResponse(CharacterData character, Consumer<String> consumer){
+    private RestAction<ResponseInfo> generateResponse(CharacterData character, Consumer<String> consumer) {
         RestAction<ChatRequest> chatRequestAction = createChatRequest(character);
 
         return chatRequestAction.map(chatRequest -> {
@@ -295,7 +284,7 @@ public class Roleplay {
             String json;
             String fullPrompt;
             String failedResult = "";
-            try{
+            try {
                 json = mapper.writeValueAsString(chatRequest);
                 fullPrompt = writer.writeValueAsString(chatRequest);
 
@@ -309,7 +298,7 @@ public class Roleplay {
 
                 Integer errorCode = null;
                 this.callForResponse = client.newCall(request);
-                try(Response response = callForResponse.execute()) {
+                try (Response response = callForResponse.execute()) {
                     String fullResponse = "";
 
                     if (!response.isSuccessful()) {
@@ -371,40 +360,40 @@ public class Roleplay {
                             openRouterResponse.get("usage").get("completion_tokens").asInt(),
                             fullPrompt
                     );
-                } catch(IOException io){
+                } catch (IOException io) {
                     throw new FailedResponseInfo(
                             fullPrompt,
                             failedResult,
                             "Generation was cancelled or an unknown problem occurred"
                     );
-                } catch(Exception e){
+                } catch (Exception e) {
                     Constants.LOGGER.error("Failed to get response from provider", e);
                     throw new FailedResponseInfo(
                             fullPrompt,
                             failedResult,
-                            "OpenRouter returned error code "+(errorCode != null ? errorCode : "UNKNOWN")+" | "+e.getMessage()
+                            "OpenRouter returned error code " + (errorCode != null ? errorCode : "UNKNOWN") + " | " + e.getMessage()
                     );
                 }
-            }catch(Exception e){
+            } catch (Exception e) {
                 this.callForResponse = null;
-                if(e instanceof FailedResponseInfo info)
-                    throw(info);
-                throw(new RuntimeException(e));
+                if (e instanceof FailedResponseInfo info)
+                    throw (info);
+                throw (new RuntimeException(e));
             }
         });
     }
 
-    private RestAction<ResponseInfo> streamOnDiscordMessage(CharacterData character, Message msgToEdit){
+    private RestAction<ResponseInfo> streamOnDiscordMessage(CharacterData character, Message msgToEdit) {
         AtomicBoolean queued = new AtomicBoolean(false);
         AtomicLong timeResponseMade = new AtomicLong(System.currentTimeMillis());
         double timeBetween = 1;
 
         String botUser = character.getName() + ":";
         Function<String, String> reformat = (string) ->
-            string.replace(botUser, "")
-                    .replace("\\n", "")
-                    .replace("\\r", "")
-                    .replace("\\", "");
+                string.replace(botUser, "")
+                        .replace("\\n", "")
+                        .replace("\\r", "")
+                        .replace("\\", "");
 
         RestAction<ResponseInfo> responseInfo = generateResponse(character, response -> {
             if (!queued.get() && System.currentTimeMillis() - timeResponseMade.get() >= timeBetween && !response.isBlank()) {
@@ -415,7 +404,7 @@ public class Roleplay {
                 };
                 String newContent = reformat.apply(response);
                 String total = Util.botifyMessage("Message is currently generating..") + "\n" + newContent;
-                if(total.length() < 2000)
+                if (total.length() < 2000)
                     msgToEdit.editMessage(total).setComponents(ActionRow.of(
                             Interactions.createCancellableResponse()
                     )).queue(onComplete);
@@ -424,15 +413,15 @@ public class Roleplay {
         return responseInfo.map(info -> {
             String newContent = info.editResponse(reformat);
 
-            if(newContent.isEmpty())
+            if (newContent.isEmpty())
                 throw new RuntimeException("The provider returned no content, try again? :(");
             return info;
         });
     }
 
     public void promptCharacterToRoleplay(CharacterData character, Message replyTo, boolean triggerAutoResponse) {
-        if(isRunningRoleplay()){
-            if(!characters.containsKey(character.getName())){
+        if (isRunningRoleplay()) {
+            if (!characters.containsKey(character.getName())) {
                 Consumer<Throwable> onFail = t ->
                         Constants.LOGGER.error("Failed to add character into roleplay", t);
 
@@ -458,7 +447,7 @@ public class Roleplay {
     }
 
     public void sendRoleplayMessage(boolean triggerAutoResponse) {
-        if(!runningRoleplay){
+        if (!runningRoleplay) {
             historyMarker.sendMessage(MessageCreateData.fromContent(
                     Util.botifyMessage("Cannot make a response since there is no ongoing chat!")
             )).queue();
@@ -469,27 +458,29 @@ public class Roleplay {
             return;
         }
 
-        if(currentCharacter == null){
+        if (currentCharacter == null) {
             historyMarker.sendMessage(MessageCreateData.fromContent(
                     Util.botifyMessage("Cannot make a response since there are no characters in this chat!")
             )).queue();
             return;
         }
-        if(this.errorMsgCleanup != null){
-            this.errorMsgCleanup.delete().queue(RestAction.getDefaultSuccess(), toThrow -> {});
-            if(this.latestAssistantMessage == errorMsgCleanup)
+        if (this.errorMsgCleanup != null) {
+            this.errorMsgCleanup.delete().queue(RestAction.getDefaultSuccess(), toThrow -> {
+            });
+            if (this.latestAssistantMessage == errorMsgCleanup)
                 latestAssistantMessage = null;
             this.errorMsgCleanup = null;
         }
         this.failedResponseInfo = null;
-        if(this.latestAssistantMessage != null){
-            if(latestAssistantMessage.getContentRaw().isEmpty())
+        if (this.latestAssistantMessage != null) {
+            if (latestAssistantMessage.getContentRaw().isEmpty())
                 latestAssistantMessage.delete().queue();
             else
                 latestAssistantMessage.editMessageComponents(ActionRow.of(Button.danger("destroy_button", Emoji.fromFormatted("🗑")),
-                        Button.success("edit_button", Emoji.fromFormatted("🪄"))))
+                                Button.success("edit_button", Emoji.fromFormatted("🪄"))))
                         .queue(RestAction.getDefaultSuccess(),
-                        (t) -> {});
+                                (t) -> {
+                                });
             latestAssistantMessage = null;
             swipes = null;
             currentSwipe = 0;
@@ -497,10 +488,10 @@ public class Roleplay {
 
         Consumer<Throwable> onError = throwable -> {
             String overrideError = null;
-            if(throwable instanceof IllegalArgumentException e2 && e2.getMessage().contains("Content may not be longer")){
+            if (throwable instanceof IllegalArgumentException e2 && e2.getMessage().contains("Content may not be longer")) {
                 overrideError = "Response is too long!";
             }
-            if(throwable instanceof FailedResponseInfo info)
+            if (throwable instanceof FailedResponseInfo info)
                 this.failedResponseInfo = info;
 
             currentSwipe = 0;
@@ -508,11 +499,11 @@ public class Roleplay {
             queuedResponses.clear();
         };
 
-        try{
+        try {
             this.creatingResponseFromDiscordMessage();
 
             String avatarLink = null;
-            try{
+            try {
                 avatarLink = currentCharacter.getAvatarLink();
             } catch (Exception e) {
                 Constants.LOGGER.error("Failed to get character avatar link", e);
@@ -524,7 +515,7 @@ public class Roleplay {
                     .setComponents(ActionRow.of(Interactions.createCancellableResponse()))
                     .setUsername(currentCharacter.getName());
 
-            if(avatarLink != null){
+            if (avatarLink != null) {
                 messageCreateData = messageCreateData.setAvatarUrl(avatarLink);
             }
 
@@ -541,17 +532,17 @@ public class Roleplay {
                                 failedResponseInfo = null;
 
                                 this.finishedDiscordResponse(responseInfo.getResponse());
-                                if(!queuedResponses.isEmpty()){
+                                if (!queuedResponses.isEmpty()) {
                                     Map.Entry<CharacterData, Boolean> next = queuedResponses.getFirst();
                                     queuedResponses.removeFirst();
                                     promptCharacterToRoleplay(next.getKey(), null, next.getValue());
                                 } else {
-                                    if(triggerAutoResponse){
+                                    if (triggerAutoResponse) {
                                         CharacterData data = findRespondingCharacterFromContent(responseInfo.getResponse());
-                                        if(data != null && data != currentCharacter && data.getTalkability() >= Math.random()) {
-                                            try{
+                                        if (data != null && data != currentCharacter && data.getTalkability() >= Math.random()) {
+                                            try {
                                                 promptCharacterToRoleplay(data, latestAssistantMessage, true);
-                                            } catch (Exception e){
+                                            } catch (Exception e) {
                                                 Constants.LOGGER.error("Failed to prompt a response", e);
                                             }
                                         }
@@ -568,25 +559,25 @@ public class Roleplay {
             };
 
             messageCreateData.queue(consumer, onError);
-        }catch(Exception e){
+        } catch (Exception e) {
             onError.accept(e);
         }
     }
 
-    public void swipe(ButtonInteractionEvent event, Direction direction){
-        if(latestAssistantMessage != null){
-            if(event.getMessage().getIdLong() != latestAssistantMessage.getIdLong()){
+    public void swipe(ButtonInteractionEvent event, Direction direction) {
+        if (latestAssistantMessage != null) {
+            if (event.getMessage().getIdLong() != latestAssistantMessage.getIdLong()) {
                 event.getHook().editOriginal("You cannot swipe on this message anymore :(, consider editing it instead!")
                         .queue();
                 return;
             }
 
-            if(direction == Direction.BACK){
+            if (direction == Direction.BACK) {
                 currentSwipe--;
             } else {
-                if(currentSwipe + 1 >= swipes.size()){
+                if (currentSwipe + 1 >= swipes.size()) {
                     if (isMakingResponse()
-                    || !queuedResponses.isEmpty()) {
+                            || !queuedResponses.isEmpty()) {
                         event.getHook().editOriginal("Cannot make a response since I am already queued to create others!")
                                 .queue();
                         return;
@@ -609,7 +600,7 @@ public class Roleplay {
                         this.finishedDiscordResponse(responseInfo.getResponse());
                     }, e -> {
                         String msg = e.toString().contains("Content may not be longer") ? "Response is too long!" : e.getMessage();
-                        if(e instanceof FailedResponseInfo info) {
+                        if (e instanceof FailedResponseInfo info) {
                             this.failedResponseInfo = info;
                         }
                         this.finishedDiscordResponse(Util.botifyMessage("Failed to make a new response!\n\nError: " + msg));
@@ -620,13 +611,13 @@ public class Roleplay {
                 }
             }
 
-            if(currentSwipe >= swipes.size())
+            if (currentSwipe >= swipes.size())
                 currentSwipe = swipes.isEmpty() ? 0 : swipes.size() - 1;
 
-            if(currentSwipe <= -1)
+            if (currentSwipe <= -1)
                 currentSwipe = 0;
 
-            if(!swipes.isEmpty())
+            if (!swipes.isEmpty())
                 latestAssistantMessage.editMessage(
                         MessageEditData.fromContent(swipes.get(currentSwipe).getResponse())).queue();
         }
@@ -636,29 +627,29 @@ public class Roleplay {
         return this.makingResponse;
     }
 
-    public boolean isRunningRoleplay(){
+    public boolean isRunningRoleplay() {
         return runningRoleplay;
     }
 
-    public RestAction<List<ChatMessage>> getHistory(){
+    public RestAction<List<ChatMessage>> getHistory() {
         return getHistory(null);
     }
 
     // beginning prompts not included if no character is provided
-    public RestAction<List<ChatMessage>> getHistory(CharacterData character){
-        if(historyMarker == null)
+    public RestAction<List<ChatMessage>> getHistory(CharacterData character) {
+        if (historyMarker == null)
             return null;
 
         ArrayList<ChatMessage> messages = new ArrayList<>();
 
-        if(character != null){
+        if (character != null) {
             StringBuilder instructionsMessage = new StringBuilder();
             instructionsMessage.append("Follow the instructions below! You are participating in a roleplay with other users!\n");
             instructionsMessage.append("This is a chatbot roleplay. You are roleplaying with other users, your responses should only be a few sentences long, should incorporate humor and shouldn't be too serious. The only time this can be overridden is if later instructions conflict with these. \nKeep responses within a few sentences!\nDo not escape newlines or quotes in your response. Respond with actual characters, not \\\\n or \\\\\\\". Discord will display it properly.\n");
             instructionsMessage.append("Each user message has a name field. Use this to determine who is speaking and maintain consistency");
             instructionsMessage.append("Do not include the character name in your response, this is already provided programmatically by the code.\n");
 
-            for(InstructionData instructionData : instructions.values()){
+            for (InstructionData instructionData : instructions.values()) {
                 instructionsMessage.append(instructionData.getChatMessage(character).getContent()).append("\n");
             }
 
@@ -666,7 +657,7 @@ public class Roleplay {
 
             StringBuilder combinedLore = new StringBuilder();
             combinedLore.append("The following is lore and information about the world that this roleplay takes place in!");
-            for(WorldData worldData : worldLore.values()){
+            for (WorldData worldData : worldLore.values()) {
                 combinedLore.append(worldData.getChatMessage(character).getContent()).append("\n");
             }
             messages.add(ChatMessage.SystemMessage.of(combinedLore.toString(), "Lore"));
@@ -680,22 +671,21 @@ public class Roleplay {
 //            messages.add(
 //                    ChatMessage.SystemMessage.of(multipleCharacters.toString())
 //            );
-            StringBuilder characterPersona = new StringBuilder();
-            characterPersona.append("Understand the character definition below! This is the character you will be playing in the roleplay.\n");
-            characterPersona.append(character.getChatMessage(character).getContent());
-            messages.add(ChatMessage.SystemMessage.of(characterPersona.toString(), "CharacterDefinition"));
+            String characterPersona = "Understand the character definition below! This is the character you will be playing in the roleplay.\n" +
+                    character.getChatMessage(character).getContent();
+            messages.add(ChatMessage.SystemMessage.of(characterPersona, "CharacterDefinition"));
             messages.add(ChatMessage.SystemMessage.of("<CHAT HISTORY>"));
         }
         int required = messages.size();
 
         return historyMarker.getIterableHistory().map(listOfMessages -> {
-            for(int i = listOfMessages.size() - 1; i >= 0; i--) {
+            for (int i = listOfMessages.size() - 1; i >= 0; i--) {
                 Message message = listOfMessages.get(i);
-                if(message.getAuthor() == AIBot.bot.getJDA().getSelfUser())
+                if (message.getAuthor() == AIBot.bot.getJDA().getSelfUser())
                     continue;
-                if(message.getContentRaw().contains("Currently creating a response"))
+                if (message.getContentRaw().contains("Currently creating a response"))
                     continue;
-                if(latestAssistantMessage != null &&
+                if (latestAssistantMessage != null &&
                         (latestAssistantMessage.getIdLong() == message.getIdLong() ||
                                 latestAssistantMessage.getTimeCreated().isBefore(message.getTimeCreated())))
                     continue;
@@ -712,15 +702,15 @@ public class Roleplay {
                 if (message.isWebhookMessage()) {
                     messages.add(
                             ChatMessage.AssistantMessage.builder()
-                                    .content(username +": "+ formatted)
+                                    .content(username + ": " + formatted)
                                     .name(username)
                                     .build()
                     );
                 } else {
-                    messages.add(ChatMessage.UserMessage.of(username+": "+formatted, username));
+                    messages.add(ChatMessage.UserMessage.of(username + ": " + formatted, username));
                 }
             }
-            if(character != null)
+            if (character != null)
                 messages.add(ChatMessage.SystemMessage.of("Write as " + character.getName() + " for your next response!"));
             return trimListToMeetTokens(messages, required);
         });
@@ -733,9 +723,9 @@ public class Roleplay {
                               List<CharacterData> characterList,
                               Consumer<Webhook> onSuccess
     ) throws ExecutionException, InterruptedException, IOException {
-        if(instructionList.size() <= 0)
+        if (instructionList.size() <= 0)
             throw new RuntimeException("Need at least one set of instructions!");
-        if(worldDatas.size() <= 0)
+        if (worldDatas.size() <= 0)
             throw new RuntimeException("Need at least one set of world lore!");
 
         event.deferReply().queue(hook -> {
@@ -745,28 +735,28 @@ public class Roleplay {
             components.add(TextDisplay.of("This roleplay starts in the thread created under this message. Have fun!"));
             components.add(TextDisplay.of("-# As a reminder, note that every generated message by AI is fictional and should not be taken as actual or professional advice."));
             components.add(Separator.createDivider(Separator.Spacing.SMALL));
-            components.add(TextDisplay.of("**Chat Messages:** "+ 0).withUniqueId(Constants.HISTORY_COUNT)); // chat messages marker
+            components.add(TextDisplay.of("**Chat Messages:** " + 0).withUniqueId(Constants.HISTORY_COUNT)); // chat messages marker
             components.add(Separator.createDivider(Separator.Spacing.SMALL));
 
             AtomicInteger uniqueId = new AtomicInteger(150);
 
             Function<PromptType, List<? extends Data>> getDatas = (promptType) ->
-                    switch(promptType){
+                    switch (promptType) {
                         case INSTRUCTION -> instructionList;
                         case WORLD -> worldDatas;
                         case CHARACTER -> characterList;
                     };
 
-            for(PromptType promptType : PromptType.values()){
+            for (PromptType promptType : PromptType.values()) {
                 List<? extends Data> promptDatas = getDatas.apply(promptType);
 
                 StringBuilder display = new StringBuilder();
-                components.add(TextDisplay.of("**"+promptType.displayName+" Involved"+"**"));
+                components.add(TextDisplay.of("**" + promptType.displayName + " Involved" + "**"));
 
-                for(int i = 0; i < promptDatas.size(); i++){
+                for (int i = 0; i < promptDatas.size(); i++) {
                     String name = promptDatas.get(i).getName();
                     display.append(name);
-                    if(i != promptDatas.size() - 1){
+                    if (i != promptDatas.size() - 1) {
                         display.append(", ");
                     }
                 }
@@ -779,14 +769,14 @@ public class Roleplay {
             event.getHook().editOriginalComponents(Util.createBotContainer(components))
                     .useComponentsV2()
                     .queue(message -> message.createThreadChannel(rpName)
-                                    .queue(thread -> startRoleplay(message, null, onSuccess)));
+                            .queue(thread -> startRoleplay(message, null, onSuccess)));
         });
     }
 
-    public void startRoleplay(Message roleplayInfo, InteractionHook optionalHook, Consumer<Webhook> onSuccess){
-        if(parentID == roleplayInfo.getIdLong())
+    public void startRoleplay(Message roleplayInfo, InteractionHook optionalHook, Consumer<Webhook> onSuccess) {
+        if (parentID == roleplayInfo.getIdLong())
             return; // is already running rp
-        if(isRunningRoleplay())
+        if (isRunningRoleplay())
             stopRoleplay();
 
         // completely async
@@ -812,7 +802,7 @@ public class Roleplay {
             this.queuedResponses.clear();
 
             AtomicInteger uniqueId = new AtomicInteger(150);
-            for(PromptType promptType : PromptType.values()){
+            for (PromptType promptType : PromptType.values()) {
                 Container container = roleplayInfo.getComponentTree().getComponents().getFirst().asContainer();
                 container.getComponents().stream().filter(component -> component.getUniqueId() == uniqueId.get())
                         .findFirst().ifPresent(component -> {
@@ -821,7 +811,7 @@ public class Roleplay {
                             List<String> prompts = List.of(display.getContent().split(", "));
                             prompts.forEach(name -> {
                                 Data data = server.getDatas(promptType).get(name);
-                                if(data != null)
+                                if (data != null)
                                     addData(promptType, data);
                             });
                         });
@@ -834,36 +824,39 @@ public class Roleplay {
                     roleplayInfo.getIdLong()
             ).queue(message -> {
                 this.historyMarker = message.getStartedThread();
-                if(onSuccess != null)
+                if (onSuccess != null)
                     onSuccess.accept(hook);
             }, onFail);
 
             ComponentReplacer replacer = ComponentReplacer.byId(1, oldComponent -> {
-                if(oldComponent instanceof TextDisplay display && !display.getContent().contains(" ✅")) {
+                if (oldComponent instanceof TextDisplay display && !display.getContent().contains(" ✅")) {
                     return display.withContent(display.getContent() + " ✅");
                 }
                 return oldComponent;
             });
 
-            if(optionalHook != null)
+            if (optionalHook != null)
                 optionalHook.retrieveOriginal().queue(msg -> optionalHook.editOriginalComponents(
                         msg.getComponentTree().replace(replacer)
-                ).useComponentsV2().queue(RestAction.getDefaultSuccess(), t -> {}), t -> {});
+                ).useComponentsV2().queue(RestAction.getDefaultSuccess(), t -> {
+                }), t -> {
+                });
             else
                 roleplayInfo.editMessageComponents(
                         roleplayInfo.getComponentTree().replace(replacer)
-                ).useComponentsV2().queue(RestAction.getDefaultSuccess(), t -> {});
+                ).useComponentsV2().queue(RestAction.getDefaultSuccess(), t -> {
+                });
         };
 
         roleplayInfo.getChannel().asTextChannel().retrieveWebhooks().queue(webhooks -> webhooks.stream().filter(find -> find.getName().equals(AIBot.bot.getJDA().getSelfUser().getName()))
                 .findFirst().ifPresentOrElse(onQueue, () -> {
                     WebhookAction action = roleplayInfo.getChannel().asTextChannel()
                             .createWebhook(AIBot.bot.getJDA().getSelfUser().getName());
-                    if(AIBot.bot.getJDA().getSelfUser().getAvatar() != null){
+                    if (AIBot.bot.getJDA().getSelfUser().getAvatar() != null) {
                         try {
                             InputStream inputStream = AIBot.bot.getJDA().getSelfUser().getAvatar().download().get();
                             action.setAvatar(Icon.from(inputStream)).queue(onQueue, onFail);
-                        } catch (Exception e){
+                        } catch (Exception e) {
                             action.queue(onQueue, onFail);
                         }
                     } else {
@@ -872,10 +865,10 @@ public class Roleplay {
                 }), onFail);
     }
 
-    public void stopRoleplay(){
+    public void stopRoleplay() {
         cancelGeneration();
         runningRoleplay = false;
-        if(latestAssistantMessage != null){
+        if (latestAssistantMessage != null) {
             latestAssistantMessage.editMessageComponents(
                             ActionRow.of(Button.danger("destroy_button", Emoji.fromFormatted("🗑")),
                                     Button.success("edit_button", Emoji.fromFormatted("🪄"))))
@@ -883,14 +876,14 @@ public class Roleplay {
                             (t) ->
                                     Constants.LOGGER.warn("AI Response was unable to be stripped of its optional components", t));
         }
-        if(parentID != 0){
+        if (parentID != 0) {
             guild.getTextChannelCache().stream().forEach(textChannel -> {
                 textChannel.retrieveMessageById(parentID).queue(oldMessage -> {
                     oldMessage.editMessageComponents(oldMessage.getComponentTree().replace(
                             ComponentReplacer.byId(1, oldComponent -> {
-                                if(oldComponent instanceof TextDisplay display){
+                                if (oldComponent instanceof TextDisplay display) {
                                     int index = display.getContent().indexOf(" ✅");
-                                    if(index != 1){
+                                    if (index != 1) {
                                         return TextDisplay.of(display.getContent().substring(0, index))
                                                 .withUniqueId(1);
                                     } else {
@@ -899,8 +892,10 @@ public class Roleplay {
                                 }
                                 return oldComponent;
                             })
-                    )).useComponentsV2().queue(RestAction.getDefaultSuccess(), ignored -> {});
-                }, ignored -> {});
+                    )).useComponentsV2().queue(RestAction.getDefaultSuccess(), ignored -> {
+                    });
+                }, ignored -> {
+                });
             });
         }
         parentID = 0L;
@@ -915,26 +910,26 @@ public class Roleplay {
         queuedResponses.clear();
     }
 
-    public void cancelGeneration(){
-        if(this.callForResponse != null){
+    public void cancelGeneration() {
+        if (this.callForResponse != null) {
             this.callForResponse.cancel();
         }
         this.callForResponse = null;
     }
 
-    public long getParentID(){
+    public long getParentID() {
         return parentID;
     }
 
-    public int getCurrentSwipe(){
+    public int getCurrentSwipe() {
         return currentSwipe;
     }
 
-    public ArrayList<ResponseInfo> getSwipes(){
+    public ArrayList<ResponseInfo> getSwipes() {
         return swipes;
     }
 
-    public void setMaxTokens(int maxTokens){
+    public void setMaxTokens(int maxTokens) {
         HashMap<String, ConfigEntry> config = server.getConfig();
         config.get("tokens").asInteger().value = maxTokens;
         server.saveToConfig(config);
@@ -942,7 +937,7 @@ public class Roleplay {
         this.maxTokens = maxTokens;
     }
 
-    public void setModel(Model model){
+    public void setModel(Model model) {
         HashMap<String, ConfigEntry> config = server.getConfig();
         config.get("model").asString().value = model.toString();
         server.saveToConfig(config);
@@ -950,7 +945,7 @@ public class Roleplay {
         this.model = model;
     }
 
-    public void setTemperature(double temperature){
+    public void setTemperature(double temperature) {
         HashMap<String, ConfigEntry> config = server.getConfig();
         config.get("temperature").asDouble().value = temperature;
         server.saveToConfig(config);
@@ -958,7 +953,7 @@ public class Roleplay {
         this.temperature = Math.max(0, Math.min(temperature, 2));
     }
 
-    public void setProvider(String provider){
+    public void setProvider(String provider) {
         HashMap<String, ConfigEntry> config = server.getConfig();
         config.get("provider").asString().value = provider;
         server.saveToConfig(config);
@@ -966,23 +961,23 @@ public class Roleplay {
         this.provider = provider;
     }
 
-    public double getTemperature(){
+    public double getTemperature() {
         return temperature;
     }
 
-    public int getMaxTokens(){
+    public int getMaxTokens() {
         return maxTokens;
     }
 
-    public String getProvider(){
+    public String getProvider() {
         return provider;
     }
 
-    public Model getModel(){
+    public Model getModel() {
         return model;
     }
 
-    private HashMap<String, WorldData> getWorlds(){
+    private HashMap<String, WorldData> getWorlds() {
         return worldLore;
     }
 
@@ -994,23 +989,23 @@ public class Roleplay {
         return characters;
     }
 
-    public List<? extends Data> getDatas(PromptType promptType){
-        return switch(promptType){
+    public List<? extends Data> getDatas(PromptType promptType) {
+        return switch (promptType) {
             case CHARACTER -> getCharacters().values().stream().toList();
             case WORLD -> getWorlds().values().stream().toList();
             case INSTRUCTION -> getInstructions().values().stream().toList();
         };
     }
 
-    public CharacterData getCurrentCharacter(){
+    public CharacterData getCurrentCharacter() {
         return currentCharacter;
     }
 
-    public ThreadChannel getChannel(){
+    public ThreadChannel getChannel() {
         return historyMarker;
     }
 
-    public Message getLatestAssistantMessage(){
+    public Message getLatestAssistantMessage() {
         return latestAssistantMessage;
     }
 
@@ -1018,14 +1013,14 @@ public class Roleplay {
         return failedResponseInfo;
     }
 
-    public void setCurrentCharacter(String name){
+    public void setCurrentCharacter(String name) {
         currentCharacter = characters.get(name);
     }
 
-    public void addData(PromptType type, Data data){
-        if(!server.getDatas(type).containsKey(data.getName()))
+    public void addData(PromptType type, Data data) {
+        if (!server.getDatas(type).containsKey(data.getName()))
             throw new RuntimeException(data.getName() + " is no longer a valid data!");
-        switch(type){
+        switch (type) {
             case CHARACTER -> {
                 characters.putIfAbsent(data.getName(), (CharacterData) data);
                 currentCharacter = (CharacterData) data;

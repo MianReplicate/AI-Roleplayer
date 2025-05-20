@@ -1,7 +1,7 @@
 package discord.mian.data;
 
-import discord.mian.api.Data;
 import discord.mian.api.Chattable;
+import discord.mian.api.Data;
 import io.github.sashirestela.openai.domain.chat.ChatMessage;
 
 import java.io.File;
@@ -17,26 +17,26 @@ public class InstructionData implements Data, Chattable {
         this.instructionFile = instructionFile;
     }
 
-    public String getName(){
+    public String getName() {
         return instructionFile.getName().substring(0, instructionFile.getName().lastIndexOf("."));
     }
 
     public String getPrompt() throws IOException {
-        if(!instructionFile.exists())
+        if (!instructionFile.exists())
             return null;
 
         return Files.readString(instructionFile.toPath(), StandardCharsets.UTF_8);
     }
 
     public File getPromptFile() {
-        if(!instructionFile.exists())
+        if (!instructionFile.exists())
             return null;
 
         return instructionFile;
     }
 
     public void addOrReplacePrompt(String text) throws IOException {
-        if(!instructionFile.exists())
+        if (!instructionFile.exists())
             instructionFile.createNewFile();
 
         FileWriter writer = new FileWriter(instructionFile.getPath());
@@ -44,7 +44,7 @@ public class InstructionData implements Data, Chattable {
         writer.close();
     }
 
-    public ChatMessage.SystemMessage getChatMessage(CharacterData data){
+    public ChatMessage.SystemMessage getChatMessage(CharacterData data) {
         String definition;
         try {
             definition = getPrompt();
@@ -57,8 +57,8 @@ public class InstructionData implements Data, Chattable {
     }
 
     // when worst comes to worst!
-    public void nuke(){
-        if(instructionFile.exists())
+    public void nuke() {
+        if (instructionFile.exists())
             instructionFile.delete();
     }
 }

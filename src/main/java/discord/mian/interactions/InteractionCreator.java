@@ -24,9 +24,9 @@ public class InteractionCreator {
 
     static {
         Interactions.getContinue();
-    };
+    }
 
-    public static Consumer<Message> queueTimeoutComponents(Long length){
+    public static Consumer<Message> queueTimeoutComponents(Long length) {
         return message -> {
 //            message.editMessageComponents(
 //                    message.getComponentTree().replace(ComponentReplacer.of(
@@ -45,23 +45,23 @@ public class InteractionCreator {
         };
     }
 
-    public static Consumer<? super GenericInteractionCreateEvent> getComponentConsumer(String id){
+    public static Consumer<? super GenericInteractionCreateEvent> getComponentConsumer(String id) {
         return PERM_INTERACTIONS.getOrDefault(id, INTERACTIONS.getOrDefault(id, null));
     }
 
-    public static Consumer<ModalInteractionEvent> getModalConsumer(String id){
+    public static Consumer<ModalInteractionEvent> getModalConsumer(String id) {
         return MODALS.get(id);
     }
 
-    public static Button createButton(Emoji emoji, Consumer<ButtonInteractionEvent> eventConsumer){
+    public static Button createButton(Emoji emoji, Consumer<ButtonInteractionEvent> eventConsumer) {
         return createButton(Button.success("brb", emoji), eventConsumer);
     }
 
-    public static Button createButton(String label, Consumer<ButtonInteractionEvent> eventConsumer){
+    public static Button createButton(String label, Consumer<ButtonInteractionEvent> eventConsumer) {
         return createButton(Button.success("brb", label), eventConsumer);
     }
 
-    public static Button createButton(Button button, Consumer<ButtonInteractionEvent> eventConsumer){
+    public static Button createButton(Button button, Consumer<ButtonInteractionEvent> eventConsumer) {
         String id = System.currentTimeMillis() + "-" + UUID.randomUUID();
         button = button.withCustomId(id);
 
@@ -73,7 +73,7 @@ public class InteractionCreator {
     }
 
     // permanent
-    public static Button createPermanentButton(Button button, Consumer<ButtonInteractionEvent> eventConsumer){
+    public static Button createPermanentButton(Button button, Consumer<ButtonInteractionEvent> eventConsumer) {
         PERM_INTERACTIONS.putIfAbsent(button.getCustomId() + "_button", (event) -> {
             eventConsumer.accept((ButtonInteractionEvent) event);
         });
@@ -81,7 +81,7 @@ public class InteractionCreator {
         return button;
     }
 
-    public static StringSelectMenu.Builder createStringMenu(Consumer<StringSelectInteractionEvent> eventConsumer){
+    public static StringSelectMenu.Builder createStringMenu(Consumer<StringSelectInteractionEvent> eventConsumer) {
         String id = System.currentTimeMillis() + "-" + UUID.randomUUID();
         StringSelectMenu.Builder selectMenu = StringSelectMenu.create(id);
 
@@ -92,7 +92,7 @@ public class InteractionCreator {
         return selectMenu;
     }
 
-    public static Modal createPermanentModal(Modal.Builder modal, Consumer<ModalInteractionEvent> eventConsumer){
+    public static Modal createPermanentModal(Modal.Builder modal, Consumer<ModalInteractionEvent> eventConsumer) {
         PERM_INTERACTIONS.putIfAbsent(modal.getId() + "_modal", (event) -> {
             eventConsumer.accept((ModalInteractionEvent) event);
         });
@@ -100,7 +100,7 @@ public class InteractionCreator {
         return modal.build();
     }
 
-    public static Modal.Builder createModal(String label, Consumer<ModalInteractionEvent> eventConsumer){
+    public static Modal.Builder createModal(String label, Consumer<ModalInteractionEvent> eventConsumer) {
         String id = System.currentTimeMillis() + "-" + UUID.randomUUID();
         Modal.Builder modal = Modal.create(id, label);
 

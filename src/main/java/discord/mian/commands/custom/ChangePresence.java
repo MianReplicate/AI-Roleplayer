@@ -29,7 +29,7 @@ public class ChangePresence extends SlashCommand {
 
     @Override
     public boolean handle(SlashCommandInteractionEvent event) throws Exception {
-        if(super.handle(event)){
+        if (super.handle(event)) {
             String onlineStatusKey = event.getOption("onlinestatus", OptionMapping::getAsString);
             Integer activityTypeKey = event.getOption("activitytype", OptionMapping::getAsInt);
             String name = event.getOption("name", OptionMapping::getAsString);
@@ -41,8 +41,8 @@ public class ChangePresence extends SlashCommand {
             onlineStatusKey = onlineStatusKey != null ? onlineStatusKey : event.getJDA().getPresence().getStatus().getKey();
             OnlineStatus onlineStatus = OnlineStatus.fromKey(onlineStatusKey);
 
-            if(activityTypeKey == null){
-                if(currentBotActivity.getType() != null){
+            if (activityTypeKey == null) {
+                if (currentBotActivity.getType() != null) {
                     activityTypeKey = event.getJDA().getPresence().getActivity().getType().getKey();
                 } else {
                     activityTypeKey = 4;
@@ -51,8 +51,8 @@ public class ChangePresence extends SlashCommand {
 
             Activity.ActivityType activityType = Activity.ActivityType.fromKey(activityTypeKey);
 
-            if(name == null) name = currentBotActivity.getName();
-            if(state == null) state = currentBotActivity.getState();
+            if (name == null) name = currentBotActivity.getName();
+            if (state == null) state = currentBotActivity.getState();
             Activity activity = Activity.of(activityType, name, url).withState(state);
 
             event.getJDA().getPresence().setPresence(onlineStatus, activity);
@@ -64,18 +64,16 @@ public class ChangePresence extends SlashCommand {
 
     @Override
     public void autoComplete(CommandAutoCompleteInteractionEvent event) {
-        switch(event.getFocusedOption().getName()){
-            case "onlinestatus" ->
-                    event.replyChoices(Arrays.stream(OnlineStatus.values())
-                            .filter(status -> !status.getKey().isEmpty())
-                            .map(status -> new Command.Choice(status.name(), status.getKey()))
-                            .collect(Collectors.toList())
-                    ).queue();
-            case "activitytype" ->
-                    event.replyChoices(Arrays.stream(Activity.ActivityType.values())
-                            .map(activityType -> new Command.Choice(activityType.name(), activityType.getKey()))
-                            .collect(Collectors.toList())
-                    ).queue();
+        switch (event.getFocusedOption().getName()) {
+            case "onlinestatus" -> event.replyChoices(Arrays.stream(OnlineStatus.values())
+                    .filter(status -> !status.getKey().isEmpty())
+                    .map(status -> new Command.Choice(status.name(), status.getKey()))
+                    .collect(Collectors.toList())
+            ).queue();
+            case "activitytype" -> event.replyChoices(Arrays.stream(Activity.ActivityType.values())
+                    .map(activityType -> new Command.Choice(activityType.name(), activityType.getKey()))
+                    .collect(Collectors.toList())
+            ).queue();
         }
     }
 }

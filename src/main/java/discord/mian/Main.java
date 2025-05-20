@@ -7,14 +7,11 @@ import discord.mian.custom.Util;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.hooks.AnnotatedEventManager;
 import net.dv8tion.jda.api.requests.GatewayIntent;
+
 import java.io.File;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
-//TODO:
-// swap to mongodb maybe (long-term)
-// use timeouts for non-perm buttons
 
 public class Main {
     public static void main(String[] args) throws Exception {
@@ -23,15 +20,15 @@ public class Main {
         Constants.LOGGER.info("IT'S TIME TO ROLEPLAY KIDDOS");
 
         File serverDatas = Util.createFileRelativeToData("servers");
-        if(!serverDatas.exists())
+        if (!serverDatas.exists())
             serverDatas.mkdir();
 
-        try{
+        try {
             new AIBot(JDABuilder.create(discord_bot_token, GatewayIntent.getIntents(GatewayIntent.ALL_INTENTS))
                     .setEventManager(new AnnotatedEventManager())
                     .addEventListeners(new Listener())
                     .build());
-        }catch(Exception e){
+        } catch (Exception e) {
             Constants.LOGGER.error("Failure during initialization", e);
             throw e;
         }

@@ -14,9 +14,9 @@ public class ChangeTemp extends SlashCommand {
 
     @Override
     public boolean handle(SlashCommandInteractionEvent event) throws Exception {
-        if(super.handle(event)){
+        if (super.handle(event)) {
             int temperature = event.getOption("number", OptionMapping::getAsInt);
-            if(temperature <= 0 || temperature > 200){
+            if (temperature <= 0 || temperature > 200) {
                 event.reply("The temperature has to be within 0-200!").setEphemeral(true).queue();
                 return true;
             }
