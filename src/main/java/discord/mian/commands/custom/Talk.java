@@ -6,13 +6,11 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.channel.Channel;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.entities.channel.unions.GuildChannelUnion;
-import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.InteractionContextType;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
-import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction;
 import net.dv8tion.jda.api.utils.FileUpload;
@@ -25,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public class Talk extends SlashCommand {
-    public Talk(){
+    public Talk() {
         super("talk", "You want me to talk?");
         this.permissionHandler.addUsers(Constants.ALLOWED_USER_IDS);
         this.addOptions(
@@ -40,14 +38,14 @@ public class Talk extends SlashCommand {
 
     @Override
     public boolean handle(SlashCommandInteractionEvent event) throws Exception {
-        if(super.handle(event)){
+        if (super.handle(event)) {
             String text = event.getOption("text", OptionMapping::getAsString);
             String msgId = event.getOption("replyto", OptionMapping::getAsString);
             Message.Attachment attachment = event.getOption("attachment", OptionMapping::getAsAttachment);
             Channel channel = event.getOption("channel", OptionMapping::getAsChannel);
             Integer delay = event.getOption("delay", OptionMapping::getAsInt);
 
-            if(channel == null){
+            if (channel == null) {
                 channel = event.getChannel();
             } else {
                 channel = ((GuildChannelUnion) channel).asTextChannel();
@@ -56,11 +54,11 @@ public class Talk extends SlashCommand {
             MessageChannel msgChannel = (MessageChannel) channel;
             MessageCreateBuilder builder = new MessageCreateBuilder();
 
-            if(text != null){
+            if (text != null) {
                 builder.setContent(text);
             }
 
-            if(attachment != null){
+            if (attachment != null) {
                 builder.addFiles(FileUpload.fromStreamSupplier(attachment.getFileName(), () -> {
                     try {
                         return attachment.getProxy().download().get();
@@ -78,7 +76,7 @@ public class Talk extends SlashCommand {
 
                 ReplyCallbackAction replyAction = event.reply("The message is on its way!").setEphemeral(true);
 
-                if(delay != null){
+                if (delay != null) {
                     msgChannel.sendTyping().and(replyAction).queue(success ->
                             messageCreateAction.queueAfter(delay, TimeUnit.SECONDS));
                 } else {
@@ -86,7 +84,7 @@ public class Talk extends SlashCommand {
                 }
             };
 
-            if(msgId != null){
+            if (msgId != null) {
                 msgChannel.retrieveMessageById(msgId).queue(onMessage);
             } else {
                 onMessage.accept(null);

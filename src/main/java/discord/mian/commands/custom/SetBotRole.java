@@ -14,7 +14,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import java.util.HashMap;
 
 public class SetBotRole extends SlashCommand {
-    public SetBotRole(){
+    public SetBotRole() {
         super("set_bot_role", "Sets the master role for the roleplayer");
         this.addOption(OptionType.ROLE, "role", "The role to set!", false, false);
         this.setContexts(InteractionContextType.GUILD);
@@ -22,8 +22,8 @@ public class SetBotRole extends SlashCommand {
 
     @Override
     public boolean handle(SlashCommandInteractionEvent event) throws Exception {
-        if(super.handle(event)){
-            if(!Util.hasMasterPermission(event.getMember())){
+        if (super.handle(event)) {
+            if (!Util.hasMasterPermission(event.getMember())) {
                 event.reply("nuh uh little bro bro, you dont got permission").setEphemeral(true).queue();
                 return true;
             }

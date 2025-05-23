@@ -3,7 +3,6 @@ package discord.mian.data;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
-import discord.mian.ai.AIBot;
 import discord.mian.api.Data;
 import discord.mian.custom.ConfigEntry;
 import discord.mian.custom.Constants;
@@ -15,34 +14,36 @@ import net.dv8tion.jda.api.entities.Role;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
 public class Server {
     private HashMap<String, CharacterData> characterDatas;
     private HashMap<String, InstructionData> instructionDatas;
     private HashMap<String, WorldData> worldDatas;
-    private Guild guild;
+    private final Guild guild;
 
     public Server(Guild guild) {
         this.guild = guild;
         getServerData(); // ensures it exists
     }
 
-    public Role getMasterRole(){
-        return guild.getRoleById(((ConfigEntry.LongConfig)getConfig().get("bot_role_id")).value);
+    public Role getMasterRole() {
+        return guild.getRoleById(((ConfigEntry.LongConfig) getConfig().get("bot_role_id")).value);
     }
 
-    public File getServerData(){
+    public File getServerData() {
         File serverFolder = Util.createFileRelativeToData(getServerPath());
-        if(!serverFolder.exists()){
+        if (!serverFolder.exists()) {
             serverFolder.mkdir();
 
             // new server, let's add some data :D
             File defaults = new File(Util.getDataFolder().getPath() + "/defaults");
-            try{
+            try {
                 // copies directories and files within the defaults
                 Util.copyDirectory(defaults.toPath(), serverFolder.toPath());
-            }catch(Exception e){
+            } catch (Exception e) {
                 // whoops, we tried :(
                 Constants.LOGGER.error("Failed to copy default files!", e);
             }
@@ -51,22 +52,23 @@ public class Server {
         return serverFolder;
     }
 
-    public String getServerPath(){
+    public String getServerPath() {
         return "servers/" + guild.getIdLong();
     }
 
     public void generateConfig() throws IOException {
         File dataJson = Util.createFileRelativeToData(getServerPath() + "/config.json");
-        if(!dataJson.exists())
+        if (!dataJson.exists())
             dataJson.createNewFile();
 
         ObjectMapper objectMapper = new ObjectMapper();
         ObjectWriter writer = objectMapper.writerWithDefaultPrettyPrinter();
 
         Map<String, ConfigEntry> configEntries;
-        try{
-            configEntries = objectMapper.readValue(dataJson, new TypeReference<HashMap<String, ConfigEntry>>(){});
-        }catch(Exception ignored){
+        try {
+            configEntries = objectMapper.readValue(dataJson, new TypeReference<HashMap<String, ConfigEntry>>() {
+            });
+        } catch (Exception ignored) {
             configEntries = new HashMap<>();
         }
 
@@ -131,10 +133,10 @@ public class Server {
     public boolean saveToConfig(HashMap<String, ConfigEntry> entries) {
         ObjectMapper objectMapper = new ObjectMapper();
         ObjectWriter writer = objectMapper.writerWithDefaultPrettyPrinter();
-        try{
+        try {
             writer.writeValue(Util.createFileRelativeToData(getServerPath() + "/config.json"), entries);
             return true;
-        } catch(Exception e){
+        } catch (Exception e) {
             Constants.LOGGER.error("Failed to save to configuration", e);
         }
         return false;
@@ -144,21 +146,22 @@ public class Server {
         File dataJson = Util.createFileRelativeToData(getServerPath() + "/config.json");
 
         ObjectMapper objectMapper = new ObjectMapper();
-        try{
+        try {
             generateConfig();
-            return objectMapper.readValue(dataJson, new TypeReference<HashMap<String, ConfigEntry>>(){});
-        } catch (Exception e){
+            return objectMapper.readValue(dataJson, new TypeReference<HashMap<String, ConfigEntry>>() {
+            });
+        } catch (Exception e) {
             Constants.LOGGER.error("Failed to get configuration", e);
         }
         return null;
     }
 
-    public String getKey(){
+    public String getKey() {
         return ((ConfigEntry.StringConfig) getConfig().get("open_router_key")).value;
     }
 
-    public HashMap<String, ? extends Data> getDatas(PromptType promptType){
-        return switch(promptType){
+    public HashMap<String, ? extends Data> getDatas(PromptType promptType) {
+        return switch (promptType) {
             case INSTRUCTION -> getInstructionDatas();
             case CHARACTER -> getCharacterDatas();
             case WORLD -> getWorldDatas();
@@ -166,25 +169,25 @@ public class Server {
         };
     }
 
-    public HashMap<String, WorldData> getWorldDatas(){
+    public HashMap<String, WorldData> getWorldDatas() {
         File worldsFolder = Util.createFileRelativeToData(getServerPath() + "/worlds");
-        if(!worldsFolder.exists())
+        if (!worldsFolder.exists())
             worldsFolder.mkdir();
 
-        if(worldDatas == null){
+        if (worldDatas == null) {
             worldDatas = new HashMap<>();
         }
 
-        for(File world : Objects.requireNonNull(worldsFolder.listFiles())){
-            try{
+        for (File world : Objects.requireNonNull(worldsFolder.listFiles())) {
+            try {
                 int place = world.getName().lastIndexOf(".");
-                if(place != -1){
-                    if(world.getName().substring(place).equals(".txt")){
+                if (place != -1) {
+                    if (world.getName().substring(place).equals(".txt")) {
                         worldDatas.putIfAbsent(world.getName().substring(0, place), new WorldData(world));
                     }
                 }
-            }catch(Exception e){
-                Constants.LOGGER.info("Failed to load world " + world.getName() + " for guild: "+guild.getName());
+            } catch (Exception e) {
+                Constants.LOGGER.info("Failed to load world " + world.getName() + " for guild: " + guild.getName());
                 Constants.LOGGER.error(String.valueOf(e));
             }
         }
@@ -192,25 +195,25 @@ public class Server {
         return worldDatas;
     }
 
-    public HashMap<String, InstructionData> getInstructionDatas(){
+    public HashMap<String, InstructionData> getInstructionDatas() {
         File instructionsFolder = Util.createFileRelativeToData(getServerPath() + "/instructions");
-        if(!instructionsFolder.exists())
+        if (!instructionsFolder.exists())
             instructionsFolder.mkdir();
 
-        if(instructionDatas == null){
+        if (instructionDatas == null) {
             instructionDatas = new HashMap<>();
         }
 
-        for(File instruction : Objects.requireNonNull(instructionsFolder.listFiles())){
-            try{
+        for (File instruction : Objects.requireNonNull(instructionsFolder.listFiles())) {
+            try {
                 int place = instruction.getName().lastIndexOf(".");
-                if(place != -1){
-                    if(instruction.getName().substring(place).equals(".txt")){
+                if (place != -1) {
+                    if (instruction.getName().substring(place).equals(".txt")) {
                         instructionDatas.putIfAbsent(instruction.getName().substring(0, place), new InstructionData(instruction));
                     }
                 }
-            }catch(Exception e){
-                Constants.LOGGER.info("Failed to load instruction " + instruction.getName() + " for guild: "+guild.getName());
+            } catch (Exception e) {
+                Constants.LOGGER.info("Failed to load instruction " + instruction.getName() + " for guild: " + guild.getName());
                 Constants.LOGGER.error(String.valueOf(e));
             }
         }
@@ -221,15 +224,15 @@ public class Server {
     public HashMap<String, CharacterData> getCharacterDatas() {
         File charactersFolder = getCharactersFolder();
 
-        if(characterDatas == null){
+        if (characterDatas == null) {
             characterDatas = new HashMap<>();
         }
 
-        for(File character : Objects.requireNonNull(charactersFolder.listFiles())){
-            try{
+        for (File character : Objects.requireNonNull(charactersFolder.listFiles())) {
+            try {
                 characterDatas.putIfAbsent(character.getName(), new CharacterData(this, character));
-            }catch(Exception e){
-                Constants.LOGGER.info("Failed to load character " + character.getName() + " for guild: "+guild.getName());
+            } catch (Exception e) {
+                Constants.LOGGER.info("Failed to load character " + character.getName() + " for guild: " + guild.getName());
                 Constants.LOGGER.error(String.valueOf(e));
             }
         }
@@ -237,38 +240,38 @@ public class Server {
         return characterDatas;
     }
 
-    private File getCharactersFolder(){
+    private File getCharactersFolder() {
         File charactersFolder = Util.createFileRelativeToData(getServerPath() + "/characters");
-        if(!charactersFolder.exists())
+        if (!charactersFolder.exists())
             charactersFolder.mkdir();
         return charactersFolder;
     }
 
-    private File getInstructionsFolder(){
+    private File getInstructionsFolder() {
         File instructionsFolder = Util.createFileRelativeToData(getServerPath() + "/instructions");
-        if(!instructionsFolder.exists())
+        if (!instructionsFolder.exists())
             instructionsFolder.mkdir();
         return instructionsFolder;
     }
 
-    private File getWorldsFolder(){
+    private File getWorldsFolder() {
         File worldsFolder = Util.createFileRelativeToData(getServerPath() + "/worlds");
-        if(!worldsFolder.exists())
+        if (!worldsFolder.exists())
             worldsFolder.mkdir();
         return worldsFolder;
     }
-    
+
     public void createCharacter(String name, String definition, double talkability) throws IOException {
         File charactersFolder = getCharactersFolder();
         File characterFolder = new File(charactersFolder.getPath() + "/" + name);
 
         String defPath = characterFolder.getPath() + "/" + "definition.txt";
 
-        if(!characterFolder.mkdir())
+        if (!characterFolder.mkdir())
             characterFolder.mkdir();
 
         File file = new File(defPath);
-        if(!file.exists())
+        if (!file.exists())
             file.createNewFile();
 
         FileWriter writer = new FileWriter(defPath);
@@ -285,7 +288,7 @@ public class Server {
         File instructionsFolder = getInstructionsFolder();
         File instructionFile = new File(instructionsFolder.getPath() + "/" + name + ".txt");
 
-        if(!instructionFile.exists())
+        if (!instructionFile.exists())
             instructionFile.createNewFile();
 
         FileWriter writer = new FileWriter(instructionFile);
@@ -295,11 +298,11 @@ public class Server {
         instructionDatas.putIfAbsent(name, new InstructionData(instructionFile));
     }
 
-    public void createWorld(String name, String prompt) throws IOException{
+    public void createWorld(String name, String prompt) throws IOException {
         File worldsFolder = getWorldsFolder();
         File worldsFile = new File(worldsFolder.getPath() + "/" + name + ".txt");
 
-        if(!worldsFile.exists())
+        if (!worldsFile.exists())
             worldsFile.createNewFile();
 
         FileWriter writer = new FileWriter(worldsFile);

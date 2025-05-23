@@ -2,11 +2,8 @@ package discord.mian.commands.custom;
 
 import discord.mian.ai.AIBot;
 import discord.mian.ai.Roleplay;
-import discord.mian.custom.Constants;
-import discord.mian.data.CharacterData;
 import discord.mian.commands.SlashCommand;
-import net.dv8tion.jda.api.entities.channel.ChannelType;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import discord.mian.data.CharacterData;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -27,21 +24,21 @@ public class Poke extends SlashCommand {
 
     @Override
     public boolean handle(SlashCommandInteractionEvent event) throws Exception {
-        if(super.handle(event)){
+        if (super.handle(event)) {
             event.deferReply().setEphemeral(true).queue();
             Roleplay roleplay = AIBot.bot.getChat(event.getGuild());
 
-            if(!roleplay.isRunningRoleplay()){
+            if (!roleplay.isRunningRoleplay()) {
                 event.getHook().editOriginal("Start a roleplay first!").queue();
                 return true;
             }
 
             ThreadChannel channel = roleplay.getChannel();
 
-            if(event.getChannel().getIdLong() == channel.getIdLong()){
+            if (event.getChannel().getIdLong() == channel.getIdLong()) {
                 CharacterData character = AIBot.bot.getServerData(event.getGuild())
                         .getCharacterDatas().get(event.getOption("character", OptionMapping::getAsString));
-                if(character == null){
+                if (character == null) {
                     event.getHook().editOriginal("Invalid character!").queue();
                     return true;
                 }
@@ -50,7 +47,7 @@ public class Poke extends SlashCommand {
                 roleplay.promptCharacterToRoleplay(character, null, true);
                 return true;
             } else {
-                event.getHook().editOriginal("Can't roleplay here as roleplay was started in another [channel!]("+channel.getJumpUrl()+")").queue();
+                event.getHook().editOriginal("Can't roleplay here as roleplay was started in another [channel!](" + channel.getJumpUrl() + ")").queue();
                 return true;
             }
         }
@@ -58,10 +55,10 @@ public class Poke extends SlashCommand {
     }
 
     @Override
-    public void autoComplete(CommandAutoCompleteInteractionEvent event){
+    public void autoComplete(CommandAutoCompleteInteractionEvent event) {
         List<String> characterNames = AIBot.bot.getServerData(event.getGuild()).getCharacterDatas().keySet().stream()
                 .filter(string -> string.toLowerCase().startsWith(event.getFocusedOption().getValue().toLowerCase())).toList();
-        if(characterNames.size() >= 25)
+        if (characterNames.size() >= 25)
             characterNames = characterNames.subList(0, 25);
         List<Command.Choice> choices = new ArrayList<>();
         characterNames.forEach(name -> choices.add(new Command.Choice(name, name)));

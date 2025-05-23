@@ -1,9 +1,9 @@
 package discord.mian.ai;
 
-import discord.mian.custom.Constants;
-import discord.mian.data.Server;
 import discord.mian.commands.BotCommands;
+import discord.mian.custom.Constants;
 import discord.mian.custom.Util;
+import discord.mian.data.Server;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 
@@ -17,8 +17,8 @@ public class AIBot {
 
     private final JDA jda;
 
-    private Map<Guild, Roleplay> chats;
-    private Map<Guild, Server> servers;
+    private final Map<Guild, Roleplay> chats;
+    private final Map<Guild, Server> servers;
 
     public AIBot(JDA jda) throws Exception {
         if (bot != null)
@@ -32,13 +32,13 @@ public class AIBot {
 
         BotCommands.addCommands().queue();
 
-        for(Guild guild : jda.getGuildCache()){
+        for (Guild guild : jda.getGuildCache()) {
             onServerJoin(guild);
         }
 
-        for(File serverFolder : Objects.requireNonNull(Util.createFileRelativeToData("servers").listFiles())){
+        for (File serverFolder : Objects.requireNonNull(Util.createFileRelativeToData("servers").listFiles())) {
             long id = Long.valueOf(serverFolder.getName());
-            if(jda.getGuildById(id) == null)
+            if (jda.getGuildById(id) == null)
                 serverFolder.delete(); // removes data of servers we are no longer in
         }
     }
@@ -48,13 +48,13 @@ public class AIBot {
     }
 
     public Roleplay getChat(Guild guild) {
-        if(!this.chats.containsKey(guild))
+        if (!this.chats.containsKey(guild))
             AIBot.bot.createChat(guild);
 
         return this.chats.get(guild);
     }
 
-    public Server getServerData(Guild guild){
+    public Server getServerData(Guild guild) {
         return servers.get(guild);
     }
 
@@ -65,7 +65,7 @@ public class AIBot {
         this.chats.put(guild, chat);
     }
 
-    public void onServerJoin(Guild guild){
+    public void onServerJoin(Guild guild) {
         servers.put(guild, new Server(guild));
     }
 }

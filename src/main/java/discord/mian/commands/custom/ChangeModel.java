@@ -6,7 +6,6 @@ import discord.mian.ai.AIBot;
 import discord.mian.ai.Model;
 import discord.mian.ai.Roleplay;
 import discord.mian.commands.SlashCommand;
-import discord.mian.custom.Util;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.InteractionContextType;
@@ -21,16 +20,14 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class ChangeModel extends SlashCommand {
-    public ChangeModel(){
+    public ChangeModel() {
         super("model", "Change the LLM being used");
         this.addOption(OptionType.STRING, "name", "The model to use", true, true);
         this.setContexts(InteractionContextType.GUILD);
@@ -60,7 +57,7 @@ public class ChangeModel extends SlashCommand {
             ));
         }
 
-        if(!validModels.containsKey(id)){
+        if (!validModels.containsKey(id)) {
             event.reply("Not a valid model on OpenRouter!").setEphemeral(true).queue();
             return true;
         }
@@ -72,7 +69,7 @@ public class ChangeModel extends SlashCommand {
                 .setModel(new Model(id, finalValidModels.get(id)));
 
         HashMap<String, Double> endpoints = ChangeProvider.getEndpoints(id);
-        if(roleplay.getProvider() != null && !roleplay.getProvider().isEmpty() && !endpoints.containsKey(roleplay.getProvider())){
+        if (roleplay.getProvider() != null && !roleplay.getProvider().isEmpty() && !endpoints.containsKey(roleplay.getProvider())) {
             roleplay.setProvider(null); // invalid provider!
         }
 
@@ -82,7 +79,7 @@ public class ChangeModel extends SlashCommand {
     }
 
     @Override
-    public void autoComplete(CommandAutoCompleteInteractionEvent event){
+    public void autoComplete(CommandAutoCompleteInteractionEvent event) {
         OkHttpClient client = new OkHttpClient.Builder().build();
 
         Request request = new Request.Builder()

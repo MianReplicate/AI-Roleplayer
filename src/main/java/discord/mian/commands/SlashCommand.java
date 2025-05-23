@@ -1,7 +1,7 @@
 package discord.mian.commands;
 
-import discord.mian.custom.PermissionHandler;
 import discord.mian.api.CommandHandler;
+import discord.mian.custom.PermissionHandler;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 
@@ -10,7 +10,7 @@ public abstract class SlashCommand
         implements CommandHandler<SlashCommandInteractionEvent> {
     protected final PermissionHandler<SlashCommandInteractionEvent> permissionHandler;
 
-    public SlashCommand(String name, String description){
+    public SlashCommand(String name, String description) {
         super(name.toLowerCase(), description);
         this.permissionHandler = new PermissionHandler<>();
     }
@@ -20,5 +20,7 @@ public abstract class SlashCommand
         return permissionHandler.handle(event);
     }
 
-    public void autoComplete(CommandAutoCompleteInteractionEvent event) throws Exception {};
+    public void autoComplete(CommandAutoCompleteInteractionEvent event) throws Exception {
+    }
+
 }

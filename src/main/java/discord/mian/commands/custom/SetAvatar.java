@@ -2,10 +2,10 @@ package discord.mian.commands.custom;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.mian.ai.AIBot;
-import discord.mian.data.CharacterData;
-import discord.mian.data.Server;
 import discord.mian.commands.SlashCommand;
 import discord.mian.custom.Util;
+import discord.mian.data.CharacterData;
+import discord.mian.data.Server;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -33,8 +33,8 @@ public class SetAvatar extends SlashCommand {
 
     @Override
     public boolean handle(SlashCommandInteractionEvent event) throws Exception {
-        if(super.handle(event)){
-            if(!Util.hasMasterPermission(event.getMember())){
+        if (super.handle(event)) {
+            if (!Util.hasMasterPermission(event.getMember())) {
                 event.reply("nuh uh little bro bro, you dont got permission").setEphemeral(true).queue();
                 return true;
             }
@@ -46,27 +46,27 @@ public class SetAvatar extends SlashCommand {
 
             Message.Attachment avatar = event.getOption("avatar", OptionMapping::getAsAttachment);
 
-            if(existingCharacter == null){
+            if (existingCharacter == null) {
                 event.getHook().editOriginal("There is no existing character with this name!").queue();
                 return true;
             }
 
-            if(!validateImage(avatar)){
+            if (!validateImage(avatar)) {
                 event.getHook().editOriginal("The image provided was invalid! Make sure it is not corrupted and has a valid extension!").queue();
                 return true;
             }
 
             File existingAvatar = existingCharacter.getAvatar();
-            if(existingAvatar != null)
+            if (existingAvatar != null)
                 existingAvatar.delete();
 
-            File avatarFile = new File(existingCharacter.getCharacterFolder().getPath() + "/avatar."+avatar.getFileExtension());
+            File avatarFile = new File(existingCharacter.getCharacterFolder().getPath() + "/avatar." + avatar.getFileExtension());
             avatarFile.createNewFile();
             avatar.getProxy().downloadToFile(avatarFile).get();
 
             ObjectMapper mapper = new ObjectMapper();
             File dataJson = new File(existingCharacter.getCharacterFolder().getPath() + "/data.json");
-            if(dataJson.exists()){
+            if (dataJson.exists()) {
                 Map<String, String> map = mapper.readValue(dataJson, Map.class);
                 map.put("avatar_link", null);
                 mapper.writeValue(dataJson, map);
@@ -80,10 +80,10 @@ public class SetAvatar extends SlashCommand {
     }
 
     @Override
-    public void autoComplete(CommandAutoCompleteInteractionEvent event){
+    public void autoComplete(CommandAutoCompleteInteractionEvent event) {
         List<String> characterNames = AIBot.bot.getServerData(event.getGuild()).getCharacterDatas().keySet().stream()
                 .filter(string -> string.toLowerCase().startsWith(event.getFocusedOption().getValue().toLowerCase())).toList();
-        if(characterNames.size() >= 25)
+        if (characterNames.size() >= 25)
             characterNames = characterNames.subList(0, 25);
         List<Command.Choice> choices = new ArrayList<>();
         characterNames.forEach(name -> choices.add(new Command.Choice(name, name)));
@@ -91,8 +91,8 @@ public class SetAvatar extends SlashCommand {
         event.replyChoices(choices).queue();
     }
 
-    public boolean validateImage(Message.Attachment image){
-        if(image == null)
+    public boolean validateImage(Message.Attachment image) {
+        if (image == null)
             return false;
 
         return image.isImage() && Util.IMAGE_EXTENSIONS.contains("." + image.getFileExtension());

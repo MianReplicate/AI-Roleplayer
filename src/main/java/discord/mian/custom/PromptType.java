@@ -5,7 +5,7 @@ public enum PromptType {
 
     public final String displayName;
 
-    PromptType(String displayName){
+    PromptType(String displayName) {
         this.displayName = displayName;
     }
 }

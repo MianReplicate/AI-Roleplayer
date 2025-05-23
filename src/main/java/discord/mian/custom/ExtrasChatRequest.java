@@ -20,20 +20,20 @@ public class ExtrasChatRequest extends ChatRequest {
     }
 
     @JsonAnySetter
-    public void setField(String string, Object object){
+    public void setField(String string, Object object) {
         fields.put(string, object);
     }
 
     @JsonAnyGetter
-    public HashMap<String, Object> getFields(){
+    public HashMap<String, Object> getFields() {
         return fields;
     }
 
-    public static ExtrasChatRequestBuilder extrasBuilder(){
+    public static ExtrasChatRequestBuilder extrasBuilder() {
         return new ExtrasChatRequestBuilder();
     }
 
-    public static ExtrasChatRequest from(ChatRequest request){
+    public static ExtrasChatRequest from(ChatRequest request) {
         return new ExtrasChatRequest(request.getMessages(), request.getModel(), request.getStore(), request.getReasoningEffort(), request.getMetadata(), request.getFrequencyPenalty(), request.getLogitBias(), request.getLogprobs(), request.getTopLogprobs(), request.getMaxTokens(), request.getMaxCompletionTokens(), request.getN(), request.getModalities(), request.getAudio(), request.getPresencePenalty(), request.getResponseFormat(), request.getSeed(), request.getServiceTier(), request.getStop(), request.getStream(), request.getStreamOptions(), request.getTemperature(), request.getTopP(), request.getTools(), request.getToolChoice(), request.getParallelToolCalls(), request.getUser());
     }
 
@@ -43,23 +43,23 @@ public class ExtrasChatRequest extends ChatRequest {
         public List<String> providers;
         private boolean fallback;
 
-        public ExtrasChatRequestBuilder(){
+        public ExtrasChatRequestBuilder() {
             builder = ExtrasChatRequest.builder();
         }
 
-        public ExtrasChatRequestBuilder setProviders(String... strings){
+        public ExtrasChatRequestBuilder setProviders(String... strings) {
             providers = List.of(strings);
             return this;
         }
 
-        public ExtrasChatRequestBuilder setProviderFallback(boolean allowed){
+        public ExtrasChatRequestBuilder setProviderFallback(boolean allowed) {
             fallback = allowed;
             return this;
         }
 
-        public ExtrasChatRequest build(){
+        public ExtrasChatRequest build() {
             ExtrasChatRequest request = ExtrasChatRequest.from(builder.build());
-            if(providers != null){
+            if (providers != null) {
                 HashMap<String, Object> providerMap = new HashMap<>();
                 providerMap.put("order", providers);
                 providerMap.put("allow_fallbacks", fallback);

@@ -11,14 +11,14 @@ import java.io.IOException;
 public class Menu extends SlashCommand {
 
 
-    public Menu(){
+    public Menu() {
         super("menu", "Open the AI menu");
         this.setContexts(InteractionContextType.GUILD);
     }
 
     @Override
     public boolean handle(SlashCommandInteractionEvent event) throws Exception {
-        if(super.handle(event)){
+        if (super.handle(event)) {
             event.deferReply().setEphemeral(true).useComponentsV2().queue();
             event.getHook().retrieveOriginal().queue(msg -> {
                 try {

@@ -14,9 +14,9 @@ public class ChangeMaxTokens extends SlashCommand {
 
     @Override
     public boolean handle(SlashCommandInteractionEvent event) throws Exception {
-        if(super.handle(event)){
+        if (super.handle(event)) {
             int tokens = event.getOption("number", OptionMapping::getAsInt);
-            if(tokens <= 0){
+            if (tokens <= 0) {
                 event.reply("The tokens have to be greater than 0").setEphemeral(true).queue();
                 return true;
             }

@@ -23,7 +23,7 @@ public class BotCommands {
             new EditModelProperties()
     );
 
-    public static CommandListUpdateAction addCommands(){
+    public static CommandListUpdateAction addCommands() {
         Constants.LOGGER.info("Adding bot commands!");
 
         return AIBot.bot.getJDA().updateCommands().addCommands(commands);
@@ -32,16 +32,16 @@ public class BotCommands {
     public static void handleCommand(GenericCommandInteractionEvent event) throws Exception {
         Optional<CommandHandler> commandOptional = commands.stream().filter(command -> command.getName().equalsIgnoreCase(event.getName()))
                 .findFirst();
-        if(commandOptional.isPresent()){
+        if (commandOptional.isPresent()) {
             CommandHandler<GenericCommandInteractionEvent> commandHandler = commandOptional.get();
-            try{
+            try {
                 commandHandler.handle(event);
             } catch (Exception e) {
                 event.getHook().retrieveOriginal().queue(
                         message -> message.editMessage("Failed to execute command :<").queue(),
                         failure -> event.reply("Failed to execute command :<").setEphemeral(true).queue()
                 );
-                throw(e);
+                throw (e);
             }
         }
     }
