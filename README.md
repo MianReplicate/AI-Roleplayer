@@ -24,7 +24,7 @@ How do I edit the model and its properties?
 
 What's OpenRouter?
 - OpenRouter is a middle-man website that lets providers host a multitude of AI models on the site. This allows you, the user, to swap whatever AI model you are using to another easily if you do not like the one you are on.
-- If you are planning on not paying, you get 50 free requests daily for free models on OpenRouter. If you have put at least $10 at any time in OpenRouter, that limit increases to 1000 free requests daily (even if you no longer have $10).
+- If you are planning on not paying, you get 50 free requests daily for free models on OpenRouter. If you have put at least \$10 at any time in OpenRouter, that limit increases to 1000 free requests daily (even if you no longer have $10).
 
 What are the different prompt types? Character, instruction, world..
 - Character are definitions you define for the bot to play. The bot will use this definition to simulate a character when it roleplays
