@@ -2,8 +2,8 @@ Create characters 🧝, world lore 🌍 and custom instructions🤖! You can rol
 
 # How to Build/Host
 1. Download Java 21
-2. Build jar using shadowJar task
-3. Run jar with a valid discord bot token as the first argument
+2. Download latest jar release
+3. Run jar in terminal with a valid discord bot token as the first argument
 4. Continue on to "How to Use" for using the actual bot!
 
 # How to Use [(Public Invite)](https://discord.com/oauth2/authorize?client_id=1287923107604205630&permissions=8&integration_type=0&scope=bot)
