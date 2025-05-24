@@ -14,11 +14,12 @@ import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.interactions.modals.Modal;
+import net.dv8tion.jda.api.utils.concurrent.DelayedCompletableFuture;
 import net.dv8tion.jda.internal.components.selections.StringSelectMenuImpl;
 
-import javax.swing.*;
 import java.util.HashMap;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -28,6 +29,7 @@ public class InteractionCreator {
     private static final HashMap<String, Consumer<? super GenericInteractionCreateEvent>> PERM_INTERACTIONS = new HashMap<>();
     private static final HashMap<String, Consumer<? super GenericInteractionCreateEvent>> INTERACTIONS = new HashMap<>();
     private static final HashMap<String, Consumer<ModalInteractionEvent>> MODALS = new SizeHashMap<>(MAX_INTERACTIONS);
+    private static final HashMap<Long, CompletableFuture<Void>> TIMEOUTS = new HashMap<>();
 
     static {
         Interactions.getContinue();
@@ -35,19 +37,31 @@ public class InteractionCreator {
 
     public static Consumer<Message> queueTimeoutComponents(Long length) {
         Consumer<Message> removeConsumer = msg -> {
+            TIMEOUTS.remove(msg.getIdLong());
             msg.getComponentTree().findAll(ActionComponent.class, ActionComponent::isDisabled)
                     .forEach(component -> INTERACTIONS.remove(component.getCustomId()));
         };
 
         return message -> {
-            message.editMessageComponents(
-                    message.getComponentTree().replace(ComponentReplacer.of(
-                            ActionComponent.class,
-                            component -> !PERM_INTERACTIONS.containsKey(component.getCustomId()),
-                            component -> component.withDisabled(true)))
-            ).useComponentsV2()
+            if(TIMEOUTS.containsKey(message.getIdLong())){
+                Constants.LOGGER.info("found previous timeout, cancelling!");
+                TIMEOUTS.get(message.getIdLong()).cancel(true);
+                TIMEOUTS.remove(message.getIdLong());
+            }
+
+            TIMEOUTS.put(message.getIdLong(), message.editMessageComponents(
+                            message.getComponentTree().replace(ComponentReplacer.of(
+                                    ActionComponent.class,
+                                    component -> !PERM_INTERACTIONS.containsKey(component.getCustomId()),
+                                    component -> component.withDisabled(true)))
+                    ).useComponentsV2()
                     .onErrorMap(throwable -> message)
-                    .queueAfter(length != null ? length : 5, TimeUnit.SECONDS, removeConsumer);
+                    .submitAfter(length != null ? length : 5, TimeUnit.SECONDS)
+                    .thenAcceptAsync(removeConsumer)
+                    .exceptionallyAsync(throwable -> {
+                        removeConsumer.accept(message);
+                        return null;
+                    }));
         };
     }
 
