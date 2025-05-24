@@ -1,7 +1,7 @@
 package discord.mian.commands.custom;
 
 import discord.mian.commands.SlashCommand;
-import discord.mian.custom.Constants;
+import discord.mian.Constants;
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;

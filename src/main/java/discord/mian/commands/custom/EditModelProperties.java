@@ -1,7 +1,7 @@
 package discord.mian.commands.custom;
 
 import discord.mian.commands.SlashCommand;
-import discord.mian.custom.Util;
+import discord.mian.Util;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.InteractionContextType;

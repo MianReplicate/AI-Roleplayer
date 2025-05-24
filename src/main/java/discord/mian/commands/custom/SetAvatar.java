@@ -1,14 +1,11 @@
 package discord.mian.commands.custom;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.MongoException;
 import discord.mian.ai.AIBot;
 import discord.mian.commands.SlashCommand;
-import discord.mian.custom.Constants;
-import discord.mian.custom.Util;
+import discord.mian.Util;
 import discord.mian.data.character.Character;
 import discord.mian.data.Server;
-import discord.mian.data.character.CharacterDocument;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -18,11 +15,9 @@ import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 
-import java.io.File;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class SetAvatar extends SlashCommand {
 
@@ -62,7 +57,11 @@ public class SetAvatar extends SlashCommand {
 
             InputStream inputStream = avatar.getProxy().download().get();
             String url =
-                    Util.uploadImage(server.getConfig().get("imgbb_key").asString().value, name, inputStream.readAllBytes());
+                    Util.uploadImage(
+                            server.getConfig().get("imgbb_key", String.class).getValue(),
+                            name,
+                            inputStream.readAllBytes()
+                    );
 
             if(url == null){
                 event.getHook().editOriginal("Failed to upload avatar to IMGBB").queue();

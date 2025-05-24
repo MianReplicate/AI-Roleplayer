@@ -3,13 +3,15 @@ package discord.mian.interactions;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.MongoException;
+import discord.mian.*;
 import discord.mian.ai.AIBot;
 import discord.mian.ai.ResponseInfo;
 import discord.mian.ai.Roleplay;
 import discord.mian.api.PromptInfo;
 import discord.mian.api.ProviderInfo;
-import discord.mian.custom.*;
+import discord.mian.data.ConfigEntry;
 import discord.mian.data.Data;
+import discord.mian.data.PromptType;
 import discord.mian.data.character.Character;
 import discord.mian.data.character.CharacterDocument;
 import discord.mian.data.instruction.Instruction;
@@ -384,33 +386,24 @@ public class Interactions {
 
                                 TextInput.Builder textInput = TextInput.create("value", "Value", TextInputStyle.SHORT)
                                         .setPlaceholder("Enter a valid value: For booleans, type \"true\" or \"false\".");
-                                if (entry instanceof ConfigEntry.StringConfig stringConfig && !stringConfig.value.isEmpty())
-                                    textInput.setValue(stringConfig.value);
-                                else if (entry instanceof ConfigEntry.BoolConfig boolConfig)
-                                    textInput.setValue(String.valueOf(boolConfig.value));
+                                textInput.setValue(String.valueOf(entry.getValue()));
 
                                 event.replyModal(InteractionCreator.createModal("Editing " + configOption.toUpperCase(), (modalEvent) -> {
-                                    String value = modalEvent.getValue("value").getAsString();
-
-                                    if (entry instanceof ConfigEntry.StringConfig stringConfig)
-                                        stringConfig.value = value;
-                                    else if (entry instanceof ConfigEntry.BoolConfig boolConfig) {
-                                        Function<String, Boolean> tryParseBoolean = (string) -> {
-                                            try {
-                                                return Boolean.valueOf(string);
-                                            } catch (Exception ignored) {
-                                                return ((ConfigEntry.BoolConfig) entry).value;
-                                            }
-                                        };
-
-                                        boolConfig.value = tryParseBoolean.apply(value);
-                                    }
-
                                     modalEvent.deferReply(true).queue();
                                     try{
-                                        AIBot.bot.getServerData(modalEvent.getGuild()).updateConfig(entries -> {
-                                            entries.put(configOption, entry);
-                                        });
+                                        String value = modalEvent.getValue("value").getAsString();
+                                        if(entry.getTypeClass() == String.class){
+                                            ConfigEntry.toType(entry, String.class).setValue(value);
+                                        } else if(entry.getTypeClass() == Double.class){
+                                            ConfigEntry.toType(entry, Double.class).setValue(Double.valueOf(value));
+                                        } else if(entry.getTypeClass() == Long.class){
+                                            ConfigEntry.toType(entry, Long.class).setValue(Long.valueOf(value));
+                                        } else if(entry.getTypeClass() == Integer.class){
+                                            ConfigEntry.toType(entry, Integer.class).setValue(Integer.valueOf(value));
+                                        }
+
+                                        AIBot.bot.getServerData(modalEvent.getGuild()).updateConfig(config ->
+                                                config.put(configOption, entry));
                                         modalEvent.getHook().editOriginal("Saved config!").queue();
                                     }catch(MongoException ignored){
                                         modalEvent.getHook().editOriginal("Failed to update config!").queue();

@@ -1,4 +1,4 @@
-package discord.mian.custom;
+package discord.mian.data;
 
 public enum PromptType {
     INSTRUCTION("Instructions"), WORLD("Worlds"), CHARACTER("Characters");

@@ -3,16 +3,13 @@ package discord.mian.commands.custom;
 import com.mongodb.MongoException;
 import discord.mian.ai.AIBot;
 import discord.mian.commands.SlashCommand;
-import discord.mian.custom.ConfigEntry;
-import discord.mian.custom.Util;
+import discord.mian.Util;
 import discord.mian.data.Server;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.InteractionContextType;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
-
-import java.util.HashMap;
 
 public class SetBotRole extends SlashCommand {
     public SetBotRole() {
@@ -33,9 +30,8 @@ public class SetBotRole extends SlashCommand {
 
             Server server = AIBot.bot.getServerData(event.getGuild());
             try{
-                server.updateConfig(entries -> {
-                    ((ConfigEntry.LongConfig) entries.get("bot_role_id")).value = role != null ? role.getIdLong() : 0L;
-                });
+                server.updateConfig(config ->
+                        config.get("bot_role_id", Long.class).setValue(role != null ? role.getIdLong() : 0L));
                 event.reply("Set roleplay master role!").setEphemeral(true).queue();
             }catch(MongoException ignored){
                 event.reply("Failed to set roleplay master role!").setEphemeral(true).queue();

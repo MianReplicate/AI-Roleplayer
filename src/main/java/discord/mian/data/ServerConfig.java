@@ -1,6 +1,6 @@
 package discord.mian.data;
 
-import discord.mian.custom.ConfigEntry;
+import discord.mian.Constants;
 import org.bson.codecs.pojo.annotations.BsonId;
 
 import java.util.HashMap;
@@ -36,11 +36,15 @@ public class ServerConfig {
         return id;
     }
 
+    public ConfigEntry<?> get(String key){
+        return entries.get(key);
+    }
+
     public <T>ConfigEntry<T> get(String key, Class<T> generic){
         ConfigEntry<?> entry = entries.get(key);
-        Object value = entry.getValue();
-        if(value != null && !generic.isInstance(value))
-            throw new RuntimeException("Value isn't of type "+ generic.getSimpleName());
+//        Constants.LOGGER.info(entry.getTypeClass());
+        if(entry.getTypeClass() == generic)
+            throw new RuntimeException(entry.getValue() + " isn't of type "+ generic.getSimpleName());
         return (ConfigEntry<T>) entry;
     }
 

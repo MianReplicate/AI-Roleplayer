@@ -1,4 +1,4 @@
-package discord.mian.custom;
+package discord.mian;
 
 public enum Direction {
     BACK,

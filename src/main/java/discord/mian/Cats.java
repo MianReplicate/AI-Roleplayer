@@ -1,10 +1,11 @@
-package discord.mian.custom;
+package discord.mian;
+
+import okhttp3.Call;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 import java.io.InputStream;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.Random;
 
 public class Cats {
@@ -20,16 +21,16 @@ public class Cats {
         if (isGif)
             url = "https://cataas.com/cat/gif";
 
-        HttpClient httpClient = HttpClient.newHttpClient();
+        OkHttpClient client = new OkHttpClient.Builder().build();
 
-        HttpRequest request = HttpRequest
-                .newBuilder(URI.create(url))
-                .GET()
+        Request request = new Request.Builder()
+                .url(url)
+                .get()
                 .build();
 
-        try {
-            HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
-            InputStream inputStream = response.body();
+        Call call = client.newCall(request);
+        try(Response response = call.execute()){
+            InputStream inputStream = response.body().byteStream();
             file = inputStream.readAllBytes();
             IsGif = isGif;
         } catch (Exception e) {

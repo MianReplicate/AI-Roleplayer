@@ -1,6 +1,6 @@
 package discord.mian.interactions;
 
-import discord.mian.custom.SizeHashMap;
+import discord.mian.SizeHashMap;
 import net.dv8tion.jda.api.components.ActionComponent;
 import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.components.replacer.ComponentReplacer;

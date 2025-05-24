@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.mian.api.PromptInfo;
 import discord.mian.api.ProviderInfo;
-import discord.mian.custom.Constants;
+import discord.mian.Constants;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;

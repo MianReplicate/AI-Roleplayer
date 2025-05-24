@@ -7,8 +7,10 @@ import com.knuddels.jtokkit.Encodings;
 import com.knuddels.jtokkit.api.Encoding;
 import com.knuddels.jtokkit.api.EncodingRegistry;
 import com.knuddels.jtokkit.api.EncodingType;
-import discord.mian.custom.*;
+import discord.mian.*;
 import discord.mian.data.Data;
+import discord.mian.data.PromptType;
+import discord.mian.data.ServerConfig;
 import discord.mian.data.character.Character;
 import discord.mian.data.instruction.Instruction;
 import discord.mian.data.Server;
@@ -94,17 +96,17 @@ public class Roleplay {
 
         this.server = AIBot.bot.getServerData(guild);
 
-        Map<String, ConfigEntry> configuration = server.getConfig().getEntries();
+        ServerConfig configuration = server.getConfig();
 
-        this.setTemperature(configuration.get("temperature").asDouble().value);
-        this.setMaxTokens(configuration.get("tokens").asInteger().value);
+        this.setTemperature(server.getConfig().get("temperature", Double.class).getValue());
+        this.setMaxTokens(configuration.get("tokens", Integer.class).getValue());
 
-        String model = configuration.get("model").asString().value;
+        String model = configuration.get("model", String.class).getValue();
         String id = model.substring(0, model.indexOf("|"));
         String display = model.substring(model.indexOf("|") + 1);
 
         this.setModel(new Model(id, display));
-        this.setProvider(configuration.get("provider").asString().value);
+        this.setProvider(configuration.get("provider", String.class).getValue());
         this.registry = Encodings.newDefaultEncodingRegistry();
         this.guild = guild;
 
@@ -925,22 +927,22 @@ public class Roleplay {
     }
 
     public void setMaxTokens(int maxTokens) {
-        server.updateConfig(config -> config.get("tokens").asInteger().value = maxTokens);
+        server.updateConfig(config -> config.get("tokens", Integer.class).setValue(maxTokens));
         this.maxTokens = maxTokens;
     }
 
     public void setModel(Model model) {
-        server.updateConfig(config -> config.get("model").asString().value = model.toString());
+        server.updateConfig(config -> config.get("model", String.class).setValue(model.toString()));
         this.model = model;
     }
 
     public void setTemperature(double temperature) {
-        server.updateConfig(config -> config.get("temperature").asDouble().value = temperature);
+        server.updateConfig(config -> config.get("temperature", Double.class).setValue(temperature));
         this.temperature = Math.max(0, Math.min(temperature, 2));
     }
 
     public void setProvider(String provider) {
-        server.updateConfig(config -> config.get("provider").asString().value = provider);
+        server.updateConfig(config -> config.get("provider", String.class).setValue(provider));
         this.provider = provider;
     }
 

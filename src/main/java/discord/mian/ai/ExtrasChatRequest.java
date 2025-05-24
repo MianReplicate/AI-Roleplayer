@@ -1,4 +1,4 @@
-package discord.mian.custom;
+package discord.mian.ai;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;

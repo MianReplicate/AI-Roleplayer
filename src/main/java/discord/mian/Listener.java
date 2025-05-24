@@ -3,9 +3,7 @@ package discord.mian;
 import discord.mian.ai.AIBot;
 import discord.mian.ai.Roleplay;
 import discord.mian.commands.BotCommands;
-import discord.mian.custom.ConfigEntry;
-import discord.mian.custom.Constants;
-import discord.mian.custom.PromptType;
+import discord.mian.data.PromptType;
 import discord.mian.data.character.Character;
 import discord.mian.interactions.InteractionCreator;
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay;
@@ -156,8 +154,8 @@ public class Listener {
                     Character data = roleplay.findRespondingCharacterFromMessage(msg);
                     if (data != null && !data.getName().equals(event.getAuthor().getName())) {
                         roleplay.promptCharacterToRoleplay(data, msg, true);
-                    } else if (!((ConfigEntry.BoolConfig) AIBot.bot.getServerData(event.getGuild()).getConfig()
-                            .get("only_chat_on_mention")).value) {
+                    } else if (!AIBot.bot.getServerData(event.getGuild()).getConfig()
+                            .get("only_chat_on_mention", Boolean.class).getValue()) {
 
                         if (random.nextBoolean()) {
                             final double total = roleplay.getDatas(PromptType.CHARACTER).stream()

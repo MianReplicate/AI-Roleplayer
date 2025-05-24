@@ -1,8 +1,8 @@
 package discord.mian.ai;
 
 import discord.mian.commands.BotCommands;
-import discord.mian.custom.Constants;
-import discord.mian.custom.Util;
+import discord.mian.Constants;
+import discord.mian.Util;
 import discord.mian.data.Server;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;

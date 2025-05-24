@@ -1,8 +1,7 @@
 package discord.mian.data.character;
 
-import discord.mian.custom.PromptType;
+import discord.mian.data.PromptType;
 import discord.mian.data.AIDocument;
-import discord.mian.custom.Constants;
 import org.bson.codecs.pojo.annotations.BsonId;
 
 public class CharacterDocument extends AIDocument {

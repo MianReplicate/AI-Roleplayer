@@ -6,9 +6,7 @@ import com.mongodb.ServerApi;
 import com.mongodb.ServerApiVersion;
 import com.mongodb.client.MongoClients;
 import discord.mian.ai.AIBot;
-import discord.mian.custom.Cats;
-import discord.mian.custom.Constants;
-import discord.mian.custom.Util;
+import discord.mian.data.ConfigEntryCodec;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.hooks.AnnotatedEventManager;
 import net.dv8tion.jda.api.requests.GatewayIntent;
@@ -35,6 +33,7 @@ public class Main {
                 .version(ServerApiVersion.V1)
                 .build();
         CodecRegistry codecRegistry = CodecRegistries.fromRegistries(
+                CodecRegistries.fromCodecs(new ConfigEntryCodec()),
                 MongoClientSettings.getDefaultCodecRegistry(),
                 CodecRegistries.fromProviders(PojoCodecProvider.builder().automatic(true).build())
         );

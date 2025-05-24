@@ -1,9 +1,10 @@
-package discord.mian.custom;
+package discord.mian;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.client.MongoDatabase;
 import discord.mian.ai.AIBot;
+import discord.mian.data.PromptType;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.components.container.Container;
 import net.dv8tion.jda.api.components.container.ContainerChildComponent;

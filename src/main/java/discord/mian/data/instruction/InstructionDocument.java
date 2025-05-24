@@ -1,6 +1,6 @@
 package discord.mian.data.instruction;
 
-import discord.mian.custom.PromptType;
+import discord.mian.data.PromptType;
 import discord.mian.data.AIDocument;
 import org.bson.codecs.pojo.annotations.BsonId;
 

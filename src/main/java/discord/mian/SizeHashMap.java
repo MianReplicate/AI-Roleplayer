@@ -1,4 +1,4 @@
-package discord.mian.custom;
+package discord.mian;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

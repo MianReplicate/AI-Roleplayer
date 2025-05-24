@@ -5,10 +5,8 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.ReplaceOptions;
-import discord.mian.custom.ConfigEntry;
-import discord.mian.custom.Constants;
-import discord.mian.custom.PromptType;
-import discord.mian.custom.Util;
+import discord.mian.Constants;
+import discord.mian.Util;
 import discord.mian.data.character.Character;
 import discord.mian.data.character.CharacterDocument;
 import discord.mian.data.instruction.Instruction;
@@ -19,7 +17,6 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Role;
 
 import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Consumer;
 
 public class Server {
@@ -51,46 +48,46 @@ public class Server {
     }
 
     private ServerConfig generateConfig(ServerConfig configuration) {
-        ConfigEntry<String> openRouter = new ConfigEntry<>();
+        ConfigEntry<String> openRouter = new ConfigEntry<>(String.class);
         openRouter.setDescription("The API key to use for models on Open Router");
         openRouter.setValue("");
         configuration.putIfAbsent("open_router_key", openRouter);
 
-        ConfigEntry<String> imgbb = new ConfigEntry<>();
+        ConfigEntry<String> imgbb = new ConfigEntry<>(String.class);
         imgbb.setDescription("The API key to use for getting and posting avatars on IMGBB");
         imgbb.setValue("");
         configuration.putIfAbsent("imgbb_key", imgbb);
 
-        ConfigEntry<Boolean> onlyChatOnMention = new ConfigEntry<>();
+        ConfigEntry<Boolean> onlyChatOnMention = new ConfigEntry<>(Boolean.class);
         onlyChatOnMention.setDescription("Whether the AI will only reply when mentioned through reply or its name");
         onlyChatOnMention.setValue(false);
         configuration.putIfAbsent("only_chat_on_mention", onlyChatOnMention);
 
-        ConfigEntry<Long> botRole = new ConfigEntry<>();
+        ConfigEntry<Long> botRole = new ConfigEntry<>(Long.class);
         botRole.setDescription("Long ID of the bot controller role");
         botRole.setHidden(true);
         botRole.setValue(0L);
         configuration.putIfAbsent("bot_role_id", botRole);
 
-        ConfigEntry<Double> temperature = new ConfigEntry<>();
+        ConfigEntry<Double> temperature = new ConfigEntry<>(Double.class);
         temperature.setDescription("Temperature of model");
         temperature.setHidden(true);
         temperature.setValue(1D);
         configuration.putIfAbsent("temperature", temperature);
 
-        ConfigEntry<Integer> tokens = new ConfigEntry<>();
+        ConfigEntry<Integer> tokens = new ConfigEntry<>(Integer.class);
         tokens.setDescription("Max tokens of model");
         tokens.setHidden(true);
         tokens.setValue(8192);
         configuration.putIfAbsent("tokens", tokens);
 
-        ConfigEntry<String> provider = new ConfigEntry<>();
+        ConfigEntry<String> provider = new ConfigEntry<>(String.class);
         provider.setDescription("Provider of model");
         provider.setHidden(true);
         provider.setValue("");
         configuration.putIfAbsent("provider", provider);
 
-        ConfigEntry<String> model = new ConfigEntry<>();
+        ConfigEntry<String> model = new ConfigEntry<>(String.class);
         model.setDescription("The model being used");
         model.setHidden(true);
         model.setValue(Constants.DEFAULT_MODEL);
@@ -107,9 +104,9 @@ public class Server {
         ), config, new ReplaceOptions().upsert(true));
     }
 
-    public void updateConfig(Consumer<Map<String, ConfigEntry<?>>> updateConsumer) throws MongoException {
+    public void updateConfig(Consumer<ServerConfig> updateConsumer) throws MongoException {
         ServerConfig config = getConfig();
-        updateConsumer.accept(config.getEntries());
+        updateConsumer.accept(config);
 
         saveConfig(config);
     }

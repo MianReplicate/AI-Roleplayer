@@ -1,4 +1,4 @@
-package discord.mian.custom;
+package discord.mian.commands;
 
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent;
