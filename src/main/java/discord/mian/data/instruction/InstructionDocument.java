@@ -1,36 +1,26 @@
 package discord.mian.data.instruction;
 
-import discord.mian.api.AIDocument;
+import discord.mian.custom.PromptType;
+import discord.mian.data.AIDocument;
 import org.bson.codecs.pojo.annotations.BsonId;
 
-public class InstructionDocument implements AIDocument {
+public class InstructionDocument extends AIDocument {
     @BsonId
     private String name;
+    private long server;
     private String prompt;
 
-    public InstructionDocument(){}
-
-    public InstructionDocument(String name){
-        this.name = name;
+    public InstructionDocument(){
+        setType(PromptType.INSTRUCTION.displayName.toLowerCase());
     }
 
-    public InstructionDocument(String name, String prompt){
-        this.name = name;
-        this.prompt = prompt;
+    public InstructionDocument(String name, long server){
+        super(name, server);
+        setType(PromptType.INSTRUCTION.displayName.toLowerCase());
     }
 
-    @Override
-    public String getName() {
-        return name;
-    }
-
-    @Override
-    public String getPrompt() {
-        return prompt;
-    }
-
-    @Override
-    public void setPrompt(String prompt) {
-        this.prompt = prompt;
+    public InstructionDocument(String name, long server, String prompt){
+        super(name, server, prompt);
+        setType(PromptType.INSTRUCTION.displayName.toLowerCase());
     }
 }

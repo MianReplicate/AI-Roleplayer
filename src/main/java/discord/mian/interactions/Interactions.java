@@ -169,6 +169,12 @@ public class Interactions {
                             .setPlaceholder("Likelihood of responding when mentioned in chat")
                             .build()
             ));
+            components.add(ActionRow.of(
+                    TextInput.create("avatar", "Avatar", TextInputStyle.SHORT)
+                            .setPlaceholder("Direct image address to set the character's avatar")
+                            .setRequired(false)
+                            .build()
+            ));
         }
 
         event.replyModal(
@@ -200,6 +206,12 @@ public class Interactions {
                             .setValue(String.valueOf(((Character) data).getDocument().getTalkability()))
                             .build()
             ));
+            components.add(ActionRow.of(
+                    TextInput.create("avatar", "Avatar", TextInputStyle.SHORT)
+                            .setPlaceholder("Direct image address to set the character's avatar")
+                            .setRequired(false)
+                            .build()
+            ));
         }
 
         event.replyModal(
@@ -225,6 +237,7 @@ public class Interactions {
 
             double talkability = Math.min(1, Math.max(0, event.getValue("talkability") != null ?
                     tryParse.apply(event.getValue("talkability").getAsString()) : 0.5));
+            String avatar = event.getValue("avatar") != null ? event.getValue("avatar").getAsString() : null;
             Server server = AIBot.bot.getServerData(event.getGuild());
 
             Data<?> data = server.getDatas(promptType).get(promptName);
@@ -234,6 +247,8 @@ public class Interactions {
                     data.updateDocument(doc -> {
                         if(promptType == PromptType.CHARACTER && doc instanceof CharacterDocument chr){
                             chr.setTalkability(talkability);
+                            if(avatar != null)
+                                chr.setAvatar(avatar);
                         }
                         doc.setPrompt(prompt);
                     });

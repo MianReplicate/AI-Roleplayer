@@ -1,36 +1,26 @@
 package discord.mian.data.world;
 
-import discord.mian.api.AIDocument;
+import discord.mian.custom.PromptType;
+import discord.mian.data.AIDocument;
 import org.bson.codecs.pojo.annotations.BsonId;
 
-public class WorldDocument implements AIDocument {
+public class WorldDocument extends AIDocument {
     @BsonId
     private String name;
+    private long server;
     private String prompt;
 
-    public WorldDocument(){}
-
-    public WorldDocument(String name){
-        this.name = name;
+    public WorldDocument(){
+        setType(PromptType.WORLD.displayName.toLowerCase());
     }
 
-    public WorldDocument(String name, String prompt){
-        this.name = name;
-        this.prompt = prompt;
+    public WorldDocument(String name, long server){
+        super(name, server);
+        setType(PromptType.WORLD.displayName.toLowerCase());
     }
 
-    @Override
-    public String getName() {
-        return name;
-    }
-
-    @Override
-    public String getPrompt() {
-        return prompt;
-    }
-
-    @Override
-    public void setPrompt(String prompt) {
-        this.prompt = prompt;
+    public WorldDocument(String name, long server, String prompt){
+        super(name, server, prompt);
+        setType(PromptType.WORLD.displayName.toLowerCase());
     }
 }

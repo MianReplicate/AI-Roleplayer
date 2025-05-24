@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.mongodb.client.MongoCursor;
+import com.mongodb.client.model.Filters;
 import discord.mian.custom.ConfigEntry;
 import discord.mian.custom.Constants;
 import discord.mian.custom.PromptType;
@@ -182,8 +183,10 @@ public class Server {
             worldDatas = new HashMap<>();
         }
 
-        try(MongoCursor<WorldDocument> cursor = Util.DATABASE.getCollection("world", WorldDocument.class)
-                .find().iterator()){
+        try(MongoCursor<WorldDocument> cursor = Util.DATABASE.getCollection("prompt", WorldDocument.class)
+                .find(Filters.and(
+                        Filters.eq("server", guild.getIdLong()),
+                        Filters.eq("type", PromptType.WORLD.displayName.toLowerCase()))).iterator()){
             while(cursor.hasNext()){
                 WorldDocument document = cursor.next();
                 worldDatas.putIfAbsent(document.getName(), new World(document));
@@ -216,8 +219,10 @@ public class Server {
             instructionDatas = new HashMap<>();
         }
 
-        try(MongoCursor<InstructionDocument> cursor = Util.DATABASE.getCollection("instruction", InstructionDocument.class)
-                .find().iterator()){
+        try(MongoCursor<InstructionDocument> cursor = Util.DATABASE.getCollection("prompt", InstructionDocument.class)
+                .find(Filters.and(
+                        Filters.eq("server", guild.getIdLong()),
+                        Filters.eq("type", PromptType.INSTRUCTION.displayName.toLowerCase()))).iterator()){
             while(cursor.hasNext()){
                 InstructionDocument document = cursor.next();
                 instructionDatas.putIfAbsent(document.getName(), new Instruction(document));
@@ -248,8 +253,11 @@ public class Server {
             characterDatas = new HashMap<>();
         }
 
-        try(MongoCursor<CharacterDocument> cursor = Util.DATABASE.getCollection("character", CharacterDocument.class)
-                .find().iterator()){
+        try(MongoCursor<CharacterDocument> cursor = Util.DATABASE.getCollection("prompt", CharacterDocument.class)
+                .find(Filters.and(
+                        Filters.eq("server", guild.getIdLong()),
+                        Filters.eq("type", PromptType.CHARACTER.displayName.toLowerCase()))
+                ).iterator()){
             while(cursor.hasNext()){
                 CharacterDocument document = cursor.next();
                 characterDatas.putIfAbsent(document.getName(), new Character(document));
@@ -305,7 +313,7 @@ public class Server {
 //        FileWriter writer = new FileWriter(defPath);
 //        writer.write(definition);
 //        writer.close();
-        Character data = new Character(new CharacterDocument(name));
+        Character data = new Character(new CharacterDocument(name, guild.getIdLong()));
         data.updateDocument(document -> {
             document.setPrompt(definition);
             document.setTalkability(talkability);
@@ -324,7 +332,7 @@ public class Server {
 //        FileWriter writer = new FileWriter(instructionFile);
 //        writer.write(prompt);
 //        writer.close();
-        Instruction data = new Instruction(new InstructionDocument(name));
+        Instruction data = new Instruction(new InstructionDocument(name, guild.getIdLong()));
         data.updateDocument(document -> document.setPrompt(prompt));
 
         instructionDatas.putIfAbsent(name, data);
@@ -340,7 +348,7 @@ public class Server {
 //        FileWriter writer = new FileWriter(worldsFile);
 //        writer.write(prompt);
 //        writer.close();
-        World data = new World(new WorldDocument(name));
+        World data = new World(new WorldDocument(name, guild.getIdLong()));
         data.updateDocument(document -> document.setPrompt(prompt));
 
         worldDatas.putIfAbsent(name, data);

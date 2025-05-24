@@ -8,6 +8,7 @@ import discord.mian.custom.Constants;
 import discord.mian.custom.PromptType;
 import discord.mian.data.character.Character;
 import discord.mian.interactions.InteractionCreator;
+import net.dv8tion.jda.api.components.textdisplay.TextDisplay;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent;
@@ -56,7 +57,9 @@ public class Listener {
             ((Consumer<Object>) component).accept(event);
         } catch (Exception e) {
             event.getHook().retrieveOriginal().queue(
-                    message -> message.editMessage("An unexpected error occurred :<").queue(),
+                    message -> event.getHook().editOriginalComponents(
+                            TextDisplay.of("An unexpected error occurred :<")
+                    ).useComponentsV2().queue(),
                     failure -> event.reply("An unexpected error occurred :<").setEphemeral(true).queue()
             );
             throw (e);
@@ -94,7 +97,9 @@ public class Listener {
             component.accept(event);
         } catch (Exception e) {
             event.getHook().retrieveOriginal().queue(
-                    message -> message.editMessage("Failed to activate button :<").queue(),
+                    message -> message.editMessageComponents(
+                            TextDisplay.of("Failed to activate button :<")
+                    ).useComponentsV2().queue(),
                     failure -> event.reply("Failed to activate button :<").setEphemeral(true).queue()
             );
             throw (e);
@@ -114,7 +119,9 @@ public class Listener {
             component.accept(event);
         } catch (Exception e) {
             event.getHook().retrieveOriginal().queue(
-                    message -> message.editMessage("Failed to select options :<").queue(),
+                    message -> message.editMessageComponents(
+                            TextDisplay.of("Failed to select options :<")
+                    ).useComponentsV2().queue(),
                     failure -> event.reply("Failed to select options :<").setEphemeral(true).queue()
             );
             throw (e);

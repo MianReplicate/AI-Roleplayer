@@ -115,6 +115,11 @@ public class Util {
         return "```" + string + "```";
     }
 
+    public static File getDefaultsFor(PromptType promptType){
+        File data = getDataFolder();
+        return new File(data.getPath() + "/" + promptType.displayName.toLowerCase());
+    }
+
     public static File getDataFolder() {
         File data = new File("data");
         if (!data.exists()) {

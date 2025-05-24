@@ -8,6 +8,7 @@ import com.knuddels.jtokkit.api.Encoding;
 import com.knuddels.jtokkit.api.EncodingRegistry;
 import com.knuddels.jtokkit.api.EncodingType;
 import discord.mian.custom.*;
+import discord.mian.data.Data;
 import discord.mian.data.character.Character;
 import discord.mian.data.instruction.Instruction;
 import discord.mian.data.Server;
@@ -1011,7 +1012,7 @@ public class Roleplay {
         currentCharacter = characters.get(name);
     }
 
-    public void addData(PromptType type, Data data) {
+    public void addData(PromptType type, Data<?> data) {
         if (!server.getDatas(type).containsKey(data.getName()))
             throw new RuntimeException(data.getName() + " is no longer a valid data!");
         switch (type) {
