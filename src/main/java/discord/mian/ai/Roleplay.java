@@ -94,7 +94,7 @@ public class Roleplay {
 
         this.server = AIBot.bot.getServerData(guild);
 
-        HashMap<String, ConfigEntry> configuration = server.getConfig();
+        Map<String, ConfigEntry> configuration = server.getConfig().getEntries();
 
         this.setTemperature(configuration.get("temperature").asDouble().value);
         this.setMaxTokens(configuration.get("tokens").asInteger().value);
@@ -291,7 +291,7 @@ public class Roleplay {
                 OkHttpClient client = new OkHttpClient.Builder().build();
                 Request request = new Request.Builder()
                         .url(Constants.BASE_URL + "/v1/chat/completions")
-                        .header("Authorization", "Bearer " + server.getKey())
+                        .header("Authorization", "Bearer " + server.getLLMKey())
                         .header("Content-Type", "application/json")
                         .post(RequestBody.create(json, MediaType.get("application/json; charset=utf-8")))
                         .build();
@@ -925,34 +925,22 @@ public class Roleplay {
     }
 
     public void setMaxTokens(int maxTokens) {
-        HashMap<String, ConfigEntry> config = server.getConfig();
-        config.get("tokens").asInteger().value = maxTokens;
-        server.saveToConfig(config);
-
+        server.updateConfig(config -> config.get("tokens").asInteger().value = maxTokens);
         this.maxTokens = maxTokens;
     }
 
     public void setModel(Model model) {
-        HashMap<String, ConfigEntry> config = server.getConfig();
-        config.get("model").asString().value = model.toString();
-        server.saveToConfig(config);
-
+        server.updateConfig(config -> config.get("model").asString().value = model.toString());
         this.model = model;
     }
 
     public void setTemperature(double temperature) {
-        HashMap<String, ConfigEntry> config = server.getConfig();
-        config.get("temperature").asDouble().value = temperature;
-        server.saveToConfig(config);
-
+        server.updateConfig(config -> config.get("temperature").asDouble().value = temperature);
         this.temperature = Math.max(0, Math.min(temperature, 2));
     }
 
     public void setProvider(String provider) {
-        HashMap<String, ConfigEntry> config = server.getConfig();
-        config.get("provider").asString().value = provider;
-        server.saveToConfig(config);
-
+        server.updateConfig(config -> config.get("provider").asString().value = provider);
         this.provider = provider;
     }
 

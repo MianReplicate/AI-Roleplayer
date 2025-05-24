@@ -1,5 +1,6 @@
 package discord.mian.data;
 
+import com.mongodb.MongoException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.ReplaceOptions;
@@ -35,7 +36,7 @@ public class Data<T extends AIDocument> {
         return document.getPrompt();
     }
 
-    public void updateDocument(Consumer<T> documentUpdater){
+    public void updateDocument(Consumer<T> documentUpdater) throws MongoException {
         documentUpdater.accept(document);
         collection.replaceOne(Filters.and(
                 Filters.eq("_id", document.getName()),
@@ -44,7 +45,7 @@ public class Data<T extends AIDocument> {
     }
 
     // delete document
-    public void nuke(){
+    public void nuke() throws MongoException{
         collection.deleteOne(Filters.and(
                 Filters.eq("_id", document.getName()),
                 Filters.eq("server", document.getServer())

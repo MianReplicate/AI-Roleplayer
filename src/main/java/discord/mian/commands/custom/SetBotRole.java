@@ -1,5 +1,6 @@
 package discord.mian.commands.custom;
 
+import com.mongodb.MongoException;
 import discord.mian.ai.AIBot;
 import discord.mian.commands.SlashCommand;
 import discord.mian.custom.ConfigEntry;
@@ -31,11 +32,14 @@ public class SetBotRole extends SlashCommand {
             Role role = event.getOption("role", OptionMapping::getAsRole);
 
             Server server = AIBot.bot.getServerData(event.getGuild());
-            HashMap<String, ConfigEntry> entries = server.getConfig();
-            ((ConfigEntry.LongConfig) entries.get("bot_role_id")).value = role != null ? role.getIdLong() : 0L;
-            server.saveToConfig(entries);
-
-            event.reply("Set roleplay master role!").setEphemeral(true).queue();
+            try{
+                server.updateConfig(entries -> {
+                    ((ConfigEntry.LongConfig) entries.get("bot_role_id")).value = role != null ? role.getIdLong() : 0L;
+                });
+                event.reply("Set roleplay master role!").setEphemeral(true).queue();
+            }catch(MongoException ignored){
+                event.reply("Failed to set roleplay master role!").setEphemeral(true).queue();
+            }
         }
         return false;
     }

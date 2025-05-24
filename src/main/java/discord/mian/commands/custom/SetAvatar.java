@@ -1,6 +1,7 @@
 package discord.mian.commands.custom;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.MongoException;
 import discord.mian.ai.AIBot;
 import discord.mian.commands.SlashCommand;
 import discord.mian.custom.Constants;
@@ -63,9 +64,17 @@ public class SetAvatar extends SlashCommand {
             String url =
                     Util.uploadImage(server.getConfig().get("imgbb_key").asString().value, name, inputStream.readAllBytes());
 
-            existingCharacter.updateDocument(doc -> doc.setAvatar(url));
+            if(url == null){
+                event.getHook().editOriginal("Failed to upload avatar to IMGBB").queue();
+            } else {
+                try{
+                    existingCharacter.updateDocument(doc -> doc.setAvatar(url));
+                    event.getHook().editOriginal("Successfully replaced avatar for " + name).queue();
+                }catch(MongoException ignored){
+                    event.getHook().editOriginal("Failed to replace avatar for " + name).queue();
+                }
+            }
 
-            event.getHook().editOriginal("Successfully replaced avatar for " + name).queue();
             return true;
         }
 

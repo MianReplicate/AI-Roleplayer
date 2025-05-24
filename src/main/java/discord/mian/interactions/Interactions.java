@@ -2,6 +2,7 @@ package discord.mian.interactions;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.MongoException;
 import discord.mian.ai.AIBot;
 import discord.mian.ai.ResponseInfo;
 import discord.mian.ai.Roleplay;
@@ -260,7 +261,7 @@ public class Interactions {
                     }
                 }
 
-            } catch (IOException e) {
+            } catch (MongoException e) {
                 Constants.LOGGER.error("Failed to edit/add prompts", e);
             }
 
@@ -288,9 +289,9 @@ public class Interactions {
 
     public static List<ContainerChildComponent> createConfigViewerContainer(Message message, Direction direction) {
         Server server = AIBot.bot.getServerData(message.getGuild());
-        HashMap<String, ConfigEntry> configEntries = server.getConfig();
+        Map<String, ConfigEntry<?>> configEntries = server.getConfig().getEntries();
         List<String> display = configEntries.entrySet().stream().filter(entry ->
-                !entry.getValue().hidden).map(Map.Entry::getKey).toList();
+                !entry.getValue().getHidden()).map(Map.Entry::getKey).toList();
 
         List<ContainerChildComponent> components = new ArrayList<>();
 
@@ -329,7 +330,7 @@ public class Interactions {
         display = display.subList(start, end);
         for (int i = 0; i < display.size(); i++) {
             String string = display.get(i);
-            description.append(string + ": " + configEntries.get(string).description);
+            description.append(string + ": " + configEntries.get(string).getDescription());
 
             description.append("\n");
         }
@@ -379,7 +380,7 @@ public class Interactions {
             components.add(
                     ActionRow.of(InteractionCreator.createStringMenu((event -> {
                                 String configOption = event.getSelectedOptions().getFirst().getValue();
-                                ConfigEntry entry = AIBot.bot.getServerData(event.getGuild()).getConfig().get(configOption);
+                                ConfigEntry<?> entry = AIBot.bot.getServerData(event.getGuild()).getConfig().get(configOption);
 
                                 TextInput.Builder textInput = TextInput.create("value", "Value", TextInputStyle.SHORT)
                                         .setPlaceholder("Enter a valid value: For booleans, type \"true\" or \"false\".");
@@ -390,7 +391,6 @@ public class Interactions {
 
                                 event.replyModal(InteractionCreator.createModal("Editing " + configOption.toUpperCase(), (modalEvent) -> {
                                     String value = modalEvent.getValue("value").getAsString();
-                                    HashMap<String, ConfigEntry> entries = AIBot.bot.getServerData(modalEvent.getGuild()).getConfig();
 
                                     if (entry instanceof ConfigEntry.StringConfig stringConfig)
                                         stringConfig.value = value;
@@ -406,12 +406,15 @@ public class Interactions {
                                         boolConfig.value = tryParseBoolean.apply(value);
                                     }
 
-                                    entries.put(configOption, entry);
-
-                                    if (AIBot.bot.getServerData(modalEvent.getGuild()).saveToConfig(entries))
-                                        modalEvent.reply("Saved config!").setEphemeral(true).queue();
-                                    else
-                                        modalEvent.reply("Failed to update config!").setEphemeral(true).queue();
+                                    modalEvent.deferReply(true).queue();
+                                    try{
+                                        AIBot.bot.getServerData(modalEvent.getGuild()).updateConfig(entries -> {
+                                            entries.put(configOption, entry);
+                                        });
+                                        modalEvent.getHook().editOriginal("Saved config!").queue();
+                                    }catch(MongoException ignored){
+                                        modalEvent.getHook().editOriginal("Failed to update config!").queue();
+                                    }
                                 }).addComponents(
                                         ActionRow.of(textInput.build())).build()).queue();
                             }))
@@ -677,7 +680,7 @@ public class Interactions {
         String fileName = isGif ? "image.gif" : "image.png";
 
         Server server = AIBot.bot.getServerData(message.getGuild());
-        String key = server.getKey();
+        String key = server.getLLMKey();
 
         ArrayList<Button> roleplayComponents = new ArrayList<>();
 
@@ -1015,13 +1018,12 @@ public class Interactions {
     public static Button getContinue() {
         return InteractionCreator.createPermanentButton(Button.primary("start_here", "Continue"),
                         button -> {
-                            button.deferEdit().queue();
                             try {
                                 AIBot.bot.getChat(button.getGuild()).startRoleplay(
                                         button.getMessage(), button.getHook(), null
                                 );
                             } catch (Exception e) {
-                                button.getHook().editOriginal("Failed to continue roleplay!").queue();
+                                button.reply("Failed to continue roleplay!").setEphemeral(true).queue();
                                 Constants.LOGGER.error("Failed to continue roleplay", e);
                             }
                         })
