@@ -3,7 +3,7 @@ package discord.mian.commands.custom;
 import discord.mian.ai.AIBot;
 import discord.mian.ai.Roleplay;
 import discord.mian.commands.SlashCommand;
-import discord.mian.data.CharacterData;
+import discord.mian.data.character.Character;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -36,7 +36,7 @@ public class Poke extends SlashCommand {
             ThreadChannel channel = roleplay.getChannel();
 
             if (event.getChannel().getIdLong() == channel.getIdLong()) {
-                CharacterData character = AIBot.bot.getServerData(event.getGuild())
+                Character character = AIBot.bot.getServerData(event.getGuild())
                         .getCharacterDatas().get(event.getOption("character", OptionMapping::getAsString));
                 if (character == null) {
                     event.getHook().editOriginal("Invalid character!").queue();

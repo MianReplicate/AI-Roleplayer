@@ -6,7 +6,7 @@ import discord.mian.commands.BotCommands;
 import discord.mian.custom.ConfigEntry;
 import discord.mian.custom.Constants;
 import discord.mian.custom.PromptType;
-import discord.mian.data.CharacterData;
+import discord.mian.data.character.Character;
 import discord.mian.interactions.InteractionCreator;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
@@ -142,11 +142,11 @@ public class Listener {
             if (event.getChannel().getIdLong() == roleplay.getChannel().getIdLong() && roleplay.isRunningRoleplay()) {
                 Random random = new Random();
 
-                CharacterData fromContent = roleplay.findRespondingCharacterFromContent(msg.getContentRaw());
+                Character fromContent = roleplay.findRespondingCharacterFromContent(msg.getContentRaw());
                 if (fromContent != null && !fromContent.getName().equals(event.getAuthor().getName()))
                     roleplay.promptCharacterToRoleplay(fromContent, msg, true);
                 else {
-                    CharacterData data = roleplay.findRespondingCharacterFromMessage(msg);
+                    Character data = roleplay.findRespondingCharacterFromMessage(msg);
                     if (data != null && !data.getName().equals(event.getAuthor().getName())) {
                         roleplay.promptCharacterToRoleplay(data, msg, true);
                     } else if (!((ConfigEntry.BoolConfig) AIBot.bot.getServerData(event.getGuild()).getConfig()
@@ -155,11 +155,11 @@ public class Listener {
                         if (random.nextBoolean()) {
                             final double total = roleplay.getDatas(PromptType.CHARACTER).stream()
                                     .filter(data1 -> !data1.getName().equals(event.getAuthor().getName()))
-                                    .mapToDouble((data1) -> ((CharacterData) data1).getTalkability()).sum();
+                                    .mapToDouble((data1) -> ((Character) data1).getTalkability()).sum();
 
                             double percentage = Math.random();
-                            List<CharacterData> meetsCriteria = roleplay.getDatas(PromptType.CHARACTER).stream()
-                                    .map(data1 -> (CharacterData) data1)
+                            List<Character> meetsCriteria = roleplay.getDatas(PromptType.CHARACTER).stream()
+                                    .map(data1 -> (Character) data1)
                                     .filter(
                                             characterData -> (characterData.getTalkability() / total) >= percentage &&
                                                     !characterData.getName().equals(event.getAuthor().getName())

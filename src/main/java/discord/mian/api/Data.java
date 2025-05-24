@@ -6,6 +6,9 @@ import java.io.IOException;
 public interface Data {
     String getName();
 
+    AIDocument getDocument();
+    void saveDocument();
+
     File getPromptFile();
 
     String getPrompt() throws IOException;

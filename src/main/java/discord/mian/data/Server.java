@@ -8,6 +8,7 @@ import discord.mian.custom.ConfigEntry;
 import discord.mian.custom.Constants;
 import discord.mian.custom.PromptType;
 import discord.mian.custom.Util;
+import discord.mian.data.character.Character;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Role;
 
@@ -19,9 +20,9 @@ import java.util.Map;
 import java.util.Objects;
 
 public class Server {
-    private HashMap<String, CharacterData> characterDatas;
-    private HashMap<String, InstructionData> instructionDatas;
-    private HashMap<String, WorldData> worldDatas;
+    private HashMap<String, discord.mian.data.character.Character> characterDatas;
+    private HashMap<String, Instruction> instructionDatas;
+    private HashMap<String, World> worldDatas;
     private final Guild guild;
 
     public Server(Guild guild) {
@@ -169,7 +170,7 @@ public class Server {
         };
     }
 
-    public HashMap<String, WorldData> getWorldDatas() {
+    public HashMap<String, World> getWorldDatas() {
         File worldsFolder = Util.createFileRelativeToData(getServerPath() + "/worlds");
         if (!worldsFolder.exists())
             worldsFolder.mkdir();
@@ -183,7 +184,7 @@ public class Server {
                 int place = world.getName().lastIndexOf(".");
                 if (place != -1) {
                     if (world.getName().substring(place).equals(".txt")) {
-                        worldDatas.putIfAbsent(world.getName().substring(0, place), new WorldData(world));
+                        worldDatas.putIfAbsent(world.getName().substring(0, place), new World(world));
                     }
                 }
             } catch (Exception e) {
@@ -195,7 +196,7 @@ public class Server {
         return worldDatas;
     }
 
-    public HashMap<String, InstructionData> getInstructionDatas() {
+    public HashMap<String, Instruction> getInstructionDatas() {
         File instructionsFolder = Util.createFileRelativeToData(getServerPath() + "/instructions");
         if (!instructionsFolder.exists())
             instructionsFolder.mkdir();
@@ -209,7 +210,7 @@ public class Server {
                 int place = instruction.getName().lastIndexOf(".");
                 if (place != -1) {
                     if (instruction.getName().substring(place).equals(".txt")) {
-                        instructionDatas.putIfAbsent(instruction.getName().substring(0, place), new InstructionData(instruction));
+                        instructionDatas.putIfAbsent(instruction.getName().substring(0, place), new Instruction(instruction));
                     }
                 }
             } catch (Exception e) {
@@ -221,7 +222,7 @@ public class Server {
         return instructionDatas;
     }
 
-    public HashMap<String, CharacterData> getCharacterDatas() {
+    public HashMap<String, discord.mian.data.character.Character> getCharacterDatas() {
         File charactersFolder = getCharactersFolder();
 
         if (characterDatas == null) {
@@ -230,7 +231,7 @@ public class Server {
 
         for (File character : Objects.requireNonNull(charactersFolder.listFiles())) {
             try {
-                characterDatas.putIfAbsent(character.getName(), new CharacterData(this, character));
+                characterDatas.putIfAbsent(character.getName(), new discord.mian.data.character.Character(this, character));
             } catch (Exception e) {
                 Constants.LOGGER.info("Failed to load character " + character.getName() + " for guild: " + guild.getName());
                 Constants.LOGGER.error(String.valueOf(e));
@@ -278,7 +279,7 @@ public class Server {
         writer.write(definition);
         writer.close();
 
-        CharacterData data = new CharacterData(this, characterFolder);
+        discord.mian.data.character.Character data = new Character(this, characterFolder);
         data.setTalkability(talkability);
 
         characterDatas.putIfAbsent(name, data);
@@ -295,7 +296,7 @@ public class Server {
         writer.write(prompt);
         writer.close();
 
-        instructionDatas.putIfAbsent(name, new InstructionData(instructionFile));
+        instructionDatas.putIfAbsent(name, new Instruction(instructionFile));
     }
 
     public void createWorld(String name, String prompt) throws IOException {
@@ -309,7 +310,7 @@ public class Server {
         writer.write(prompt);
         writer.close();
 
-        worldDatas.putIfAbsent(name, new WorldData(worldsFile));
+        worldDatas.putIfAbsent(name, new World(worldsFile));
     }
 
 }

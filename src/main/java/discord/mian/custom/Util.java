@@ -2,6 +2,7 @@ package discord.mian.custom;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.client.MongoDatabase;
 import discord.mian.ai.AIBot;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.components.container.Container;
@@ -31,6 +32,7 @@ import java.util.zip.ZipInputStream;
 
 public class Util {
     public static final HashMap<Predicate<LocalDate>, List<String>> TOOL_TIPS = new HashMap<>();
+    public static MongoDatabase DATABASE;
 
     static {
         TOOL_TIPS.put(date -> true, List.of(

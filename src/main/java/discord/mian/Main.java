@@ -1,5 +1,10 @@
 package discord.mian;
 
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.ServerApi;
+import com.mongodb.ServerApiVersion;
+import com.mongodb.client.MongoClients;
 import discord.mian.ai.AIBot;
 import discord.mian.custom.Cats;
 import discord.mian.custom.Constants;
@@ -18,17 +23,18 @@ import java.util.concurrent.TimeUnit;
 public class Main {
     public static void main(String[] args) throws Exception {
         String discord_bot_token = args[0];
-//        String db_username = args[1];
-//        String db_password = args[2];
-//
-//        String connectionString = "mongodb+srv://"+db_username+":"+db_password+"@mianmongo.pqf7jgb.mongodb.net/?retryWrites=true&w=majority&appName=MianMongo";
-//        ServerApi serverApi = ServerApi.builder()
-//                .version(ServerApiVersion.V1)
-//                .build();
-//        MongoClientSettings settings = MongoClientSettings.builder()
-//                .applyConnectionString(new ConnectionString(connectionString))
-//                .serverApi(serverApi)
-//                .build();
+        String db_username = args[1];
+        String db_password = args[2];
+
+        String connectionString = "mongodb+srv://"+db_username+":"+db_password+"@mianmongo.pqf7jgb.mongodb.net/?retryWrites=true&w=majority&appName=MianMongo";
+        ServerApi serverApi = ServerApi.builder()
+                .version(ServerApiVersion.V1)
+                .build();
+        MongoClientSettings settings = MongoClientSettings.builder()
+                .applyConnectionString(new ConnectionString(connectionString))
+                .serverApi(serverApi)
+                .build();
+        Util.DATABASE = MongoClients.create(settings).getDatabase("roleplayer");
 
         Constants.LOGGER.info("IT'S TIME TO ROLEPLAY KIDDOS");
 

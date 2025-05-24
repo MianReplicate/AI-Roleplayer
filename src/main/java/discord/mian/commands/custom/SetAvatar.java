@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.mian.ai.AIBot;
 import discord.mian.commands.SlashCommand;
 import discord.mian.custom.Util;
-import discord.mian.data.CharacterData;
+import discord.mian.data.character.Character;
 import discord.mian.data.Server;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
@@ -42,7 +42,7 @@ public class SetAvatar extends SlashCommand {
             event.deferReply().setEphemeral(true).queue();
             Server server = AIBot.bot.getServerData(event.getGuild());
             String name = event.getOption("name", OptionMapping::getAsString);
-            CharacterData existingCharacter = server.getCharacterDatas().get(name);
+            Character existingCharacter = server.getCharacterDatas().get(name);
 
             Message.Attachment avatar = event.getOption("avatar", OptionMapping::getAsAttachment);
 
@@ -60,12 +60,12 @@ public class SetAvatar extends SlashCommand {
             if (existingAvatar != null)
                 existingAvatar.delete();
 
-            File avatarFile = new File(existingCharacter.getCharacterFolder().getPath() + "/avatar." + avatar.getFileExtension());
+            File avatarFile = new File(existingCharacter.getDocument().getPath() + "/avatar." + avatar.getFileExtension());
             avatarFile.createNewFile();
             avatar.getProxy().downloadToFile(avatarFile).get();
 
             ObjectMapper mapper = new ObjectMapper();
-            File dataJson = new File(existingCharacter.getCharacterFolder().getPath() + "/data.json");
+            File dataJson = new File(existingCharacter.getDocument().getPath() + "/data.json");
             if (dataJson.exists()) {
                 Map<String, String> map = mapper.readValue(dataJson, Map.class);
                 map.put("avatar_link", null);

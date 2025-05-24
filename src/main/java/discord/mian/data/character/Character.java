@@ -1,12 +1,11 @@
-package discord.mian.data;
+package discord.mian.data.character;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import discord.mian.api.Chattable;
-import discord.mian.api.Data;
-import discord.mian.custom.ConfigEntry;
 import discord.mian.custom.Constants;
-import discord.mian.custom.Util;
+import discord.mian.data.Data;
+import discord.mian.data.Server;
 import io.github.sashirestela.openai.domain.chat.ChatMessage;
 
 import java.io.File;
@@ -17,12 +16,13 @@ import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 
-public class CharacterData implements Data, Chattable {
-    private final File characterFolder;
+public class Character extends Data<CharacterDocument> implements Chattable {
+    private final CharacterDocument document;
     private final Server server;
 
-    public CharacterData(Server server, File characterFolder) throws IOException {
-        this.characterFolder = characterFolder;
+    public Character(Server server, CharacterDocument document) throws IOException {
+        super(CharacterDocument.class, document);
+        this.document = document;
         this.server = server;
 
         if (getPrompt() == null)
@@ -33,7 +33,7 @@ public class CharacterData implements Data, Chattable {
         ObjectMapper objectMapper = new ObjectMapper();
         ObjectWriter writer = objectMapper.writerWithDefaultPrettyPrinter();
         try {
-            writer.writeValue(new File(characterFolder.getPath() + "/data.json"), map);
+            writer.writeValue(new File(document.getPath() + "/data.json"), map);
             return true;
         } catch (Exception e) {
             Constants.LOGGER.info("Failed to save character data", e);
@@ -42,7 +42,7 @@ public class CharacterData implements Data, Chattable {
     }
 
     public Map<String, Object> getJson() {
-        File dataJson = new File(characterFolder.getPath() + "/data.json");
+        File dataJson = new File(document.getPath() + "/data.json");
 
         ObjectMapper objectMapper = new ObjectMapper();
         ObjectWriter writer = objectMapper.writerWithDefaultPrettyPrinter();
@@ -57,62 +57,62 @@ public class CharacterData implements Data, Chattable {
         return null;
     }
 
-    public boolean setTalkability(double amount) {
-        Map<String, Object> data = getJson();
-
-        if (data != null) {
-            data.put("talkability", amount);
-            return saveToJson(data);
-        }
-
-        return false;
-    }
-
-    public double getTalkability() {
-        Map<String, Object> data = getJson();
-        if (data != null)
-            return (double) data.getOrDefault("talkability", 0.5);
-        return 0.5;
-    }
-
-    public String getAvatarLink() {
-        File file = getAvatar();
-        String link = null;
-        if (file != null) {
-            try {
-                boolean success = false;
-
-                Map<String, Object> map = getJson();
-                link = (String) map.get("avatar_link");
-
-                if (link != null && !link.isEmpty()) {
-                    success = true;
-//                    Constants.LOGGER.info("Found avatar link for " + getName());
-                }
-
-                if (!success) {
-                    link = Util.uploadImage(((ConfigEntry.StringConfig) server.getConfig().get("imgbb_key")).value, file);
-                    map.put("avatar_link", link);
-                    saveToJson(map);
-//                    Constants.LOGGER.info("Writing avatar link for " + getName());
-                }
-            } catch (InterruptedException | IOException e) {
-                throw new RuntimeException("Failed to find a valid avatar link for this character: " + e);
-            }
-        }
-        return link;
-    }
-
-    public File getCharacterFolder() {
-        return characterFolder;
-    }
+//    public boolean setTalkability(double amount) {
+//        Map<String, Object> data = getJson();
+//
+//        if (data != null) {
+//            data.put("talkability", amount);
+//            return saveToJson(data);
+//        }
+//
+//        return false;
+//    }
+//
+//    public double getTalkability() {
+//        Map<String, Object> data = getJson();
+//        if (data != null)
+//            return (double) data.getOrDefault("talkability", 0.5);
+//        return 0.5;
+//    }
+//
+//    public String getAvatarLink() {
+//        File file = getAvatar();
+//        String link = null;
+//        if (file != null) {
+//            try {
+//                boolean success = false;
+//
+//                Map<String, Object> map = getJson();
+//                link = (String) map.get("avatar_link");
+//
+//                if (link != null && !link.isEmpty()) {
+//                    success = true;
+////                    Constants.LOGGER.info("Found avatar link for " + getName());
+//                }
+//
+//                if (!success) {
+//                    link = Util.uploadImage(((ConfigEntry.StringConfig) server.getConfig().get("imgbb_key")).value, file);
+//                    map.put("avatar_link", link);
+//                    saveToJson(map);
+////                    Constants.LOGGER.info("Writing avatar link for " + getName());
+//                }
+//            } catch (InterruptedException | IOException e) {
+//                throw new RuntimeException("Failed to find a valid avatar link for this character: " + e);
+//            }
+//        }
+//        return link;
+//    }
+//
+//    public Document getDocument() {
+//        return document;
+//    }
 
     public File getAvatar() {
         String[] extensions = {".jpg", ".jpeg", ".png", ".gif", ".webp"};
 
         File avatar = null;
         for (String extension : extensions) {
-            File temp = new File(characterFolder.getPath() + "/avatar" + extension);
+            File temp = new File(document.getPath() + "/avatar" + extension);
             if (temp.exists()) {
                 avatar = temp;
                 break;
@@ -132,11 +132,11 @@ public class CharacterData implements Data, Chattable {
     }
 
     public String getName() {
-        return characterFolder.getName();
+        return document.getName();
     }
 
     public String getPrompt() throws IOException {
-        File definition = new File(characterFolder.getPath() + "/definition.txt");
+        File definition = new File(document.getPath() + "/definition.txt");
         if (!definition.exists())
             return null;
 
@@ -144,7 +144,7 @@ public class CharacterData implements Data, Chattable {
     }
 
     public File getPromptFile() {
-        File definition = new File(characterFolder.getPath() + "/definition.txt");
+        File definition = new File(document.getPath() + "/definition.txt");
         if (!definition.exists())
             return null;
 
@@ -152,7 +152,7 @@ public class CharacterData implements Data, Chattable {
     }
 
     public void addOrReplacePrompt(String text) throws IOException {
-        File definition = new File(characterFolder.getPath() + "/definition.txt");
+        File definition = new File(document.getPath() + "/definition.txt");
         if (!definition.exists())
             definition.createNewFile();
 
@@ -161,7 +161,7 @@ public class CharacterData implements Data, Chattable {
         writer.close();
     }
 
-    public ChatMessage.SystemMessage getChatMessage(CharacterData ignored) {
+    public ChatMessage.SystemMessage getChatMessage(Character ignored) {
         String definition;
         try {
             definition = getPrompt();
@@ -175,9 +175,9 @@ public class CharacterData implements Data, Chattable {
 
     // when worst comes to worst!
     public void nuke() throws IOException {
-        if (characterFolder.exists()) {
-            Files.walk(characterFolder.toPath()).forEach(path -> path.toFile().delete());
+        if (document.exists()) {
+            Files.walk(document.toPath()).forEach(path -> path.toFile().delete());
         }
-        characterFolder.delete();
+        document.delete();
     }
 }

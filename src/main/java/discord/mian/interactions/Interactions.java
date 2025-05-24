@@ -9,10 +9,10 @@ import discord.mian.api.Data;
 import discord.mian.api.PromptInfo;
 import discord.mian.api.ProviderInfo;
 import discord.mian.custom.*;
-import discord.mian.data.CharacterData;
-import discord.mian.data.InstructionData;
+import discord.mian.data.character.Character;
+import discord.mian.data.Instruction;
 import discord.mian.data.Server;
-import discord.mian.data.WorldData;
+import discord.mian.data.World;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
 import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.components.buttons.ButtonStyle;
@@ -82,7 +82,7 @@ public class Interactions {
                 server.getDatas(promptType).remove(promptName);
             }
 
-            createPromptViewer(event.getHook(), promptType);
+            createPromptViewer(event.getHook(), promptType, null);
         });
     }
 
@@ -199,7 +199,7 @@ public class Interactions {
             components.add(ActionRow.of(
                     TextInput.create("talkability", "Talkability: Put a decimal from 0.0 to 1.0", TextInputStyle.SHORT)
                             .setPlaceholder("Likelihood of responding when mentioned in chat")
-                            .setValue(String.valueOf(((CharacterData) data).getTalkability()))
+                            .setValue(String.valueOf(((Character) data).getTalkability()))
                             .build()
             ));
         }
@@ -235,7 +235,7 @@ public class Interactions {
                 if (data != null) {
                     data.addOrReplacePrompt(prompt);
                     if (promptType == PromptType.CHARACTER)
-                        ((CharacterData) data).setTalkability(talkability);
+                        ((Character) data).setTalkability(talkability);
                 } else {
                     switch (promptType) {
                         case CHARACTER -> server.createCharacter(name, prompt, talkability);
@@ -248,7 +248,7 @@ public class Interactions {
                 Constants.LOGGER.error("Failed to edit/add prompts", e);
             }
 
-            createPromptViewer(event.getHook(), promptType);
+            createPromptViewer(event.getHook(), promptType, null);
         });
     }
 
@@ -514,8 +514,8 @@ public class Interactions {
         return components;
     }
 
-    public static void createPromptViewer(InteractionHook hook, PromptType promptType) {
-        Consumer<Message> consumer = message -> createPromptViewer(message, promptType, null);
+    public static void createPromptViewer(InteractionHook hook, PromptType promptType, Long timeOut) {
+        Consumer<Message> consumer = message -> createPromptViewer(message, promptType, null, timeOut);
 
         if (hook.hasCallbackResponse()) {
             consumer.accept(hook.getCallbackResponse().getMessage());
@@ -524,7 +524,7 @@ public class Interactions {
         }
     }
 
-    public static void createPromptViewer(InteractionHook hook, PromptType promptType, int forceIndex) {
+    public static void createPromptViewer(InteractionHook hook, PromptType promptType, Long timeOut, int forceIndex) {
         Consumer<Message> consumer = message -> {
 
             List<ContainerChildComponentUnion> components = new ArrayList<>(message.getComponents().getFirst().asContainer().getComponents());
@@ -540,8 +540,8 @@ public class Interactions {
                         message.editMessageComponents(message.getComponentTree()
                                 .replace(ComponentReplacer.byId(121, footer.asTextDisplay().withContent(footerText)))
                                 .getComponents()).queue((ignored) ->
-                                createPromptViewer(message, promptType, null), t -> Constants.LOGGER.error("Failed to create prompt viewer", t));
-                    }, () -> createPromptViewer(message, promptType, null));
+                                createPromptViewer(message, promptType, null, timeOut), t -> Constants.LOGGER.error("Failed to create prompt viewer", t));
+                    }, () -> createPromptViewer(message, promptType, null, timeOut));
 
         };
 
@@ -552,14 +552,14 @@ public class Interactions {
         }
     }
 
-    public static void createPromptViewer(Message message, PromptType promptType, Direction direction) {
+    public static void createPromptViewer(Message message, PromptType promptType, Direction direction, Long timeOut) {
         createPromptViewer((direction1) -> createPromptViewerContainer(message, null, promptType, direction1, null),
                 message, promptType, true, true,
-                null, direction);
+                null, direction, timeOut);
     }
 
     public static void createPromptViewer(Function<Direction, List<ContainerChildComponent>> buildContainer, Message message, PromptType promptType, boolean editable, boolean canGoBack,
-                                          List<StringSelectMenu.Builder> onSelects, Direction direction, Button... buttons) {
+                                          List<StringSelectMenu.Builder> onSelects, Direction direction, Long timeOut, Button... buttons) {
         List<ContainerChildComponent> components = buildContainer.apply(direction);
 
         TextDisplay descriptionOptions =
@@ -602,12 +602,12 @@ public class Interactions {
         components.add(ActionRow.of(
                 InteractionCreator.createButton("<--", (event) -> {
                     event.deferEdit().queue();
-                    createPromptViewer(buildContainer, message, promptType, editable, canGoBack, onSelects, Direction.BACK, buttons);
+                    createPromptViewer(buildContainer, message, promptType, editable, canGoBack, onSelects, Direction.BACK, timeOut, buttons);
 
                 }).withStyle(ButtonStyle.SECONDARY),
                 InteractionCreator.createButton("-->", (event) -> {
                     event.deferEdit().queue();
-                    createPromptViewer(buildContainer, message, promptType, editable, canGoBack, onSelects, Direction.NEXT, buttons);
+                    createPromptViewer(buildContainer, message, promptType, editable, canGoBack, onSelects, Direction.NEXT, timeOut, buttons);
 
                 }).withStyle(ButtonStyle.SECONDARY)
         ));
@@ -647,7 +647,7 @@ public class Interactions {
                 .editMessageComponents(Util.createBotContainer(components))
                 .useComponentsV2()
                 .setFiles(List.of());
-        editAction.queue(InteractionCreator.queueTimeoutComponents(null), e -> Constants.LOGGER.error("Failed to get message for prompt viewer", e));
+        editAction.queue(InteractionCreator.queueTimeoutComponents(timeOut), e -> Constants.LOGGER.error("Failed to get message for prompt viewer", e));
     }
 
     public static void createDashboard(Message message) throws IOException {
@@ -736,7 +736,7 @@ public class Interactions {
                                                     "Select " + display + " prompts to use in the roleplay.",
                                                     promptType,
                                                     direction, enabledData), givenMsg, promptType, false, true,
-                                            selects, null, InteractionCreator.createButton(Emoji.fromFormatted("✅"), buttonEvent -> {
+                                            selects, null, 90L, InteractionCreator.createButton(Emoji.fromFormatted("✅"), buttonEvent -> {
                                                 if (datas.get(promptType).isEmpty()) {
                                                     buttonEvent.reply("Need at least one set of " + display + "!").setEphemeral(true).queue();
                                                     return;
@@ -753,7 +753,7 @@ public class Interactions {
                                                                 datas.get(PromptType.CHARACTER).stream().map(string -> server.getCharacterDatas().get(string)).toList(),
                                                                 hook ->
                                                                         roleplay.getDatas(PromptType.CHARACTER).forEach((chrData) ->
-                                                                                roleplay.promptCharacterToRoleplay((CharacterData) chrData, null, false))
+                                                                                roleplay.promptCharacterToRoleplay((Character) chrData, null, false))
                                                         );
                                                     } catch (ExecutionException | InterruptedException | IOException e) {
                                                         buttonEvent.reply("Failed to start chat!").setEphemeral(true).queue();
@@ -814,12 +814,12 @@ public class Interactions {
                             roleplay.startRoleplay(
                                     modal,
                                     name,
-                                    roleplay.getDatas(PromptType.INSTRUCTION).stream().map(dat -> (InstructionData) dat).toList(),
-                                    roleplay.getDatas(PromptType.WORLD).stream().map(dat -> (WorldData) dat).toList(),
-                                    roleplay.getDatas(PromptType.CHARACTER).stream().map(dat -> (CharacterData) dat).toList(),
+                                    roleplay.getDatas(PromptType.INSTRUCTION).stream().map(dat -> (Instruction) dat).toList(),
+                                    roleplay.getDatas(PromptType.WORLD).stream().map(dat -> (World) dat).toList(),
+                                    roleplay.getDatas(PromptType.CHARACTER).stream().map(dat -> (Character) dat).toList(),
                                     hook ->
                                             roleplay.getDatas(PromptType.CHARACTER).forEach((characterData) ->
-                                                    roleplay.promptCharacterToRoleplay((CharacterData) characterData, null, false)));
+                                                    roleplay.promptCharacterToRoleplay((Character) characterData, null, false)));
                         } catch (Exception e) {
                             event.getHook().editOriginal("Failed to restart chat!").queue();
                         }
@@ -878,26 +878,6 @@ public class Interactions {
         components.add(TextDisplay.of("**Max Tokens:** " + roleplay.getMaxTokens()));
         components.add(Separator.createDivider(Separator.Spacing.SMALL));
 
-//        if(roleplay.isRunningRoleplay()){
-//            components.add(Separator.createDivider(Separator.Spacing.SMALL));
-//            for(PromptType promptType : PromptType.values()){
-//                List<? extends Data> promptDatas = roleplay.getDatas(promptType);
-//
-//                StringBuilder display = new StringBuilder();
-//                display.append("-# ");
-//                components.add(TextDisplay.of("**"+promptType.displayName+" Involved"+"**"));
-//
-//                for(int i = 0; i < promptDatas.size(); i++){
-//                    String name = promptDatas.get(i).getName();
-//                    display.append(name);
-//                    if(i != promptDatas.size() - 1){
-//                        display.append(", ");
-//                    }
-//                }
-//                components.add(TextDisplay.of(display.toString()));
-//            }
-//        }
-
         components.add(TextDisplay.of("### Roleplay Status: " + (roleplay.isRunningRoleplay() ? "Ongoing" : "Stopped")));
         if (roleplay.isRunningRoleplay()) {
             components.add(TextDisplay.of("[More Information](" + roleplay.getChannel().getJumpUrl() + ")"));
@@ -911,15 +891,15 @@ public class Interactions {
         components.add(ActionRow.of(
                 InteractionCreator.createButton("View Instructions", (event) -> {
                     event.deferEdit().queue();
-                    createPromptViewer(event.getHook(), PromptType.INSTRUCTION, 0);
+                    createPromptViewer(event.getHook(), PromptType.INSTRUCTION, null, 0);
                 }).withEmoji(Emoji.fromFormatted("📋")).withStyle(ButtonStyle.SECONDARY),
                 InteractionCreator.createButton("View Worlds", (event) -> {
                     event.deferEdit().queue();
-                    createPromptViewer(event.getHook(), PromptType.WORLD, 0);
+                    createPromptViewer(event.getHook(), PromptType.WORLD, null, 0);
                 }).withEmoji(Emoji.fromFormatted("🌍")).withStyle(ButtonStyle.SECONDARY),
                 InteractionCreator.createButton("View Characters", (event) -> {
                     event.deferEdit().queue();
-                    createPromptViewer(event.getHook(), PromptType.CHARACTER, 0);
+                    createPromptViewer(event.getHook(), PromptType.CHARACTER, null, 0);
                 }).withEmoji(Emoji.fromFormatted("🧝")).withStyle(ButtonStyle.SECONDARY)));
 
         components.add(Separator.createDivider(Separator.Spacing.LARGE));
@@ -1027,9 +1007,7 @@ public class Interactions {
                             } catch (Exception e) {
                                 button.getHook().editOriginal("Failed to continue roleplay!").queue();
                                 Constants.LOGGER.error("Failed to continue roleplay", e);
-//                                return;
                             }
-//                            button.getHook().editOriginal("Continuing this thread's roleplay!").queue();
                         })
                 .withEmoji(Emoji.fromFormatted("🔁"));
     }

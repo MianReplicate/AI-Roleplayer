@@ -9,10 +9,10 @@ import com.knuddels.jtokkit.api.EncodingRegistry;
 import com.knuddels.jtokkit.api.EncodingType;
 import discord.mian.api.Data;
 import discord.mian.custom.*;
-import discord.mian.data.CharacterData;
-import discord.mian.data.InstructionData;
+import discord.mian.data.character.Character;
+import discord.mian.data.Instruction;
 import discord.mian.data.Server;
-import discord.mian.data.WorldData;
+import discord.mian.data.World;
 import discord.mian.interactions.InteractionCreator;
 import discord.mian.interactions.Interactions;
 import io.github.sashirestela.openai.domain.chat.ChatMessage;
@@ -75,15 +75,15 @@ public class Roleplay {
     private ArrayList<ResponseInfo> swipes;
     private FailedResponseInfo failedResponseInfo;
 
-    private final List<Map.Entry<CharacterData, Boolean>> queuedResponses = new ArrayList<>();
+    private final List<Map.Entry<Character, Boolean>> queuedResponses = new ArrayList<>();
 
     private final EncodingRegistry registry;
 
     // make possible to swipe messages
-    private final HashMap<String, InstructionData> instructions;
-    private final HashMap<String, WorldData> worldLore;
-    private final HashMap<String, CharacterData> characters;
-    private CharacterData currentCharacter;
+    private final HashMap<String, Instruction> instructions;
+    private final HashMap<String, World> worldLore;
+    private final HashMap<String, Character> characters;
+    private Character currentCharacter;
     private boolean runningRoleplay = false;
 
     public Roleplay(Guild guild) {
@@ -227,11 +227,11 @@ public class Roleplay {
         }
     }
 
-    public CharacterData findRespondingCharacterFromContent(String content) {
+    public Character findRespondingCharacterFromContent(String content) {
         content = content.toLowerCase();
         final String finalContent = content;
 
-        Optional<CharacterData> foundCharacter = server.getCharacterDatas().entrySet().stream().filter(entry ->
+        Optional<Character> foundCharacter = server.getCharacterDatas().entrySet().stream().filter(entry ->
                         finalContent.contains(entry.getValue().getFirstName().toLowerCase())).map(entry -> entry.getValue())
                 .findFirst();
 
@@ -241,9 +241,9 @@ public class Roleplay {
         return null;
     }
 
-    public CharacterData findRespondingCharacterFromMessage(Message msg) {
+    public Character findRespondingCharacterFromMessage(Message msg) {
         if (msg.getReferencedMessage() != null && msg.getReferencedMessage().isWebhookMessage()) {
-            CharacterData character =
+            Character character =
                     server.getCharacterDatas().get(msg.getReferencedMessage().getAuthor().getName());
 
             if (character == null || !getCharacters().containsKey(character.getName())) {
@@ -254,7 +254,7 @@ public class Roleplay {
         return null;
     }
 
-    public RestAction<ChatRequest> createChatRequest(CharacterData character) {
+    public RestAction<ChatRequest> createChatRequest(Character character) {
         ExtrasChatRequest.ExtrasChatRequestBuilder requestBuilder = ExtrasChatRequest.extrasBuilder()
                 .setProviderFallback(false);
         if (provider != null && !provider.isEmpty())
@@ -275,7 +275,7 @@ public class Roleplay {
                         .messages(history).build());
     }
 
-    private RestAction<ResponseInfo> generateResponse(CharacterData character, Consumer<String> consumer) {
+    private RestAction<ResponseInfo> generateResponse(Character character, Consumer<String> consumer) {
         RestAction<ChatRequest> chatRequestAction = createChatRequest(character);
 
         return chatRequestAction.map(chatRequest -> {
@@ -383,7 +383,7 @@ public class Roleplay {
         });
     }
 
-    private RestAction<ResponseInfo> streamOnDiscordMessage(CharacterData character, Message msgToEdit) {
+    private RestAction<ResponseInfo> streamOnDiscordMessage(Character character, Message msgToEdit) {
         AtomicBoolean queued = new AtomicBoolean(false);
         AtomicLong timeResponseMade = new AtomicLong(System.currentTimeMillis());
         double timeBetween = 1;
@@ -419,7 +419,7 @@ public class Roleplay {
         });
     }
 
-    public void promptCharacterToRoleplay(CharacterData character, Message replyTo, boolean triggerAutoResponse) {
+    public void promptCharacterToRoleplay(Character character, Message replyTo, boolean triggerAutoResponse) {
         if (isRunningRoleplay()) {
             if (!characters.containsKey(character.getName())) {
                 Consumer<Throwable> onFail = t ->
@@ -533,12 +533,12 @@ public class Roleplay {
 
                                 this.finishedDiscordResponse(responseInfo.getResponse());
                                 if (!queuedResponses.isEmpty()) {
-                                    Map.Entry<CharacterData, Boolean> next = queuedResponses.getFirst();
+                                    Map.Entry<Character, Boolean> next = queuedResponses.getFirst();
                                     queuedResponses.removeFirst();
                                     promptCharacterToRoleplay(next.getKey(), null, next.getValue());
                                 } else {
                                     if (triggerAutoResponse) {
-                                        CharacterData data = findRespondingCharacterFromContent(responseInfo.getResponse());
+                                        Character data = findRespondingCharacterFromContent(responseInfo.getResponse());
                                         if (data != null && data != currentCharacter && data.getTalkability() >= Math.random()) {
                                             try {
                                                 promptCharacterToRoleplay(data, latestAssistantMessage, true);
@@ -582,7 +582,7 @@ public class Roleplay {
                                 .queue();
                         return;
                     }
-                    CharacterData character = characters.get(latestAssistantMessage.getAuthor().getName());
+                    Character character = characters.get(latestAssistantMessage.getAuthor().getName());
                     this.creatingResponseFromDiscordMessage();
 
                     RestAction<ResponseInfo> infoRest = streamOnDiscordMessage(character, latestAssistantMessage);
@@ -636,7 +636,7 @@ public class Roleplay {
     }
 
     // beginning prompts not included if no character is provided
-    public RestAction<List<ChatMessage>> getHistory(CharacterData character) {
+    public RestAction<List<ChatMessage>> getHistory(Character character) {
         if (historyMarker == null)
             return null;
 
@@ -649,16 +649,16 @@ public class Roleplay {
             instructionsMessage.append("Each user message has a name field. Use this to determine who is speaking and maintain consistency");
             instructionsMessage.append("Do not include the character name in your response, this is already provided programmatically by the code.\n");
 
-            for (InstructionData instructionData : instructions.values()) {
-                instructionsMessage.append(instructionData.getChatMessage(character).getContent()).append("\n");
+            for (Instruction instruction : instructions.values()) {
+                instructionsMessage.append(instruction.getChatMessage(character).getContent()).append("\n");
             }
 
             messages.add(ChatMessage.SystemMessage.of(instructionsMessage.toString(), "Instructions"));
 
             StringBuilder combinedLore = new StringBuilder();
             combinedLore.append("The following is lore and information about the world that this roleplay takes place in!");
-            for (WorldData worldData : worldLore.values()) {
-                combinedLore.append(worldData.getChatMessage(character).getContent()).append("\n");
+            for (World world : worldLore.values()) {
+                combinedLore.append(world.getChatMessage(character).getContent()).append("\n");
             }
             messages.add(ChatMessage.SystemMessage.of(combinedLore.toString(), "Lore"));
 
@@ -718,14 +718,14 @@ public class Roleplay {
 
     public void startRoleplay(IReplyCallback event,
                               String rpName,
-                              List<InstructionData> instructionList,
-                              List<WorldData> worldDatas,
-                              List<CharacterData> characterList,
+                              List<Instruction> instructionList,
+                              List<World> worlds,
+                              List<Character> characterList,
                               Consumer<Webhook> onSuccess
     ) throws ExecutionException, InterruptedException, IOException {
         if (instructionList.size() <= 0)
             throw new RuntimeException("Need at least one set of instructions!");
-        if (worldDatas.size() <= 0)
+        if (worlds.size() <= 0)
             throw new RuntimeException("Need at least one set of world lore!");
 
         event.deferReply().queue(hook -> {
@@ -743,7 +743,7 @@ public class Roleplay {
             Function<PromptType, List<? extends Data>> getDatas = (promptType) ->
                     switch (promptType) {
                         case INSTRUCTION -> instructionList;
-                        case WORLD -> worldDatas;
+                        case WORLD -> worlds;
                         case CHARACTER -> characterList;
                     };
 
@@ -977,15 +977,15 @@ public class Roleplay {
         return model;
     }
 
-    private HashMap<String, WorldData> getWorlds() {
+    private HashMap<String, World> getWorlds() {
         return worldLore;
     }
 
-    private HashMap<String, InstructionData> getInstructions() {
+    private HashMap<String, Instruction> getInstructions() {
         return instructions;
     }
 
-    private HashMap<String, CharacterData> getCharacters() {
+    private HashMap<String, Character> getCharacters() {
         return characters;
     }
 
@@ -997,7 +997,7 @@ public class Roleplay {
         };
     }
 
-    public CharacterData getCurrentCharacter() {
+    public Character getCurrentCharacter() {
         return currentCharacter;
     }
 
@@ -1022,11 +1022,11 @@ public class Roleplay {
             throw new RuntimeException(data.getName() + " is no longer a valid data!");
         switch (type) {
             case CHARACTER -> {
-                characters.putIfAbsent(data.getName(), (CharacterData) data);
-                currentCharacter = (CharacterData) data;
+                characters.putIfAbsent(data.getName(), (Character) data);
+                currentCharacter = (Character) data;
             }
-            case WORLD -> worldLore.putIfAbsent(data.getName(), (WorldData) data);
-            case INSTRUCTION -> instructions.putIfAbsent(data.getName(), (InstructionData) data);
+            case WORLD -> worldLore.putIfAbsent(data.getName(), (World) data);
+            case INSTRUCTION -> instructions.putIfAbsent(data.getName(), (Instruction) data);
         }
     }
 }

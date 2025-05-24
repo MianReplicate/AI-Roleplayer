@@ -2,6 +2,7 @@ package discord.mian.data;
 
 import discord.mian.api.Chattable;
 import discord.mian.api.Data;
+import discord.mian.data.character.Character;
 import io.github.sashirestela.openai.domain.chat.ChatMessage;
 
 import java.io.File;
@@ -10,41 +11,41 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
-public class InstructionData implements Data, Chattable {
-    private final File instructionFile;
+public class World implements Data, Chattable {
+    private final File worldFile;
 
-    public InstructionData(File instructionFile) {
-        this.instructionFile = instructionFile;
+    public World(File worldFile) {
+        this.worldFile = worldFile;
     }
 
     public String getName() {
-        return instructionFile.getName().substring(0, instructionFile.getName().lastIndexOf("."));
+        return worldFile.getName().substring(0, worldFile.getName().lastIndexOf("."));
     }
 
     public String getPrompt() throws IOException {
-        if (!instructionFile.exists())
+        if (!worldFile.exists())
             return null;
 
-        return Files.readString(instructionFile.toPath(), StandardCharsets.UTF_8);
+        return Files.readString(worldFile.toPath(), StandardCharsets.UTF_8);
     }
 
     public File getPromptFile() {
-        if (!instructionFile.exists())
+        if (!worldFile.exists())
             return null;
 
-        return instructionFile;
+        return worldFile;
     }
 
     public void addOrReplacePrompt(String text) throws IOException {
-        if (!instructionFile.exists())
-            instructionFile.createNewFile();
+        if (!worldFile.exists())
+            worldFile.createNewFile();
 
-        FileWriter writer = new FileWriter(instructionFile.getPath());
+        FileWriter writer = new FileWriter(worldFile.getPath());
         writer.write(text);
         writer.close();
     }
 
-    public ChatMessage.SystemMessage getChatMessage(CharacterData data) {
+    public ChatMessage.SystemMessage getChatMessage(Character data) {
         String definition;
         try {
             definition = getPrompt();
@@ -58,7 +59,7 @@ public class InstructionData implements Data, Chattable {
 
     // when worst comes to worst!
     public void nuke() {
-        if (instructionFile.exists())
-            instructionFile.delete();
+        if (worldFile.exists())
+            worldFile.delete();
     }
 }
