@@ -1,9 +1,7 @@
 package discord.mian.interactions;
 
-import discord.mian.custom.Constants;
 import discord.mian.custom.SizeHashMap;
 import net.dv8tion.jda.api.components.ActionComponent;
-import net.dv8tion.jda.api.components.Component;
 import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.components.replacer.ComponentReplacer;
 import net.dv8tion.jda.api.components.selections.StringSelectMenu;
@@ -15,11 +13,9 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.interactions.modals.Modal;
 import net.dv8tion.jda.api.utils.concurrent.DelayedCompletableFuture;
-import net.dv8tion.jda.internal.components.selections.StringSelectMenuImpl;
 
 import java.util.HashMap;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -29,7 +25,7 @@ public class InteractionCreator {
     private static final HashMap<String, Consumer<? super GenericInteractionCreateEvent>> PERM_INTERACTIONS = new HashMap<>();
     private static final HashMap<String, Consumer<? super GenericInteractionCreateEvent>> INTERACTIONS = new HashMap<>();
     private static final HashMap<String, Consumer<ModalInteractionEvent>> MODALS = new SizeHashMap<>(MAX_INTERACTIONS);
-    private static final HashMap<Long, CompletableFuture<Void>> TIMEOUTS = new HashMap<>();
+    private static final HashMap<Long, DelayedCompletableFuture<Message>> TIMEOUTS = new HashMap<>();
 
     static {
         Interactions.getContinue();
@@ -44,24 +40,21 @@ public class InteractionCreator {
 
         return message -> {
             if(TIMEOUTS.containsKey(message.getIdLong())){
-                Constants.LOGGER.info("found previous timeout, cancelling!");
                 TIMEOUTS.get(message.getIdLong()).cancel(true);
                 TIMEOUTS.remove(message.getIdLong());
             }
 
-            TIMEOUTS.put(message.getIdLong(), message.editMessageComponents(
+            DelayedCompletableFuture<Message> delayed = message.editMessageComponents(
                             message.getComponentTree().replace(ComponentReplacer.of(
                                     ActionComponent.class,
                                     component -> !PERM_INTERACTIONS.containsKey(component.getCustomId()),
                                     component -> component.withDisabled(true)))
                     ).useComponentsV2()
                     .onErrorMap(throwable -> message)
-                    .submitAfter(length != null ? length : 5, TimeUnit.SECONDS)
-                    .thenAcceptAsync(removeConsumer)
-                    .exceptionallyAsync(throwable -> {
-                        removeConsumer.accept(message);
-                        return null;
-                    }));
+                    .submitAfter(length != null ? length : 15, TimeUnit.SECONDS);
+
+            TIMEOUTS.put(message.getIdLong(), delayed);
+            delayed.thenAccept(removeConsumer);
         };
     }
 
