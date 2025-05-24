@@ -3,24 +3,27 @@ package discord.mian.data;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
-import discord.mian.api.Data;
+import com.mongodb.client.MongoCursor;
 import discord.mian.custom.ConfigEntry;
 import discord.mian.custom.Constants;
 import discord.mian.custom.PromptType;
 import discord.mian.custom.Util;
 import discord.mian.data.character.Character;
+import discord.mian.data.character.CharacterDocument;
+import discord.mian.data.instruction.Instruction;
+import discord.mian.data.instruction.InstructionDocument;
+import discord.mian.data.world.World;
+import discord.mian.data.world.WorldDocument;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Role;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 public class Server {
-    private HashMap<String, discord.mian.data.character.Character> characterDatas;
+    private HashMap<String, Character> characterDatas;
     private HashMap<String, Instruction> instructionDatas;
     private HashMap<String, World> worldDatas;
     private final Guild guild;
@@ -171,146 +174,176 @@ public class Server {
     }
 
     public HashMap<String, World> getWorldDatas() {
-        File worldsFolder = Util.createFileRelativeToData(getServerPath() + "/worlds");
-        if (!worldsFolder.exists())
-            worldsFolder.mkdir();
+//        File worldsFolder = Util.createFileRelativeToData(getServerPath() + "/worlds");
+//        if (!worldsFolder.exists())
+//            worldsFolder.mkdir();
 
         if (worldDatas == null) {
             worldDatas = new HashMap<>();
         }
 
-        for (File world : Objects.requireNonNull(worldsFolder.listFiles())) {
-            try {
-                int place = world.getName().lastIndexOf(".");
-                if (place != -1) {
-                    if (world.getName().substring(place).equals(".txt")) {
-                        worldDatas.putIfAbsent(world.getName().substring(0, place), new World(world));
-                    }
-                }
-            } catch (Exception e) {
-                Constants.LOGGER.info("Failed to load world " + world.getName() + " for guild: " + guild.getName());
-                Constants.LOGGER.error(String.valueOf(e));
+        try(MongoCursor<WorldDocument> cursor = Util.DATABASE.getCollection("world", WorldDocument.class)
+                .find().iterator()){
+            while(cursor.hasNext()){
+                WorldDocument document = cursor.next();
+                worldDatas.putIfAbsent(document.getName(), new World(document));
             }
         }
+//
+//        for (File world : Objects.requireNonNull(worldsFolder.listFiles())) {
+//            try {
+//                int place = world.getName().lastIndexOf(".");
+//                if (place != -1) {
+//                    if (world.getName().substring(place).equals(".txt")) {
+//                        worldDatas.putIfAbsent(world.getName().substring(0, place), new World(world));
+//                    }
+//                }
+//            } catch (Exception e) {
+//                Constants.LOGGER.info("Failed to load world " + world.getName() + " for guild: " + guild.getName());
+//                Constants.LOGGER.error(String.valueOf(e));
+//            }
+//        }
 
         return worldDatas;
     }
 
     public HashMap<String, Instruction> getInstructionDatas() {
-        File instructionsFolder = Util.createFileRelativeToData(getServerPath() + "/instructions");
-        if (!instructionsFolder.exists())
-            instructionsFolder.mkdir();
+//        File instructionsFolder = Util.createFileRelativeToData(getServerPath() + "/instructions");
+//        if (!instructionsFolder.exists())
+//            instructionsFolder.mkdir();
 
         if (instructionDatas == null) {
             instructionDatas = new HashMap<>();
         }
 
-        for (File instruction : Objects.requireNonNull(instructionsFolder.listFiles())) {
-            try {
-                int place = instruction.getName().lastIndexOf(".");
-                if (place != -1) {
-                    if (instruction.getName().substring(place).equals(".txt")) {
-                        instructionDatas.putIfAbsent(instruction.getName().substring(0, place), new Instruction(instruction));
-                    }
-                }
-            } catch (Exception e) {
-                Constants.LOGGER.info("Failed to load instruction " + instruction.getName() + " for guild: " + guild.getName());
-                Constants.LOGGER.error(String.valueOf(e));
+        try(MongoCursor<InstructionDocument> cursor = Util.DATABASE.getCollection("instruction", InstructionDocument.class)
+                .find().iterator()){
+            while(cursor.hasNext()){
+                InstructionDocument document = cursor.next();
+                instructionDatas.putIfAbsent(document.getName(), new Instruction(document));
             }
         }
+
+//        for (File instruction : Objects.requireNonNull(instructionsFolder.listFiles())) {
+//            try {
+//                int place = instruction.getName().lastIndexOf(".");
+//                if (place != -1) {
+//                    if (instruction.getName().substring(place).equals(".txt")) {
+//                        instructionDatas.putIfAbsent(instruction.getName().substring(0, place), new Instruction(instruction));
+//                    }
+//                }
+//            } catch (Exception e) {
+//                Constants.LOGGER.info("Failed to load instruction " + instruction.getName() + " for guild: " + guild.getName());
+//                Constants.LOGGER.error(String.valueOf(e));
+//            }
+//        }
 
         return instructionDatas;
     }
 
-    public HashMap<String, discord.mian.data.character.Character> getCharacterDatas() {
-        File charactersFolder = getCharactersFolder();
+    public HashMap<String, Character> getCharacterDatas() {
+//        File charactersFolder = getCharactersFolder();
 
         if (characterDatas == null) {
             characterDatas = new HashMap<>();
         }
 
-        for (File character : Objects.requireNonNull(charactersFolder.listFiles())) {
-            try {
-                characterDatas.putIfAbsent(character.getName(), new discord.mian.data.character.Character(this, character));
-            } catch (Exception e) {
-                Constants.LOGGER.info("Failed to load character " + character.getName() + " for guild: " + guild.getName());
-                Constants.LOGGER.error(String.valueOf(e));
+        try(MongoCursor<CharacterDocument> cursor = Util.DATABASE.getCollection("character", CharacterDocument.class)
+                .find().iterator()){
+            while(cursor.hasNext()){
+                CharacterDocument document = cursor.next();
+                characterDatas.putIfAbsent(document.getName(), new Character(document));
             }
         }
+
+//        for (File character : Objects.requireNonNull(charactersFolder.listFiles())) {
+//            try {
+//                characterDatas.putIfAbsent(character.getName(), new discord.mian.data.character.Character(this, character));
+//            } catch (Exception e) {
+//                Constants.LOGGER.info("Failed to load character " + character.getName() + " for guild: " + guild.getName());
+//                Constants.LOGGER.error(String.valueOf(e));
+//            }
+//        }
 
         return characterDatas;
     }
 
-    private File getCharactersFolder() {
-        File charactersFolder = Util.createFileRelativeToData(getServerPath() + "/characters");
-        if (!charactersFolder.exists())
-            charactersFolder.mkdir();
-        return charactersFolder;
-    }
-
-    private File getInstructionsFolder() {
-        File instructionsFolder = Util.createFileRelativeToData(getServerPath() + "/instructions");
-        if (!instructionsFolder.exists())
-            instructionsFolder.mkdir();
-        return instructionsFolder;
-    }
-
-    private File getWorldsFolder() {
-        File worldsFolder = Util.createFileRelativeToData(getServerPath() + "/worlds");
-        if (!worldsFolder.exists())
-            worldsFolder.mkdir();
-        return worldsFolder;
-    }
+//    private File getCharactersFolder() {
+//        File charactersFolder = Util.createFileRelativeToData(getServerPath() + "/characters");
+//        if (!charactersFolder.exists())
+//            charactersFolder.mkdir();
+//        return charactersFolder;
+//    }
+//
+//    private File getInstructionsFolder() {
+//        File instructionsFolder = Util.createFileRelativeToData(getServerPath() + "/instructions");
+//        if (!instructionsFolder.exists())
+//            instructionsFolder.mkdir();
+//        return instructionsFolder;
+//    }
+//
+//    private File getWorldsFolder() {
+//        File worldsFolder = Util.createFileRelativeToData(getServerPath() + "/worlds");
+//        if (!worldsFolder.exists())
+//            worldsFolder.mkdir();
+//        return worldsFolder;
+//    }
 
     public void createCharacter(String name, String definition, double talkability) throws IOException {
-        File charactersFolder = getCharactersFolder();
-        File characterFolder = new File(charactersFolder.getPath() + "/" + name);
+//        File charactersFolder = getCharactersFolder();
+//        File characterFolder = new File(charactersFolder.getPath() + "/" + name);
+//
+//        String defPath = characterFolder.getPath() + "/" + "definition.txt";
+//
+//        if (!characterFolder.mkdir())
+//            characterFolder.mkdir();
 
-        String defPath = characterFolder.getPath() + "/" + "definition.txt";
+//        File file = new File(defPath);
+//        if (!file.exists())
+//            file.createNewFile();
 
-        if (!characterFolder.mkdir())
-            characterFolder.mkdir();
-
-        File file = new File(defPath);
-        if (!file.exists())
-            file.createNewFile();
-
-        FileWriter writer = new FileWriter(defPath);
-        writer.write(definition);
-        writer.close();
-
-        discord.mian.data.character.Character data = new Character(this, characterFolder);
-        data.setTalkability(talkability);
+//        FileWriter writer = new FileWriter(defPath);
+//        writer.write(definition);
+//        writer.close();
+        Character data = new Character(new CharacterDocument(name));
+        data.updateDocument(document -> {
+            document.setPrompt(definition);
+            document.setTalkability(talkability);
+        });
 
         characterDatas.putIfAbsent(name, data);
     }
 
     public void createInstruction(String name, String prompt) throws IOException {
-        File instructionsFolder = getInstructionsFolder();
-        File instructionFile = new File(instructionsFolder.getPath() + "/" + name + ".txt");
+//        File instructionsFolder = getInstructionsFolder();
+//        File instructionFile = new File(instructionsFolder.getPath() + "/" + name + ".txt");
+//
+//        if (!instructionFile.exists())
+//            instructionFile.createNewFile();
+//
+//        FileWriter writer = new FileWriter(instructionFile);
+//        writer.write(prompt);
+//        writer.close();
+        Instruction data = new Instruction(new InstructionDocument(name));
+        data.updateDocument(document -> document.setPrompt(prompt));
 
-        if (!instructionFile.exists())
-            instructionFile.createNewFile();
-
-        FileWriter writer = new FileWriter(instructionFile);
-        writer.write(prompt);
-        writer.close();
-
-        instructionDatas.putIfAbsent(name, new Instruction(instructionFile));
+        instructionDatas.putIfAbsent(name, data);
     }
 
     public void createWorld(String name, String prompt) throws IOException {
-        File worldsFolder = getWorldsFolder();
-        File worldsFile = new File(worldsFolder.getPath() + "/" + name + ".txt");
+//        File worldsFolder = getWorldsFolder();
+//        File worldsFile = new File(worldsFolder.getPath() + "/" + name + ".txt");
+//
+//        if (!worldsFile.exists())
+//            worldsFile.createNewFile();
+//
+//        FileWriter writer = new FileWriter(worldsFile);
+//        writer.write(prompt);
+//        writer.close();
+        World data = new World(new WorldDocument(name));
+        data.updateDocument(document -> document.setPrompt(prompt));
 
-        if (!worldsFile.exists())
-            worldsFile.createNewFile();
-
-        FileWriter writer = new FileWriter(worldsFile);
-        writer.write(prompt);
-        writer.close();
-
-        worldDatas.putIfAbsent(name, new World(worldsFile));
+        worldDatas.putIfAbsent(name, data);
     }
 
 }

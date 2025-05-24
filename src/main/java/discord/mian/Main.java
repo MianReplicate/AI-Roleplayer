@@ -23,10 +23,11 @@ import java.util.concurrent.TimeUnit;
 public class Main {
     public static void main(String[] args) throws Exception {
         String discord_bot_token = args[0];
-        String db_username = args[1];
-        String db_password = args[2];
+        String connectionString = "mongodb://localhost:27017/roleplayer";
+        if(args.length > 1){
+            connectionString = args[1];
+        }
 
-        String connectionString = "mongodb+srv://"+db_username+":"+db_password+"@mianmongo.pqf7jgb.mongodb.net/?retryWrites=true&w=majority&appName=MianMongo";
         ServerApi serverApi = ServerApi.builder()
                 .version(ServerApiVersion.V1)
                 .build();

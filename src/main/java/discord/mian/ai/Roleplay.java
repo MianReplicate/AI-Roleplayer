@@ -7,12 +7,11 @@ import com.knuddels.jtokkit.Encodings;
 import com.knuddels.jtokkit.api.Encoding;
 import com.knuddels.jtokkit.api.EncodingRegistry;
 import com.knuddels.jtokkit.api.EncodingType;
-import discord.mian.api.Data;
 import discord.mian.custom.*;
 import discord.mian.data.character.Character;
-import discord.mian.data.Instruction;
+import discord.mian.data.instruction.Instruction;
 import discord.mian.data.Server;
-import discord.mian.data.World;
+import discord.mian.data.world.World;
 import discord.mian.interactions.InteractionCreator;
 import discord.mian.interactions.Interactions;
 import io.github.sashirestela.openai.domain.chat.ChatMessage;
@@ -502,12 +501,7 @@ public class Roleplay {
         try {
             this.creatingResponseFromDiscordMessage();
 
-            String avatarLink = null;
-            try {
-                avatarLink = currentCharacter.getAvatarLink();
-            } catch (Exception e) {
-                Constants.LOGGER.error("Failed to get character avatar link", e);
-            }
+            String avatarLink = currentCharacter.getDocument().getAvatar();
 
             WebhookMessageCreateAction<Message> messageCreateData = webhook.sendMessage(
                             Util.botifyMessage("Currently creating a response! Check back in a second.."))
@@ -539,7 +533,7 @@ public class Roleplay {
                                 } else {
                                     if (triggerAutoResponse) {
                                         Character data = findRespondingCharacterFromContent(responseInfo.getResponse());
-                                        if (data != null && data != currentCharacter && data.getTalkability() >= Math.random()) {
+                                        if (data != null && data != currentCharacter && data.getDocument().getTalkability() >= Math.random()) {
                                             try {
                                                 promptCharacterToRoleplay(data, latestAssistantMessage, true);
                                             } catch (Exception e) {

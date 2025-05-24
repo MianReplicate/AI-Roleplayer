@@ -5,14 +5,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.mian.ai.AIBot;
 import discord.mian.ai.ResponseInfo;
 import discord.mian.ai.Roleplay;
-import discord.mian.api.Data;
 import discord.mian.api.PromptInfo;
 import discord.mian.api.ProviderInfo;
 import discord.mian.custom.*;
+import discord.mian.data.Data;
 import discord.mian.data.character.Character;
-import discord.mian.data.Instruction;
+import discord.mian.data.character.CharacterDocument;
+import discord.mian.data.instruction.Instruction;
 import discord.mian.data.Server;
-import discord.mian.data.World;
+import discord.mian.data.world.World;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
 import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.components.buttons.ButtonStyle;
@@ -46,7 +47,7 @@ import okhttp3.Response;
 import org.apache.tika.Tika;
 
 import java.io.IOException;
-import java.nio.file.Files;
+import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
@@ -69,14 +70,11 @@ public class Interactions {
 
                 Server server = AIBot.bot.getServerData(event.getGuild());
                 Roleplay roleplay = AIBot.bot.getChat(event.getGuild());
-                Data data = server.getDatas(promptType).get(promptName);
+                Data<?> data = server.getDatas(promptType).get(promptName);
 
-                if (!roleplay.isRunningRoleplay() || (roleplay.isRunningRoleplay() && !roleplay.getDatas(promptType).contains(data))) {
-                    try {
-                        data.nuke();
-                    } catch (IOException e) {
-                        Constants.LOGGER.error("Failed to nuke data", e);
-                    }
+                if (!roleplay.isRunningRoleplay() || (roleplay.isRunningRoleplay() &&
+                        !roleplay.getDatas(promptType).contains(data))) {
+                    data.nuke();
                 }
 
                 server.getDatas(promptType).remove(promptName);
@@ -186,7 +184,7 @@ public class Interactions {
                 .setPlaceholder("Edit the prompt. {{char}} represents the character");
 
         Server server = AIBot.bot.getServerData(event.getGuild());
-        Data data = server.getDatas(promptType).get(promptName);
+        Data<?> data = server.getDatas(promptType).get(promptName);
 
         if (data == null)
             throw new RuntimeException(promptName + " is not a valid prompt!");
@@ -199,7 +197,7 @@ public class Interactions {
             components.add(ActionRow.of(
                     TextInput.create("talkability", "Talkability: Put a decimal from 0.0 to 1.0", TextInputStyle.SHORT)
                             .setPlaceholder("Likelihood of responding when mentioned in chat")
-                            .setValue(String.valueOf(((Character) data).getTalkability()))
+                            .setValue(String.valueOf(((Character) data).getDocument().getTalkability()))
                             .build()
             ));
         }
@@ -229,13 +227,16 @@ public class Interactions {
                     tryParse.apply(event.getValue("talkability").getAsString()) : 0.5));
             Server server = AIBot.bot.getServerData(event.getGuild());
 
-            Data data = server.getDatas(promptType).get(promptName);
+            Data<?> data = server.getDatas(promptType).get(promptName);
 
             try {
                 if (data != null) {
-                    data.addOrReplacePrompt(prompt);
-                    if (promptType == PromptType.CHARACTER)
-                        ((Character) data).setTalkability(talkability);
+                    data.updateDocument(doc -> {
+                        if(promptType == PromptType.CHARACTER && doc instanceof CharacterDocument chr){
+                            chr.setTalkability(talkability);
+                        }
+                        doc.setPrompt(prompt);
+                    });
                 } else {
                     switch (promptType) {
                         case CHARACTER -> server.createCharacter(name, prompt, talkability);
@@ -692,7 +693,7 @@ public class Interactions {
                                     try {
                                         Data prompt = dataList.get(onSelect.getSelectedOptions().getFirst().getValue());
                                         onSelect.getHook()
-                                                .sendFiles(FileUpload.fromData(prompt.getPromptFile()))
+                                                .sendFiles(FileUpload.fromData(prompt.getPrompt().getBytes(), "prompt"))
                                                 .setEphemeral(true)
                                                 .queue();
                                     } catch (Exception e) {
@@ -950,8 +951,8 @@ public class Interactions {
                 List<ContainerChildComponent> containerComponents = new ArrayList<>();
 
                 byte[] data = null;
-                try {
-                    data = Files.readAllBytes(chat.getCurrentCharacter().getAvatar().toPath());
+                try(InputStream stream = chat.getCurrentCharacter().downloadAvatar()) {
+                    data = stream.readAllBytes();
                 } catch (Exception e) {
                     Constants.LOGGER.error("Failed to get avatar, using backup", e);
                 }

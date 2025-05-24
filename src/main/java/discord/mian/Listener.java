@@ -155,13 +155,13 @@ public class Listener {
                         if (random.nextBoolean()) {
                             final double total = roleplay.getDatas(PromptType.CHARACTER).stream()
                                     .filter(data1 -> !data1.getName().equals(event.getAuthor().getName()))
-                                    .mapToDouble((data1) -> ((Character) data1).getTalkability()).sum();
+                                    .mapToDouble((data1) -> ((Character) data1).getDocument().getTalkability()).sum();
 
                             double percentage = Math.random();
                             List<Character> meetsCriteria = roleplay.getDatas(PromptType.CHARACTER).stream()
                                     .map(data1 -> (Character) data1)
                                     .filter(
-                                            characterData -> (characterData.getTalkability() / total) >= percentage &&
+                                            characterData -> (characterData.getDocument().getTalkability() / total) >= percentage &&
                                                     !characterData.getName().equals(event.getAuthor().getName())
                                     ).toList();
 

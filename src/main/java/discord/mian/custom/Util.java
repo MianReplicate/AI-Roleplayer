@@ -15,6 +15,7 @@ import okhttp3.*;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -171,6 +172,10 @@ public class Util {
         return Files.readAllBytes(randomImage.toPath());
     }
 
+    public static boolean isValidImage(byte[] image) throws IOException {
+        return ImageIO.read(new ByteArrayInputStream(image)) != null;
+    }
+
     public static boolean isValidImage(File image) throws IOException {
         if (!image.exists())
             return false;
@@ -181,19 +186,19 @@ public class Util {
         return IMAGE_EXTENSIONS.contains(extension) && ImageIO.read(image) != null;
     }
 
-    public static String uploadImage(String key, File image) throws IOException, InterruptedException {
-        if (!isValidImage(image))
+    public static String uploadImage(String key, String name, byte[] data) throws IOException, InterruptedException {
+        if (!isValidImage(data))
             throw new RuntimeException("Invalid image!");
 
-        Constants.LOGGER.info("Attempting to upload " + image.getName());
+        Constants.LOGGER.info("Attempting to upload " + name);
 
         OkHttpClient httpClient = new OkHttpClient.Builder().build();
 
         RequestBody requestBody = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("key", key)
-                .addFormDataPart("image", image.getName(), RequestBody.create(image,
-                        MediaType.parse("image/" + image.getName().substring(image.getName().indexOf(".") + 1))))
+                .addFormDataPart("image", name, RequestBody.create(data,
+                        MediaType.parse("application/octet-stream")))
                 .build();
 
         Request request = new Request.Builder()
@@ -215,7 +220,7 @@ public class Util {
         JsonNode json = mapper.readTree(response.body().string());
         String link = json.get("data").get("url").asText();
 
-        Constants.LOGGER.info("Uploaded " + image.getName() + ": " + link);
+        Constants.LOGGER.info("Uploaded " + name + ": " + link);
         response.body().close();
 
         return link;

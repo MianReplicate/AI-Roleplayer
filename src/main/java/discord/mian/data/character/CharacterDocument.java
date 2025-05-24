@@ -1,10 +1,9 @@
 package discord.mian.data.character;
 
 import discord.mian.api.AIDocument;
-import discord.mian.api.Prompt;
 import org.bson.codecs.pojo.annotations.BsonId;
 
-public class CharacterDocument implements AIDocument, Prompt {
+public class CharacterDocument implements AIDocument {
     @BsonId
     private String name;
     private String avatar;
@@ -13,6 +12,11 @@ public class CharacterDocument implements AIDocument, Prompt {
 
     public CharacterDocument() {
         talkability = 0.5;
+    }
+
+    public CharacterDocument(String name){
+        this();
+        this.name = name;
     }
 
     public CharacterDocument(String name, String avatar, double talkability, String definition) {
@@ -45,10 +49,6 @@ public class CharacterDocument implements AIDocument, Prompt {
 
     public void setPrompt(String definition) {
         this.definition = definition;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     public void setTalkability(double talkability) {

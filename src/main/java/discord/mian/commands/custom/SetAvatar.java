@@ -3,9 +3,11 @@ package discord.mian.commands.custom;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import discord.mian.ai.AIBot;
 import discord.mian.commands.SlashCommand;
+import discord.mian.custom.Constants;
 import discord.mian.custom.Util;
 import discord.mian.data.character.Character;
 import discord.mian.data.Server;
+import discord.mian.data.character.CharacterDocument;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -16,6 +18,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 
 import java.io.File;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -56,23 +59,13 @@ public class SetAvatar extends SlashCommand {
                 return true;
             }
 
-            File existingAvatar = existingCharacter.getAvatar();
-            if (existingAvatar != null)
-                existingAvatar.delete();
+            InputStream inputStream = avatar.getProxy().download().get();
+            String url =
+                    Util.uploadImage(server.getConfig().get("imgbb_key").asString().value, name, inputStream.readAllBytes());
 
-            File avatarFile = new File(existingCharacter.getDocument().getPath() + "/avatar." + avatar.getFileExtension());
-            avatarFile.createNewFile();
-            avatar.getProxy().downloadToFile(avatarFile).get();
+            existingCharacter.updateDocument(doc -> doc.setAvatar(url));
 
-            ObjectMapper mapper = new ObjectMapper();
-            File dataJson = new File(existingCharacter.getDocument().getPath() + "/data.json");
-            if (dataJson.exists()) {
-                Map<String, String> map = mapper.readValue(dataJson, Map.class);
-                map.put("avatar_link", null);
-                mapper.writeValue(dataJson, map);
-            }
-
-            event.getHook().editOriginal("Successfully added or replaced avatar for " + name).queue();
+            event.getHook().editOriginal("Successfully replaced avatar for " + name).queue();
             return true;
         }
 
