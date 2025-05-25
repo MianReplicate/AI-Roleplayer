@@ -44,10 +44,6 @@ public class Main {
 
         Constants.LOGGER.info("IT'S TIME TO ROLEPLAY KIDDOS");
 
-        File serverDatas = Util.createFileRelativeToData("servers");
-        if (!serverDatas.exists())
-            serverDatas.mkdir();
-
         try {
             new AIBot(JDABuilder.create(discord_bot_token, GatewayIntent.getIntents(GatewayIntent.ALL_INTENTS))
                     .setEventManager(new AnnotatedEventManager())
