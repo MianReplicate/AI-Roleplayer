@@ -248,16 +248,6 @@ public class Util {
         });
     }
 
-    public static EmbedBuilder createBotEmbed() {
-        return new EmbedBuilder()
-                .setAuthor("Created By Your Lovely Girl: @MianReplicate", "https://en.pronouns.page/@MianReplicate")
-                .setColor(new Color(
-                        (int) (Math.random() * 256),
-                        (int) (Math.random() * 256),
-                        (int) (Math.random() * 256),
-                        (int) (Math.random() * 256)));
-    }
-
     public static Container createBotContainer(List<ContainerChildComponent> moreComponents) {
         ArrayList<ContainerChildComponent> components = new ArrayList<>();
         components.add(TextDisplay.of("-# [Created By Your Lovely Girl: @MianReplicate](https://en.pronouns.page/@MianReplicate)"));

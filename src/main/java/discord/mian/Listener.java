@@ -1,5 +1,6 @@
 package discord.mian;
 
+import com.mongodb.client.model.Filters;
 import discord.mian.ai.AIBot;
 import discord.mian.ai.Roleplay;
 import discord.mian.commands.BotCommands;
@@ -9,6 +10,7 @@ import discord.mian.interactions.InteractionCreator;
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
+import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
@@ -37,6 +39,11 @@ public class Listener {
     @SubscribeEvent
     public void onGuildJoin(GuildJoinEvent event) {
         AIBot.bot.onServerJoin(event.getGuild());
+    }
+
+    @SubscribeEvent
+    public void onGuildLeave(GuildLeaveEvent event){
+        AIBot.bot.removeServer(event.getGuild());
     }
 
     @SubscribeEvent

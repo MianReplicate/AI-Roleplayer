@@ -1,16 +1,17 @@
 package discord.mian.ai;
 
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.model.Filters;
 import discord.mian.commands.BotCommands;
 import discord.mian.Constants;
 import discord.mian.Util;
 import discord.mian.data.Server;
+import discord.mian.data.ServerConfig;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 public class AIBot {
     public static AIBot bot;
@@ -36,10 +37,17 @@ public class AIBot {
             onServerJoin(guild);
         }
 
-        for (File serverFolder : Objects.requireNonNull(Util.createFileRelativeToData("servers").listFiles())) {
-            long id = Long.valueOf(serverFolder.getName());
-            if (jda.getGuildById(id) == null)
-                serverFolder.delete(); // removes data of servers we are no longer in
+        try(MongoCursor<ServerConfig> cursor = Util.DATABASE.getCollection("server", ServerConfig.class).find().iterator()){
+            while(cursor.hasNext()){
+                ServerConfig config = cursor.next();
+                if(jda.getGuildById(config.getId()) == null){
+                    Util.DATABASE.getCollection("server").deleteMany(
+                            Filters.eq("_id", config.getId())
+                    );
+                    Util.DATABASE.getCollection("prompt")
+                            .deleteMany(Filters.eq("server", config.getId()));
+                }
+            }
         }
     }
 
@@ -67,5 +75,15 @@ public class AIBot {
 
     public void onServerJoin(Guild guild) {
         servers.put(guild, new Server(guild));
+    }
+
+    public void removeServer(Guild guild){
+        Server server = servers.remove(guild);
+        ServerConfig config = server.getConfig();
+        Util.DATABASE.getCollection("server").deleteMany(
+                Filters.eq("_id", config.getId())
+        );
+        Util.DATABASE.getCollection("prompt")
+                .deleteMany(Filters.eq("server", config.getId()));
     }
 }
