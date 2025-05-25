@@ -1,8 +1,7 @@
 package discord.mian.data.character;
 
-import discord.mian.data.PromptType;
 import discord.mian.data.AIDocument;
-import org.bson.codecs.pojo.annotations.BsonId;
+import discord.mian.data.PromptType;
 
 public class CharacterDocument extends AIDocument {
     private String name;
@@ -16,7 +15,7 @@ public class CharacterDocument extends AIDocument {
         talkability = 0.5;
     }
 
-    public CharacterDocument(String name, long server){
+    public CharacterDocument(String name, long server) {
         super(name, server);
         setType(PromptType.CHARACTER.displayName.toLowerCase());
         talkability = 0.5;

@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.client.MongoDatabase;
 import discord.mian.ai.AIBot;
 import discord.mian.data.PromptType;
-import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.components.container.Container;
 import net.dv8tion.jda.api.components.container.ContainerChildComponent;
 import net.dv8tion.jda.api.components.separator.Separator;
@@ -116,7 +115,7 @@ public class Util {
         return "```" + string + "```";
     }
 
-    public static File getDefaultsFor(PromptType promptType){
+    public static File getDefaultsFor(PromptType promptType) {
         File data = getDataFolder();
         return new File(data.getPath() + "/defaults/" + promptType.displayName.toLowerCase());
     }

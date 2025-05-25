@@ -1,6 +1,5 @@
 package discord.mian.data;
 
-import discord.mian.Constants;
 import org.bson.BsonReader;
 import org.bson.BsonType;
 import org.bson.BsonWriter;
@@ -20,7 +19,7 @@ public class ConfigEntryCodec implements Codec<ConfigEntry<?>> {
 
         bsonWriter.writeName("value");
         Object value = configEntry.getValue();
-        if(value == null){
+        if (value == null) {
             bsonWriter.writeNull();
         } else {
             Codec<Object> codec = (Codec<Object>) CodecRegistries.fromProviders(
@@ -40,12 +39,12 @@ public class ConfigEntryCodec implements Codec<ConfigEntry<?>> {
         String desc = bsonReader.readString("description");
         boolean hidden = bsonReader.readBoolean("hidden");
 
-        if(type == null)
+        if (type == null)
             throw new RuntimeException("Unknown type: " + type);
 
         ConfigEntry<?> entry;
 
-        try{
+        try {
             Class<?> clazz = Class.forName(type);
             Codec<Object> codec = (Codec<Object>) CodecRegistries.fromProviders(
                     new ValueCodecProvider()
@@ -54,14 +53,14 @@ public class ConfigEntryCodec implements Codec<ConfigEntry<?>> {
             entry.setDescription(desc);
             entry.setHidden(hidden);
 
-            if(bsonReader.readBsonType() == BsonType.NULL){
+            if (bsonReader.readBsonType() == BsonType.NULL) {
                 bsonReader.readNull();
                 entry.setValue(null);
             } else {
                 Object value = codec.decode(bsonReader, decoderContext);
                 ConfigEntry.toType(entry, Object.class).setValue(value);
             }
-        }catch(ClassNotFoundException e){
+        } catch (ClassNotFoundException e) {
             throw new RuntimeException("Unknown class: " + type, e);
         }
 
@@ -71,6 +70,6 @@ public class ConfigEntryCodec implements Codec<ConfigEntry<?>> {
 
     @Override
     public Class<ConfigEntry<?>> getEncoderClass() {
-        return (Class<ConfigEntry<?>>)(Class<?>) ConfigEntry.class;
+        return (Class<ConfigEntry<?>>) (Class<?>) ConfigEntry.class;
     }
 }

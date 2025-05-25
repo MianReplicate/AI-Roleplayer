@@ -39,7 +39,7 @@ public class InteractionCreator {
         };
 
         return message -> {
-            if(TIMEOUTS.containsKey(message.getIdLong())){
+            if (TIMEOUTS.containsKey(message.getIdLong())) {
                 TIMEOUTS.get(message.getIdLong()).cancel(true);
                 TIMEOUTS.remove(message.getIdLong());
             }

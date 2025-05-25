@@ -6,11 +6,11 @@ public class ConfigEntry<T> {
     private boolean hidden = false;
     private T value;
 
-    public ConfigEntry(Class<T> clazz){
+    public ConfigEntry(Class<T> clazz) {
         this.type = clazz.getTypeName();
     }
 
-    public ConfigEntry(String description, boolean hidden, T value, Class<T> clazz){
+    public ConfigEntry(String description, boolean hidden, T value, Class<T> clazz) {
         this(clazz);
         this.description = description;
         this.hidden = hidden;
@@ -25,7 +25,7 @@ public class ConfigEntry<T> {
         this.description = description;
     }
 
-    public void setValue(T value){
+    public void setValue(T value) {
         this.value = value;
     }
 
@@ -33,21 +33,21 @@ public class ConfigEntry<T> {
         return value;
     }
 
-    public static <R> ConfigEntry<R> toType(ConfigEntry<?> entry, Class<R> type){
+    public static <R> ConfigEntry<R> toType(ConfigEntry<?> entry, Class<R> type) {
         return (ConfigEntry<R>) entry;
     }
 
-    public void setType(String type){
+    public void setType(String type) {
         this.type = type;
     }
 
-    public String getType(){
+    public String getType() {
         return type;
     }
 
     public Class<T> getTypeClass() {
         Class<T> clazz;
-        try{
+        try {
             clazz = (Class<T>) Class.forName(type);
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);

@@ -7,13 +7,15 @@ import com.knuddels.jtokkit.Encodings;
 import com.knuddels.jtokkit.api.Encoding;
 import com.knuddels.jtokkit.api.EncodingRegistry;
 import com.knuddels.jtokkit.api.EncodingType;
-import discord.mian.*;
+import discord.mian.Constants;
+import discord.mian.Direction;
+import discord.mian.Util;
 import discord.mian.data.Data;
 import discord.mian.data.PromptType;
+import discord.mian.data.Server;
 import discord.mian.data.ServerConfig;
 import discord.mian.data.character.Character;
 import discord.mian.data.instruction.Instruction;
-import discord.mian.data.Server;
 import discord.mian.data.world.World;
 import discord.mian.interactions.InteractionCreator;
 import discord.mian.interactions.Interactions;
@@ -829,7 +831,7 @@ public class Roleplay {
                             msg.getComponentTree().replace(replacer)
                     ).useComponentsV2().queue(RestAction.getDefaultSuccess(), onFail);
                 }, onFail);
-            }else {
+            } else {
                 roleplayInfo.editMessageComponents(
                         roleplayInfo.getComponentTree().replace(replacer)
                 ).useComponentsV2().queue(RestAction.getDefaultSuccess(), onFail);

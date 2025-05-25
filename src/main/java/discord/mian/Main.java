@@ -14,7 +14,6 @@ import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.PojoCodecProvider;
 
-import java.io.File;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -23,7 +22,7 @@ public class Main {
     public static void main(String[] args) throws Exception {
         String discord_bot_token = args[0];
         String connectionString = "mongodb://localhost:27017/roleplayer";
-        if(args.length > 1){
+        if (args.length > 1) {
             connectionString = args[1];
         }
 

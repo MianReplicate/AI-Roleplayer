@@ -2,9 +2,9 @@ package discord.mian.ai;
 
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Filters;
-import discord.mian.commands.BotCommands;
 import discord.mian.Constants;
 import discord.mian.Util;
+import discord.mian.commands.BotCommands;
 import discord.mian.data.Server;
 import discord.mian.data.ServerConfig;
 import net.dv8tion.jda.api.JDA;
@@ -37,10 +37,10 @@ public class AIBot {
             onServerJoin(guild);
         }
 
-        try(MongoCursor<ServerConfig> cursor = Util.DATABASE.getCollection("server", ServerConfig.class).find().iterator()){
-            while(cursor.hasNext()){
+        try (MongoCursor<ServerConfig> cursor = Util.DATABASE.getCollection("server", ServerConfig.class).find().iterator()) {
+            while (cursor.hasNext()) {
                 ServerConfig config = cursor.next();
-                if(jda.getGuildById(config.getId()) == null){
+                if (jda.getGuildById(config.getId()) == null) {
                     Util.DATABASE.getCollection("server").deleteMany(
                             Filters.eq("_id", config.getId())
                     );
@@ -77,7 +77,7 @@ public class AIBot {
         servers.put(guild, new Server(guild));
     }
 
-    public void removeServer(Guild guild){
+    public void removeServer(Guild guild) {
         Server server = servers.remove(guild);
         ServerConfig config = server.getConfig();
         Util.DATABASE.getCollection("server").deleteMany(

@@ -29,7 +29,7 @@ public class Cats {
                 .build();
 
         Call call = client.newCall(request);
-        try(Response response = call.execute()){
+        try (Response response = call.execute()) {
             InputStream inputStream = response.body().byteStream();
             file = inputStream.readAllBytes();
             IsGif = isGif;

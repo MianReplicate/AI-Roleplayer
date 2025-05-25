@@ -9,15 +9,16 @@ public class AIDocument {
     private long server;
     private String prompt;
 
-    public AIDocument(){}
+    public AIDocument() {
+    }
 
-    public AIDocument(String name, long server){
+    public AIDocument(String name, long server) {
         this();
         this.name = name;
         this.server = server;
     }
 
-    public AIDocument(String name, long server, String prompt){
+    public AIDocument(String name, long server, String prompt) {
         this(name, server);
         this.prompt = prompt;
     }
@@ -42,7 +43,7 @@ public class AIDocument {
         return prompt;
     }
 
-    public long getServer(){
+    public long getServer() {
         return server;
     }
 
@@ -50,7 +51,7 @@ public class AIDocument {
         this.type = type;
     }
 
-    public String getType(){
+    public String getType() {
         return type;
     }
 }

@@ -27,9 +27,9 @@ import java.util.Objects;
 import java.util.function.Consumer;
 
 public class Server {
-    private HashMap<String, Character> characterDatas;
-    private HashMap<String, Instruction> instructionDatas;
-    private HashMap<String, World> worldDatas;
+    private final HashMap<String, Character> characterDatas;
+    private final HashMap<String, Instruction> instructionDatas;
+    private final HashMap<String, World> worldDatas;
     private final Guild guild;
 
     public Server(Guild guild) {
@@ -45,23 +45,23 @@ public class Server {
         return guild.getRoleById(getConfig().get("bot_role_id", Long.class).getValue());
     }
 
-    public ServerConfig getConfig(){
+    public ServerConfig getConfig() {
         MongoCollection<ServerConfig> serverConfigs = Util.DATABASE.getCollection("server", ServerConfig.class);
         MongoCursor<ServerConfig> cursor = serverConfigs.find(Filters.eq("_id", guild.getIdLong())).iterator();
 
         ServerConfig configuration;
-        if(cursor.hasNext())
+        if (cursor.hasNext())
             configuration = cursor.next();
         else {
             configuration = new ServerConfig(guild.getIdLong(), new HashMap<>());
 
             // can be assumed that the server is new
-            for(PromptType promptType: PromptType.values()){
+            for (PromptType promptType : PromptType.values()) {
                 File defaults = Util.getDefaultsFor(promptType);
 
                 Arrays.stream(Objects.requireNonNull(defaults.listFiles())).forEach(file -> {
                     try {
-                        if(promptType == PromptType.CHARACTER) {
+                        if (promptType == PromptType.CHARACTER) {
                             ObjectMapper mapper = new ObjectMapper();
 
                             JsonNode characterNode = mapper.readTree(file);
@@ -78,7 +78,7 @@ public class Server {
                             String name = file.getName();
                             name = name.substring(0, name.lastIndexOf("."));
 
-                            if(promptType == PromptType.INSTRUCTION)
+                            if (promptType == PromptType.INSTRUCTION)
                                 createInstruction(name, prompt);
                             else
                                 createWorld(name, prompt);
@@ -142,7 +142,7 @@ public class Server {
         return configuration;
     }
 
-    private void saveConfig(ServerConfig config){
+    private void saveConfig(ServerConfig config) {
         MongoCollection<ServerConfig> serverConfigs = Util.DATABASE.getCollection("server", ServerConfig.class);
 
         serverConfigs.replaceOne(Filters.and(
@@ -170,11 +170,11 @@ public class Server {
     }
 
     public HashMap<String, World> getWorldDatas() {
-        try(MongoCursor<WorldDocument> cursor = Util.DATABASE.getCollection("prompt", WorldDocument.class)
+        try (MongoCursor<WorldDocument> cursor = Util.DATABASE.getCollection("prompt", WorldDocument.class)
                 .find(Filters.and(
                         Filters.eq("server", guild.getIdLong()),
-                        Filters.eq("type", PromptType.WORLD.displayName.toLowerCase()))).iterator()){
-            while(cursor.hasNext()){
+                        Filters.eq("type", PromptType.WORLD.displayName.toLowerCase()))).iterator()) {
+            while (cursor.hasNext()) {
                 WorldDocument document = cursor.next();
                 worldDatas.putIfAbsent(document.getName(), new World(document));
             }
@@ -184,11 +184,11 @@ public class Server {
     }
 
     public HashMap<String, Instruction> getInstructionDatas() {
-        try(MongoCursor<InstructionDocument> cursor = Util.DATABASE.getCollection("prompt", InstructionDocument.class)
+        try (MongoCursor<InstructionDocument> cursor = Util.DATABASE.getCollection("prompt", InstructionDocument.class)
                 .find(Filters.and(
                         Filters.eq("server", guild.getIdLong()),
-                        Filters.eq("type", PromptType.INSTRUCTION.displayName.toLowerCase()))).iterator()){
-            while(cursor.hasNext()){
+                        Filters.eq("type", PromptType.INSTRUCTION.displayName.toLowerCase()))).iterator()) {
+            while (cursor.hasNext()) {
                 InstructionDocument document = cursor.next();
                 instructionDatas.putIfAbsent(document.getName(), new Instruction(document));
             }
@@ -198,12 +198,12 @@ public class Server {
     }
 
     public HashMap<String, Character> getCharacterDatas() {
-        try(MongoCursor<CharacterDocument> cursor = Util.DATABASE.getCollection("prompt", CharacterDocument.class)
+        try (MongoCursor<CharacterDocument> cursor = Util.DATABASE.getCollection("prompt", CharacterDocument.class)
                 .find(Filters.and(
                         Filters.eq("server", guild.getIdLong()),
                         Filters.eq("type", PromptType.CHARACTER.displayName.toLowerCase()))
-                ).iterator()){
-            while(cursor.hasNext()){
+                ).iterator()) {
+            while (cursor.hasNext()) {
                 CharacterDocument document = cursor.next();
                 characterDatas.putIfAbsent(document.getName(), new Character(document));
             }

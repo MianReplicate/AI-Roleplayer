@@ -1,11 +1,11 @@
 package discord.mian.commands.custom;
 
 import com.mongodb.MongoException;
+import discord.mian.Util;
 import discord.mian.ai.AIBot;
 import discord.mian.commands.SlashCommand;
-import discord.mian.Util;
-import discord.mian.data.character.Character;
 import discord.mian.data.Server;
+import discord.mian.data.character.Character;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -63,13 +63,13 @@ public class SetAvatar extends SlashCommand {
                             inputStream.readAllBytes()
                     );
 
-            if(url == null){
+            if (url == null) {
                 event.getHook().editOriginal("Failed to upload avatar to IMGBB").queue();
             } else {
-                try{
+                try {
                     existingCharacter.updateDocument(doc -> doc.setAvatar(url));
                     event.getHook().editOriginal("Successfully replaced avatar for " + name).queue();
-                }catch(MongoException ignored){
+                } catch (MongoException ignored) {
                     event.getHook().editOriginal("Failed to replace avatar for " + name).queue();
                 }
             }

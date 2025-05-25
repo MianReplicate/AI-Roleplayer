@@ -13,10 +13,10 @@ public class Data<T extends AIDocument> {
     protected final T document;
     private final MongoCollection<T> collection;
 
-    public Data(Class<T> type, T document){
-        if(document == null)
+    public Data(Class<T> type, T document) {
+        if (document == null)
             throw new RuntimeException("Document cannot be null!");
-        if(document.getName() == null)
+        if (document.getName() == null)
             throw new RuntimeException("Document needs a name!");
         this.document = document;
         this.type = type;
@@ -24,15 +24,15 @@ public class Data<T extends AIDocument> {
                 .getCollection("prompt", type);
     }
 
-    public String getName(){
+    public String getName() {
         return document.getName();
     }
 
-    public T getDocument(){
+    public T getDocument() {
         return document;
     }
 
-    public String getPrompt(){
+    public String getPrompt() {
         return document.getPrompt();
     }
 
@@ -45,7 +45,7 @@ public class Data<T extends AIDocument> {
     }
 
     // delete document
-    public void nuke() throws MongoException{
+    public void nuke() throws MongoException {
         collection.deleteOne(Filters.and(
                 Filters.eq("name", document.getName()),
                 Filters.eq("server", document.getServer())

@@ -1,6 +1,5 @@
 package discord.mian;
 
-import com.mongodb.client.model.Filters;
 import discord.mian.ai.AIBot;
 import discord.mian.ai.Roleplay;
 import discord.mian.commands.BotCommands;
@@ -42,7 +41,7 @@ public class Listener {
     }
 
     @SubscribeEvent
-    public void onGuildLeave(GuildLeaveEvent event){
+    public void onGuildLeave(GuildLeaveEvent event) {
         AIBot.bot.removeServer(event.getGuild());
     }
 

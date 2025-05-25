@@ -3,7 +3,10 @@ package discord.mian.interactions;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.MongoException;
-import discord.mian.*;
+import discord.mian.Cats;
+import discord.mian.Constants;
+import discord.mian.Direction;
+import discord.mian.Util;
 import discord.mian.ai.AIBot;
 import discord.mian.ai.ResponseInfo;
 import discord.mian.ai.Roleplay;
@@ -12,10 +15,10 @@ import discord.mian.api.ProviderInfo;
 import discord.mian.data.ConfigEntry;
 import discord.mian.data.Data;
 import discord.mian.data.PromptType;
+import discord.mian.data.Server;
 import discord.mian.data.character.Character;
 import discord.mian.data.character.CharacterDocument;
 import discord.mian.data.instruction.Instruction;
-import discord.mian.data.Server;
 import discord.mian.data.world.World;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
 import net.dv8tion.jda.api.components.buttons.Button;
@@ -249,9 +252,9 @@ public class Interactions {
             try {
                 if (data != null) {
                     data.updateDocument(doc -> {
-                        if(promptType == PromptType.CHARACTER && doc instanceof CharacterDocument chr){
+                        if (promptType == PromptType.CHARACTER && doc instanceof CharacterDocument chr) {
                             chr.setTalkability(talkability);
-                            if(avatar != null)
+                            if (avatar != null)
                                 chr.setAvatar(avatar);
                         }
                         doc.setPrompt(prompt);
@@ -388,27 +391,27 @@ public class Interactions {
                                 TextInput.Builder textInput = TextInput.create("value", "Value", TextInputStyle.SHORT)
                                         .setPlaceholder("Enter a valid value: For booleans, type \"true\" or \"false\".");
                                 String oldVal = String.valueOf(entry.getValue());
-                                if(oldVal != null && !oldVal.isBlank())
+                                if (oldVal != null && !oldVal.isBlank())
                                     textInput.setValue(oldVal);
 
                                 event.replyModal(InteractionCreator.createModal("Editing " + configOption.toUpperCase(), (modalEvent) -> {
                                     modalEvent.deferReply(true).queue();
-                                    try{
+                                    try {
                                         String value = modalEvent.getValue("value").getAsString();
-                                        if(entry.getTypeClass() == String.class){
+                                        if (entry.getTypeClass() == String.class) {
                                             ConfigEntry.toType(entry, String.class).setValue(value);
-                                        } else if(entry.getTypeClass() == Double.class){
+                                        } else if (entry.getTypeClass() == Double.class) {
                                             ConfigEntry.toType(entry, Double.class).setValue(Double.valueOf(value));
-                                        } else if(entry.getTypeClass() == Long.class){
+                                        } else if (entry.getTypeClass() == Long.class) {
                                             ConfigEntry.toType(entry, Long.class).setValue(Long.valueOf(value));
-                                        } else if(entry.getTypeClass() == Integer.class){
+                                        } else if (entry.getTypeClass() == Integer.class) {
                                             ConfigEntry.toType(entry, Integer.class).setValue(Integer.valueOf(value));
                                         }
 
                                         AIBot.bot.getServerData(modalEvent.getGuild()).updateConfig(config ->
                                                 config.put(configOption, entry));
                                         modalEvent.getHook().editOriginal("Saved config!").queue();
-                                    }catch(MongoException ignored){
+                                    } catch (MongoException ignored) {
                                         modalEvent.getHook().editOriginal("Failed to update config!").queue();
                                     }
                                 }).addComponents(
@@ -965,7 +968,7 @@ public class Interactions {
                 List<ContainerChildComponent> containerComponents = new ArrayList<>();
 
                 byte[] data = null;
-                try(InputStream stream = chat.getCurrentCharacter().downloadAvatar()) {
+                try (InputStream stream = chat.getCurrentCharacter().downloadAvatar()) {
                     data = stream.readAllBytes();
                 } catch (Exception e) {
                     Constants.LOGGER.error("Failed to get avatar, using backup", e);
