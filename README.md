@@ -3,8 +3,10 @@ Create characters 🧝, world lore 🌍 and custom instructions🤖! You can rol
 # How to Build/Host
 1. Download Java 21
 2. Download latest jar release
-3. Run jar in terminal with a valid discord bot token as the first argument
-4. Continue on to "How to Use" for using the actual bot!
+3. Set up a local MongoDB database, make sure to start it before launching the bot
+4. Run jar in terminal with a valid discord bot token as the first argument
+5. Continue on to "How to Use" for using the actual bot!
+6. (OPTIONAL) If you want to use a cloud database for MongoDB, run the jar with your database username and password as the second and third arguments
 
 # How to Use [(Public Invite)](https://discord.com/oauth2/authorize?client_id=1287923107604205630&permissions=8&integration_type=0&scope=bot)
 Use command /menu and get started at any time!
