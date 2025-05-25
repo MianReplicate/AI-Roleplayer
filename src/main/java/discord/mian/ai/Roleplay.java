@@ -499,6 +499,7 @@ public class Roleplay {
             currentSwipe = 0;
             this.finishedDiscordResponse(Util.botifyMessage("Failed to send a response due to an exception :< sowwy. If this keeps happening, try using a different AI model or provider.\n\nError: " + (overrideError != null ? overrideError : throwable.getMessage().substring(0, Math.min(throwable.getMessage().length(), 1750)))));
             queuedResponses.clear();
+            Constants.LOGGER.error("Failed to generate response", throwable);
         };
 
         try {
@@ -512,7 +513,8 @@ public class Roleplay {
                     .setComponents(ActionRow.of(Interactions.createCancellableResponse()))
                     .setUsername(currentCharacter.getName());
 
-            if (avatarLink != null) {
+            if (avatarLink != null && !avatarLink.isBlank() &&
+                    (avatarLink.startsWith("https://") || avatarLink.startsWith("http://"))) {
                 messageCreateData = messageCreateData.setAvatarUrl(avatarLink);
             }
 
@@ -659,15 +661,6 @@ public class Roleplay {
             }
             messages.add(ChatMessage.SystemMessage.of(combinedLore.toString(), "Lore"));
 
-//            StringBuilder multipleCharacters = new StringBuilder("For your response, you will be replying as {{char}}. Do not respond as any of the other characters in this group except {{char}}: ");
-//            for(String name : characters.keySet()){
-//                multipleCharacters.append(name).append(", ");
-//            };
-//            multipleCharacters.replace(multipleCharacters.lastIndexOf(", "), multipleCharacters.length(), ".");
-//
-//            messages.add(
-//                    ChatMessage.SystemMessage.of(multipleCharacters.toString())
-//            );
             String characterPersona = "Understand the character definition below! This is the character you will be playing in the roleplay.\n" +
                     character.getChatMessage(character).getContent();
             messages.add(ChatMessage.SystemMessage.of(characterPersona, "CharacterDefinition"));
@@ -771,14 +764,13 @@ public class Roleplay {
     }
 
     public void startRoleplay(Message roleplayInfo, InteractionHook optionalHook, Consumer<Webhook> onSuccess) {
-        if (parentID == roleplayInfo.getIdLong())
-            return; // is already running rp
         if (isRunningRoleplay())
             stopRoleplay();
 
         // completely async
         Consumer<Throwable> onFail = t -> {
             stopRoleplay();
+            Constants.LOGGER.error("Failed to start roleplay", t);
             throw new RuntimeException(t);
         };
 
@@ -831,18 +823,17 @@ public class Roleplay {
                 }
                 return oldComponent;
             });
-
-            if (optionalHook != null)
-                optionalHook.retrieveOriginal().queue(msg -> optionalHook.editOriginalComponents(
-                        msg.getComponentTree().replace(replacer)
-                ).useComponentsV2().queue(RestAction.getDefaultSuccess(), t -> {
-                }), t -> {
-                });
-            else
+            if (optionalHook != null) {
+                optionalHook.retrieveOriginal().queue(msg -> {
+                    optionalHook.editOriginalComponents(
+                            msg.getComponentTree().replace(replacer)
+                    ).useComponentsV2().queue(RestAction.getDefaultSuccess(), onFail);
+                }, onFail);
+            }else {
                 roleplayInfo.editMessageComponents(
                         roleplayInfo.getComponentTree().replace(replacer)
-                ).useComponentsV2().queue(RestAction.getDefaultSuccess(), t -> {
-                });
+                ).useComponentsV2().queue(RestAction.getDefaultSuccess(), onFail);
+            }
         };
 
         roleplayInfo.getChannel().asTextChannel().retrieveWebhooks().queue(webhooks -> webhooks.stream().filter(find -> find.getName().equals(AIBot.bot.getJDA().getSelfUser().getName()))
@@ -880,7 +871,7 @@ public class Roleplay {
                             ComponentReplacer.byId(1, oldComponent -> {
                                 if (oldComponent instanceof TextDisplay display) {
                                     int index = display.getContent().indexOf(" ✅");
-                                    if (index != 1) {
+                                    if (index != -1) {
                                         return TextDisplay.of(display.getContent().substring(0, index))
                                                 .withUniqueId(1);
                                     } else {

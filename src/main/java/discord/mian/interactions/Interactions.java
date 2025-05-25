@@ -53,6 +53,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -386,7 +387,9 @@ public class Interactions {
 
                                 TextInput.Builder textInput = TextInput.create("value", "Value", TextInputStyle.SHORT)
                                         .setPlaceholder("Enter a valid value: For booleans, type \"true\" or \"false\".");
-                                textInput.setValue(String.valueOf(entry.getValue()));
+                                String oldVal = String.valueOf(entry.getValue());
+                                if(oldVal != null && !oldVal.isBlank())
+                                    textInput.setValue(oldVal);
 
                                 event.replyModal(InteractionCreator.createModal("Editing " + configOption.toUpperCase(), (modalEvent) -> {
                                     modalEvent.deferReply(true).queue();
@@ -1012,11 +1015,13 @@ public class Interactions {
         return InteractionCreator.createPermanentButton(Button.primary("start_here", "Continue"),
                         button -> {
                             try {
+                                button.deferEdit().queue();
                                 AIBot.bot.getChat(button.getGuild()).startRoleplay(
                                         button.getMessage(), button.getHook(), null
                                 );
                             } catch (Exception e) {
-                                button.reply("Failed to continue roleplay!").setEphemeral(true).queue();
+                                button.getChannel().sendMessage("Failed to continue roleplay!")
+                                        .queue(msg -> msg.delete().queueAfter(10, TimeUnit.SECONDS));
                                 Constants.LOGGER.error("Failed to continue roleplay", e);
                             }
                         })

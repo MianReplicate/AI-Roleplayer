@@ -39,7 +39,7 @@ public class Data<T extends AIDocument> {
     public void updateDocument(Consumer<T> documentUpdater) throws MongoException {
         documentUpdater.accept(document);
         collection.replaceOne(Filters.and(
-                Filters.eq("_id", document.getName()),
+                Filters.eq("name", document.getName()),
                 Filters.eq("server", document.getServer())
         ), document, new ReplaceOptions().upsert(true));
     }
@@ -47,7 +47,7 @@ public class Data<T extends AIDocument> {
     // delete document
     public void nuke() throws MongoException{
         collection.deleteOne(Filters.and(
-                Filters.eq("_id", document.getName()),
+                Filters.eq("name", document.getName()),
                 Filters.eq("server", document.getServer())
         ));
     }

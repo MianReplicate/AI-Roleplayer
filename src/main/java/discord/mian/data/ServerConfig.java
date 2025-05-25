@@ -42,9 +42,8 @@ public class ServerConfig {
 
     public <T>ConfigEntry<T> get(String key, Class<T> generic){
         ConfigEntry<?> entry = entries.get(key);
-//        Constants.LOGGER.info(entry.getTypeClass());
-        if(entry.getTypeClass() == generic)
-            throw new RuntimeException(entry.getValue() + " isn't of type "+ generic.getSimpleName());
+        if(!entry.getTypeClass().isAssignableFrom(generic))
+            throw new RuntimeException(entry.getValue() + " isn't of type "+ generic.getTypeName());
         return (ConfigEntry<T>) entry;
     }
 

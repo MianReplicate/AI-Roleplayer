@@ -51,7 +51,7 @@ public class InteractionCreator {
                                     component -> component.withDisabled(true)))
                     ).useComponentsV2()
                     .onErrorMap(throwable -> message)
-                    .submitAfter(length != null ? length : 15, TimeUnit.SECONDS);
+                    .submitAfter(length != null ? length : 25, TimeUnit.SECONDS);
 
             TIMEOUTS.put(message.getIdLong(), delayed);
             delayed.thenAccept(removeConsumer);

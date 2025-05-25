@@ -5,7 +5,6 @@ import discord.mian.data.AIDocument;
 import org.bson.codecs.pojo.annotations.BsonId;
 
 public class CharacterDocument extends AIDocument {
-    @BsonId
     private String name;
     private long server;
     private String avatar;

@@ -118,7 +118,7 @@ public class Util {
 
     public static File getDefaultsFor(PromptType promptType){
         File data = getDataFolder();
-        return new File(data.getPath() + "/" + promptType.displayName.toLowerCase());
+        return new File(data.getPath() + "/defaults/" + promptType.displayName.toLowerCase());
     }
 
     public static File getDataFolder() {

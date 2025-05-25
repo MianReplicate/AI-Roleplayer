@@ -1,5 +1,7 @@
 package discord.mian.data;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.MongoException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
@@ -16,7 +18,12 @@ import discord.mian.data.world.WorldDocument;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Role;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 public class Server {
@@ -27,6 +34,10 @@ public class Server {
 
     public Server(Guild guild) {
         this.guild = guild;
+        this.characterDatas = new HashMap<>();
+        this.instructionDatas = new HashMap<>();
+        this.worldDatas = new HashMap<>();
+
         saveConfig(generateConfig(getConfig())); // generates the config and missing values if they do not exist
     }
 
@@ -41,8 +52,43 @@ public class Server {
         ServerConfig configuration;
         if(cursor.hasNext())
             configuration = cursor.next();
-        else
+        else {
             configuration = new ServerConfig(guild.getIdLong(), new HashMap<>());
+
+            // can be assumed that the server is new
+            for(PromptType promptType: PromptType.values()){
+                File defaults = Util.getDefaultsFor(promptType);
+
+                Arrays.stream(Objects.requireNonNull(defaults.listFiles())).forEach(file -> {
+                    try {
+                        if(promptType == PromptType.CHARACTER) {
+                            ObjectMapper mapper = new ObjectMapper();
+
+                            JsonNode characterNode = mapper.readTree(file);
+                            createCharacter(
+                                    characterNode.get("name").asText(),
+                                    characterNode.get("prompt").asText(),
+                                    characterNode.get("talkability").asDouble()
+                            );
+                            characterDatas.get(characterNode.get("name").asText()).updateDocument(
+                                    document -> document.setAvatar(characterNode.get("avatar").asText())
+                            );
+                        } else {
+                            String prompt = Files.readString(file.toPath());
+                            String name = file.getName();
+                            name = name.substring(0, name.lastIndexOf("."));
+
+                            if(promptType == PromptType.INSTRUCTION)
+                                createInstruction(name, prompt);
+                            else
+                                createWorld(name, prompt);
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+            }
+        }
         cursor.close();
         return configuration;
     }
@@ -124,10 +170,6 @@ public class Server {
     }
 
     public HashMap<String, World> getWorldDatas() {
-        if (worldDatas == null) {
-            worldDatas = new HashMap<>();
-        }
-
         try(MongoCursor<WorldDocument> cursor = Util.DATABASE.getCollection("prompt", WorldDocument.class)
                 .find(Filters.and(
                         Filters.eq("server", guild.getIdLong()),
@@ -142,10 +184,6 @@ public class Server {
     }
 
     public HashMap<String, Instruction> getInstructionDatas() {
-        if (instructionDatas == null) {
-            instructionDatas = new HashMap<>();
-        }
-
         try(MongoCursor<InstructionDocument> cursor = Util.DATABASE.getCollection("prompt", InstructionDocument.class)
                 .find(Filters.and(
                         Filters.eq("server", guild.getIdLong()),
@@ -160,10 +198,6 @@ public class Server {
     }
 
     public HashMap<String, Character> getCharacterDatas() {
-        if (characterDatas == null) {
-            characterDatas = new HashMap<>();
-        }
-
         try(MongoCursor<CharacterDocument> cursor = Util.DATABASE.getCollection("prompt", CharacterDocument.class)
                 .find(Filters.and(
                         Filters.eq("server", guild.getIdLong()),
