@@ -259,8 +259,9 @@ public class Roleplay {
     }
 
     public RestAction<ChatRequest> createChatRequest(Character character) {
-        ExtrasChatRequest.ExtrasChatRequestBuilder requestBuilder = ExtrasChatRequest.extrasBuilder()
-                .setProviderFallback(false);
+        ExtrasChatRequest.ExtrasChatRequestBuilder requestBuilder = ExtrasChatRequest
+                .extrasBuilder()
+                .setProviderFallback(server.getConfig().get("use_fallback_providers", Boolean.class).getValue());
         if (provider != null && !provider.isEmpty())
             requestBuilder.setProviders(provider);
 

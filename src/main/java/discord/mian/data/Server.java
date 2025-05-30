@@ -109,6 +109,11 @@ public class Server {
         onlyChatOnMention.setValue(false);
         configuration.putIfAbsent("only_chat_on_mention", onlyChatOnMention);
 
+        ConfigEntry<Boolean> useFallBackProviders = new ConfigEntry<>(Boolean.class);
+        useFallBackProviders.setDescription("Whether to use fallback providers if the current selected provider is down");
+        useFallBackProviders.setValue(true);
+        configuration.putIfAbsent("use_fallback_providers", useFallBackProviders);
+
         ConfigEntry<Long> botRole = new ConfigEntry<>(Long.class);
         botRole.setDescription("Long ID of the bot controller role");
         botRole.setHidden(true);
