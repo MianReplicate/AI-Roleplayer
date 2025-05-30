@@ -36,4 +36,9 @@ What are the different prompt types? Character, instruction, world..
 - Instructions dictate the style of the roleplay and how the bot *should* roleplay. If you want to make it a discord-like chat or novel like, you can tell the bot to do that!
 - World dictates the environment and scenario for what the roleplay takes place in. It adds context to the roleplay for the bot to use.
 
+What makes this different from Shapes.Inc?
+- Honestly if you are already satisified with Shapes.Inc, then don't bother with this, already continue on :D
+- User interface with control for AI responses that closer represents Character.AI and SillyTavern (swipe on messages, delete, edit)
+- You have almost full control of what is sent to the LLM due to the three prompt types. You can also choose any model you'd like from OpenRouter and also choose a specific provider.
+
 One last thing, this is being run on my own personal server that may or may not be overloaded depending on how many people use this bot. As such, I’ve left the source public to let others host the bot if they want. With that said, happy roleplaying!
