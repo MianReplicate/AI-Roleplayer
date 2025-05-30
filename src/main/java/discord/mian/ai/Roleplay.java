@@ -258,30 +258,25 @@ public class Roleplay {
         return null;
     }
 
-    public RestAction<ChatRequest> createChatRequest(Character character) {
+    public RestAction<ExtrasChatRequest> createChatRequest(Character character) {
         ExtrasChatRequest.ExtrasChatRequestBuilder requestBuilder = ExtrasChatRequest
                 .extrasBuilder()
                 .setProviderFallback(server.getConfig().get("use_fallback_providers", Boolean.class).getValue());
         if (provider != null && !provider.isEmpty())
-            requestBuilder.setProviders(provider);
+            requestBuilder = requestBuilder.setProviders(provider);
 
-        requestBuilder.builder
-                .maxCompletionTokens(this.maxTokens)
-                .model(model.id)
-                .temperature(temperature)
-                .stream(true);
-
+        ExtrasChatRequest.ExtrasChatRequestBuilder finalRequestBuilder = requestBuilder;
         return getHistory(character).map(history ->
-                requestBuilder.builder
+                finalRequestBuilder.build(ChatRequest.builder()
                         .maxCompletionTokens(this.maxTokens)
                         .model(model.id)
                         .temperature(temperature)
                         .stream(true)
-                        .messages(history).build());
+                        .messages(history)));
     }
 
     private RestAction<ResponseInfo> generateResponse(Character character, Consumer<String> consumer) {
-        RestAction<ChatRequest> chatRequestAction = createChatRequest(character);
+        RestAction<ExtrasChatRequest> chatRequestAction = createChatRequest(character);
 
         return chatRequestAction.map(chatRequest -> {
             ObjectMapper mapper = new ObjectMapper();

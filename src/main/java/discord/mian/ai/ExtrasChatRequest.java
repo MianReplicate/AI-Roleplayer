@@ -25,7 +25,7 @@ public class ExtrasChatRequest extends ChatRequest {
     }
 
     @JsonAnyGetter
-    public HashMap<String, Object> getFields() {
+    public Map<String, Object> getFields() {
         return fields;
     }
 
@@ -38,14 +38,8 @@ public class ExtrasChatRequest extends ChatRequest {
     }
 
     public static class ExtrasChatRequestBuilder {
-        public final ChatRequestBuilder builder;
-
         public List<String> providers;
-        private boolean fallback;
-
-        public ExtrasChatRequestBuilder() {
-            builder = ExtrasChatRequest.builder();
-        }
+        private boolean fallback = true;
 
         public ExtrasChatRequestBuilder setProviders(String... strings) {
             providers = List.of(strings);
@@ -57,7 +51,7 @@ public class ExtrasChatRequest extends ChatRequest {
             return this;
         }
 
-        public ExtrasChatRequest build() {
+        public ExtrasChatRequest build(ChatRequestBuilder builder) {
             ExtrasChatRequest request = ExtrasChatRequest.from(builder.build());
             if (providers != null) {
                 HashMap<String, Object> providerMap = new HashMap<>();

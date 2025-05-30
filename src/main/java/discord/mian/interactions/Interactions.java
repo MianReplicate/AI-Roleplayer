@@ -955,6 +955,7 @@ public class Interactions {
     public static Consumer<ButtonInteractionEvent> getResponseInfo() {
         return event -> {
             try {
+                event.deferReply(true).useComponentsV2().queue();
                 Roleplay chat = AIBot.bot.getChat(event.getGuild());
                 PromptInfo responseInfo = chat.getFailedResponseInfo();
                 if (responseInfo == null) {
@@ -1004,8 +1005,7 @@ public class Interactions {
                     containerComponents.add(FileDisplay.fromFile(FileUpload.fromData(responseInfo.getResponse().getBytes(), "response.json")));
                 }
 
-                event.replyComponents(Util.createBotContainer(containerComponents))
-                        .setEphemeral(true)
+                event.getHook().editOriginalComponents(Util.createBotContainer(containerComponents))
                         .useComponentsV2()
                         .queue();
             } catch (Exception e) {
