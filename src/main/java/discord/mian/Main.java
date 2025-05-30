@@ -44,7 +44,7 @@ public class Main {
         Constants.LOGGER.info("IT'S TIME TO ROLEPLAY KIDDOS");
 
         try {
-            new AIBot(JDABuilder.create(discord_bot_token, GatewayIntent.MESSAGE_CONTENT)
+            new AIBot(JDABuilder.create(discord_bot_token, GatewayIntent.MESSAGE_CONTENT, GatewayIntent.GUILD_MESSAGES)
                     .setEventManager(new AnnotatedEventManager())
                     .addEventListeners(new Listener())
                     .build());
