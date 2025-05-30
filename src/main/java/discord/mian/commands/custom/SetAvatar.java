@@ -56,22 +56,27 @@ public class SetAvatar extends SlashCommand {
             }
 
             InputStream inputStream = avatar.getProxy().download().get();
-            String url =
-                    Util.uploadImage(
-                            server.getConfig().get("imgbb_key", String.class).getValue(),
-                            name,
-                            inputStream.readAllBytes()
-                    );
-
-            if (url == null) {
-                event.getHook().editOriginal("Failed to upload avatar to IMGBB").queue();
-            } else {
+            String key = server.getConfig().get("imgbb_key", String.class).getValue();
+            if(key== null || key.isBlank()){
+                event.getHook().editOriginal("There is no set IMGBB key! Please get one [here](https://api.imgbb.com/) before attempting to upload an image").queue();
+                return true;
+            }
+            try{
+                String url =
+                        Util.uploadImage(
+                                key,
+                                name,
+                                inputStream.readAllBytes()
+                        );
                 try {
                     existingCharacter.updateDocument(doc -> doc.setAvatar(url));
                     event.getHook().editOriginal("Successfully replaced avatar for " + name).queue();
                 } catch (MongoException ignored) {
                     event.getHook().editOriginal("Failed to replace avatar for " + name).queue();
                 }
+            } catch (RuntimeException e){
+                event.getHook().editOriginal("Failed to upload avatar to IMGBB. Did you add a valid IMGBB key?\nError: " + e).queue();
+                return true;
             }
 
             return true;

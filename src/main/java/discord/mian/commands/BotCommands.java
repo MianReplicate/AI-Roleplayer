@@ -20,7 +20,8 @@ public class BotCommands {
             new ChangePresence(),
             new Talk(),
             new ChangeAvatar(),
-            new EditModelProperties()
+            new EditModelProperties(),
+            new Help()
     );
 
     public static CommandListUpdateAction addCommands() {

@@ -10,7 +10,7 @@ import net.dv8tion.jda.api.managers.AccountManager;
 
 public class ChangeAvatar extends SlashCommand {
     public ChangeAvatar() {
-        super("change_avatar", "Change my pictures :o, so smexy");
+        super("change_bot_avatar", "Change my pictures :o, so smexy");
         this.permissionHandler.addUsers(Constants.ALLOWED_USER_IDS);
         this.addOption(OptionType.ATTACHMENT, "avatar", "My new avatar :D", false);
         this.addOption(OptionType.ATTACHMENT, "banner", "BANNER!", false);

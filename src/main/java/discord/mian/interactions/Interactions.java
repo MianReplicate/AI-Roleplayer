@@ -23,6 +23,7 @@ import discord.mian.data.world.World;
 import net.dv8tion.jda.api.components.actionrow.ActionRow;
 import net.dv8tion.jda.api.components.buttons.Button;
 import net.dv8tion.jda.api.components.buttons.ButtonStyle;
+import net.dv8tion.jda.api.components.container.Container;
 import net.dv8tion.jda.api.components.container.ContainerChildComponent;
 import net.dv8tion.jda.api.components.container.ContainerChildComponentUnion;
 import net.dv8tion.jda.api.components.filedisplay.FileDisplay;
@@ -1023,11 +1024,37 @@ public class Interactions {
                                         button.getMessage(), button.getHook(), null
                                 );
                             } catch (Exception e) {
-                                button.getChannel().sendMessage("Failed to continue roleplay!")
+                                button.getChannel().sendMessage("Failed to continue roleplay!\nError: " + e)
                                         .queue(msg -> msg.delete().queueAfter(10, TimeUnit.SECONDS));
                                 Constants.LOGGER.error("Failed to continue roleplay", e);
                             }
                         })
                 .withEmoji(Emoji.fromFormatted("🔁"));
+    }
+
+    public static Container getHelpContainer(){
+        List<ContainerChildComponent> componentList = new ArrayList<>();
+
+        componentList.add(TextDisplay.of("# Help Menu 😣"));
+        componentList.add(TextDisplay.of("Use /menu to open up the main dashboard at any time"));
+        componentList.add(TextDisplay.of("-# Hiya, thanks for adding me! 👋"));
+        componentList.add(Separator.createDivider(Separator.Spacing.SMALL));
+        componentList.add(TextDisplay.of("## How can I get started? ❓"));
+        componentList.add(TextDisplay.of("1. Get an [OpenRouter API Key](https://openrouter.ai/settings/keys) if you already do not have one. You may need to make an account. This is where we will get our AI models."));
+        componentList.add(TextDisplay.of("2. Get an [IMGBB API Key](https://api.imgbb.com/) if you already do not have one. This is the API we will use to upload PFPs of your characters."));
+        componentList.add(TextDisplay.of("3. Run /menu, go to Server Configuration, and set your API keys to the imgbb_key and openrouter_key fields. Be sure to not add any additional spaces that could mess up the key."));
+        componentList.add(TextDisplay.of("4. You are done setting up the bot! You may press \"Start Roleplay\" in the main dashboard to get started with a new roleplay :sunglasses:"));
+        componentList.add(Separator.createDivider(Separator.Spacing.SMALL));
+        componentList.add(TextDisplay.of("## How can I create custom characters, instructions, and world prompts? 🌍🧝🤖"));
+        componentList.add(TextDisplay.of("1. Run /menu and choose from Characters | Instructions | Worlds"));
+        componentList.add(TextDisplay.of("2. If you want to edit a prompt, select \"Edit Prompt\" and choose a prompt. Otherwise click \"Create Prompt\""));
+        componentList.add(TextDisplay.of("3. Depending on what you selected, you can either choose a name, edit the description, and etc. Go wild here!"));
+        componentList.add(Separator.createDivider(Separator.Spacing.SMALL));
+        componentList.add(TextDisplay.of("## Can I save specific roleplays and come back later?"));
+        componentList.add(TextDisplay.of("Yep! This is the whole reason why the bot creates your roleplays in threads. You can press \"Continue\" at any time to continue from a specific roleplay."));
+        componentList.add(Separator.createDivider(Separator.Spacing.SMALL));
+        componentList.add(TextDisplay.of("## How can I set permissions for what someone can do? 🛑"));
+        componentList.add(TextDisplay.of("At the moment everyone can roleplay with the bot. The only few things people can't do is create and delete prompts or edit the server configuration.\n\nFor that, you must use /set_bot_role to assign a role that bypasses these restrictions."));
+        return Util.createBotContainer(componentList);
     }
 }

@@ -18,6 +18,9 @@ How can I get started?
 4. Run /menu, go to Server Configuration, and put in your keys
 5. Done! You are ready now to start new roleplays, and/or create new characters, worlds, and instruction prompts to use!
 
+Why create the roleplay in threads?
+- This allows you to continue a roleplay if you wanted to start a new one or if the bot went down at any point!
+
 How can I assign an avatar to a character?
 - Use the /set_avatar command to edit a character's avatar. Make sure you have an IMGBB key set up so that the bot can upload your avatar and use it!
 

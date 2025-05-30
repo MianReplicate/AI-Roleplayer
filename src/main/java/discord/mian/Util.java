@@ -191,7 +191,7 @@ public class Util {
         return IMAGE_EXTENSIONS.contains(extension) && ImageIO.read(image) != null;
     }
 
-    public static String uploadImage(String key, String name, byte[] data) throws IOException, InterruptedException {
+    public static String uploadImage(String key, String name, byte[] data) throws IOException {
         if (!isValidImage(data))
             throw new RuntimeException("Invalid image!");
 
@@ -215,14 +215,13 @@ public class Util {
         Response response = call.execute();
 
         ObjectMapper mapper = new ObjectMapper();
+        JsonNode json = mapper.readTree(response.body().string());
 
         if (response.code() < 200 || response.code() >= 400) {
             Constants.LOGGER.info("Failed to upload image!");
-            System.out.println("Raw response:\n" + response.body().string()); // Debug what you actually got
-            return null;
+            throw new RuntimeException(json.get("error").get("message").asText());
         }
 
-        JsonNode json = mapper.readTree(response.body().string());
         String link = json.get("data").get("url").asText();
 
         Constants.LOGGER.info("Uploaded " + name + ": " + link);

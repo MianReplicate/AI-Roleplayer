@@ -79,6 +79,8 @@ public class AIBot {
 
     public void removeServer(Guild guild) {
         Server server = servers.remove(guild);
+        if(server == null)
+            return;
         ServerConfig config = server.getConfig();
         Util.DATABASE.getCollection("server").deleteMany(
                 Filters.eq("_id", config.getId())

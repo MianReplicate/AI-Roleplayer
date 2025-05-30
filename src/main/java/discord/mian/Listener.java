@@ -6,8 +6,10 @@ import discord.mian.commands.BotCommands;
 import discord.mian.data.PromptType;
 import discord.mian.data.character.Character;
 import discord.mian.interactions.InteractionCreator;
+import discord.mian.interactions.Interactions;
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent;
@@ -37,6 +39,12 @@ public class Listener {
 
     @SubscribeEvent
     public void onGuildJoin(GuildJoinEvent event) {
+        for(TextChannel channel : event.getGuild().getTextChannelCache().stream().toList()){
+            if(channel.canTalk()){
+                channel.sendMessageComponents(Interactions.getHelpContainer()).useComponentsV2().queue();
+                break;
+            }
+        }
         AIBot.bot.onServerJoin(event.getGuild());
     }
 
@@ -72,11 +80,9 @@ public class Listener {
 
     @SubscribeEvent
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) throws Exception {
-//        if(AIBot.bot.getChat(event.getGuild()) == null){
-//            event.reply("Bot is not initialized for this guild yet! Please wait a moment..").queue();
-//            AIBot.bot.createChat(event.getGuild());
-//            return;
-//        }
+        if(AIBot.bot.getServerData(event.getGuild()) == null){
+            AIBot.bot.onServerJoin(event.getGuild());
+        }
         BotCommands.handleCommand(event);
     }
 
