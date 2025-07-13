@@ -687,7 +687,7 @@ public class Roleplay {
                         .replaceAll("<@" + message.getAuthor().getId() + ">", "")
                         .replaceAll("<|im_end|>", "");
 
-                if (message.isWebhookMessage()) {
+                if (character.getName().equals(username) && message.isWebhookMessage()) {
                     messages.add(
                             ChatMessage.AssistantMessage.builder()
                                     .content(username + ": " + formatted)
