@@ -659,7 +659,7 @@ public class Roleplay {
             }
             messages.add(ChatMessage.SystemMessage.of(combinedLore.toString(), "Lore"));
 
-            String characterPersona = "Understand the character definition below! This is the character you will be playing in the roleplay.\n" +
+            String characterPersona = "Understand the character definition! You are playing "+character.getName()+". DO NOT PLAY ANY OTHER CHARACTER. \n" +
                     character.getChatMessage(character).getContent();
             messages.add(ChatMessage.SystemMessage.of(characterPersona, "CharacterDefinition"));
             messages.add(ChatMessage.SystemMessage.of("<CHAT HISTORY>"));
@@ -687,7 +687,7 @@ public class Roleplay {
                         .replaceAll("<@" + message.getAuthor().getId() + ">", "")
                         .replaceAll("<|im_end|>", "");
 
-                if (character.getName().equals(username) && message.isWebhookMessage()) {
+                if (character != null && character.getName().equals(username) && message.isWebhookMessage()) {
                     messages.add(
                             ChatMessage.AssistantMessage.builder()
                                     .content(username + ": " + formatted)
@@ -699,7 +699,7 @@ public class Roleplay {
                 }
             }
             if (character != null)
-                messages.add(ChatMessage.SystemMessage.of("Write as " + character.getName() + " for your next response!"));
+                messages.add(ChatMessage.AssistantMessage.of("Write as " + character.getName() + " for your next response! DO NOT WRITE FOR ANY OTHER CHARACTER"));
             return trimListToMeetTokens(messages, required);
         });
     }
