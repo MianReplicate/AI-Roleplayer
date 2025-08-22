@@ -362,7 +362,7 @@ public class Interactions {
                                     + forceIndex + footerText.substring(slash);
                         }
                         message.editMessageComponents(message.getComponentTree()
-                                .replace(ComponentReplacer.byId(121, footer.asTextDisplay().withContent(footerText)))
+                                .replace(ComponentReplacer.byUniqueId(121, footer.asTextDisplay().withContent(footerText)))
                                 .getComponents()).queue(ignored ->
                                 createConfigViewer((direction) -> createConfigViewerContainer(message, null), hook, null));
                     }, () -> createConfigViewer((direction) -> createConfigViewerContainer(message, null), hook, null));
@@ -557,7 +557,7 @@ public class Interactions {
                                     + forceIndex + footerText.substring(slash);
                         }
                         message.editMessageComponents(message.getComponentTree()
-                                .replace(ComponentReplacer.byId(121, footer.asTextDisplay().withContent(footerText)))
+                                .replace(ComponentReplacer.byUniqueId(121, footer.asTextDisplay().withContent(footerText)))
                                 .getComponents()).queue((ignored) ->
                                 createPromptViewer(message, promptType, null, timeOut), t -> Constants.LOGGER.error("Failed to create prompt viewer", t));
                     }, () -> createPromptViewer(message, promptType, null, timeOut));
@@ -711,7 +711,7 @@ public class Interactions {
                                     try {
                                         Data prompt = dataList.get(onSelect.getSelectedOptions().getFirst().getValue());
                                         onSelect.getHook()
-                                                .sendFiles(FileUpload.fromData(prompt.getPrompt().getBytes(), "prompt"))
+                                                .sendFiles(FileUpload.fromData(prompt.getPrompt().getBytes(), "prompt.json"))
                                                 .setEphemeral(true)
                                                 .queue();
                                     } catch (Exception e) {
@@ -755,7 +755,7 @@ public class Interactions {
                                                     "Select " + display + " prompts to use in the roleplay.",
                                                     promptType,
                                                     direction, enabledData), givenMsg, promptType, false, true,
-                                            selects, null, 90L, InteractionCreator.createButton(Emoji.fromFormatted("✅"), buttonEvent -> {
+                                            selects, null, 120L, InteractionCreator.createButton(Emoji.fromFormatted("✅"), buttonEvent -> {
                                                 if (datas.get(promptType).isEmpty()) {
                                                     buttonEvent.reply("Need at least one set of " + display + "!").setEphemeral(true).queue();
                                                     return;

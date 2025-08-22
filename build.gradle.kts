@@ -24,9 +24,8 @@ repositories{
 }
 
 dependencies{
-    implementation("io.github.freya022:JDA:4c869c0fd8")
     implementation("org.mongodb:mongodb-driver-sync:$mongodb_version")
-//    implementation("net.dv8tion:JDA:$jda_version")
+    implementation("net.dv8tion:JDA:$jda_version")
     implementation("org.apache.tika:tika-core:$tika_version")
     implementation(platform("com.squareup.okhttp3:okhttp-bom:$okhttp_version"))
     implementation("com.fasterxml.jackson.core:jackson-core:$jackson_version");

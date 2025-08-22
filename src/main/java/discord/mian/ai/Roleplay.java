@@ -215,7 +215,7 @@ public class Roleplay {
                         Container container = message.getComponentTree().getComponents().getFirst().asContainer();
 
                         Consumer<List<ChatMessage>> onRetrievedMessages = list ->
-                                message.editMessageComponents(container.replace(ComponentReplacer.byId(Constants.HISTORY_COUNT,
+                                message.editMessageComponents(container.replace(ComponentReplacer.byUniqueId(Constants.HISTORY_COUNT,
                                         TextDisplay.of("**Chat Messages:** " + (list.size() + 1))
                                                 .withUniqueId(Constants.HISTORY_COUNT)))).useComponentsV2().queue();
 
@@ -429,7 +429,7 @@ public class Roleplay {
                     Container container = parentMsg.getComponentTree().getComponents().getFirst().asContainer();
                     TextDisplay charactersDisplay = container.getComponents().stream().filter(component -> component.getUniqueId() == 152)
                             .findFirst().get().asTextDisplay();
-                    parentMsg.editMessageComponents(container.replace(ComponentReplacer.byId(152, charactersDisplay.withContent(
+                    parentMsg.editMessageComponents(container.replace(ComponentReplacer.byUniqueId(152, charactersDisplay.withContent(
                             charactersDisplay.getContent() + ", " + character.getName()
                     )))).useComponentsV2().queue(success -> {
                         addData(PromptType.CHARACTER, character);
@@ -815,7 +815,7 @@ public class Roleplay {
                     onSuccess.accept(hook);
             }, onFail);
 
-            ComponentReplacer replacer = ComponentReplacer.byId(1, oldComponent -> {
+            ComponentReplacer replacer = ComponentReplacer.byUniqueId(1, oldComponent -> {
                 if (oldComponent instanceof TextDisplay display && !display.getContent().contains(" ✅")) {
                     return display.withContent(display.getContent() + " ✅");
                 }
@@ -866,7 +866,7 @@ public class Roleplay {
             guild.getTextChannelCache().stream().forEach(textChannel -> {
                 textChannel.retrieveMessageById(parentID).queue(oldMessage -> {
                     oldMessage.editMessageComponents(oldMessage.getComponentTree().replace(
-                            ComponentReplacer.byId(1, oldComponent -> {
+                            ComponentReplacer.byUniqueId(1, oldComponent -> {
                                 if (oldComponent instanceof TextDisplay display) {
                                     int index = display.getContent().indexOf(" ✅");
                                     if (index != -1) {

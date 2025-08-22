@@ -29,7 +29,7 @@ public class PermissionHandler<T extends GenericInteractionCreateEvent & IReplyC
         if (isAllowed(event.getUser()))
             return true;
         else
-            event.reply("You are not allowed to use this command!").setEphemeral(true).queue();
+            event.reply("This command is restricted to a set user list. If you believe this is a mistake, please contact the owner.").setEphemeral(true).queue();
         return false;
     }
 }
